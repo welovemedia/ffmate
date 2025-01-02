@@ -1,0 +1,6 @@
+db.sqlite
+tmp/
+_footage/
+_update
+_bin/
+dist/
