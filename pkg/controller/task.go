@@ -21,6 +21,12 @@ func (c *TaskController) Setup(s *sev.Sev) {
 	c.taskService = &service.TaskService{
 		Sev:            s,
 		TaskRepository: &repository.Task{DB: s.DB()},
+		PresetService: &service.PresetService{
+			Sev: s,
+			PresetRepository: &repository.Preset{
+				DB: s.DB(),
+			},
+		},
 		WebhookService: &service.WebhookService{
 			Sev: s,
 			WebhookRepository: &repository.Webhook{
@@ -35,12 +41,12 @@ func (c *TaskController) Setup(s *sev.Sev) {
 	s.Gin().PATCH(c.Prefix+c.getEndpoint()+"/:uuid/cancel", c.cancelTask)
 }
 
-//	@Summary		List all tasks
-//	@Description	List all existing tasks
-//	@Tags			tasks
-//	@Produce		json
-//	@Success		200	{object}	[]dto.Task
-//	@Router			/tasks [get]
+// @Summary		List all tasks
+// @Description	List all existing tasks
+// @Tags			tasks
+// @Produce		json
+// @Success		200	{object}	[]dto.Task
+// @Router			/tasks [get]
 func (c *TaskController) listTasks(gin *gin.Context) {
 	tasks, err := c.taskService.ListTasks()
 	if err != nil {
@@ -57,14 +63,14 @@ func (c *TaskController) listTasks(gin *gin.Context) {
 	gin.JSON(200, taskDTOs)
 }
 
-//	@Summary		Add a new task
-//	@Description	Add a new tasks to the queue
-//	@Tags			tasks
-//	@Accept			json
-//	@Param			request	body	dto.NewTask	true	"new task"
-//	@Produce		json
-//	@Success		200	{object}	dto.Task
-//	@Router			/tasks [post]
+// @Summary		Add a new task
+// @Description	Add a new tasks to the queue
+// @Tags			tasks
+// @Accept			json
+// @Param			request	body	dto.NewTask	true	"new task"
+// @Produce		json
+// @Success		200	{object}	dto.Task
+// @Router			/tasks [post]
 func (c *TaskController) addTask(gin *gin.Context) {
 	newTask := &dto.NewTask{}
 	c.sev.Validate().Bind(gin, newTask)
@@ -78,13 +84,13 @@ func (c *TaskController) addTask(gin *gin.Context) {
 	gin.JSON(200, task.ToDto())
 }
 
-//	@Summary		Get single task
-//	@Description	Get a single task by its uuid
-//	@Tags			tasks
-//	@Param			uuid	path	string	true	"the tasks uuid"
-//	@Produce		json
-//	@Success		200	{object}	dto.Task
-//	@Router			/tasks/{uuid} [get]
+// @Summary		Get single task
+// @Description	Get a single task by its uuid
+// @Tags			tasks
+// @Param			uuid	path	string	true	"the tasks uuid"
+// @Produce		json
+// @Success		200	{object}	dto.Task
+// @Router			/tasks/{uuid} [get]
 func (c *TaskController) getTask(gin *gin.Context) {
 	uuid := gin.Param("uuid")
 	task, err := c.taskService.GetTaskById(uuid)
@@ -96,13 +102,13 @@ func (c *TaskController) getTask(gin *gin.Context) {
 	gin.JSON(200, task.ToDto())
 }
 
-//	@Summary		Cancel a task
-//	@Description	Cancel a task by its uuid
-//	@Tags			tasks
-//	@Param			uuid	path	string	true	"the tasks uuid"
-//	@Produce		json
-//	@Success		200	{object}	dto.Task
-//	@Router			/tasks/{uuid}/cancel [patch]
+// @Summary		Cancel a task
+// @Description	Cancel a task by its uuid
+// @Tags			tasks
+// @Param			uuid	path	string	true	"the tasks uuid"
+// @Produce		json
+// @Success		200	{object}	dto.Task
+// @Router			/tasks/{uuid}/cancel [patch]
 func (c *TaskController) cancelTask(gin *gin.Context) {
 	uuid := gin.Param("uuid")
 	task, err := c.taskService.CancelTask(uuid)

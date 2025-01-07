@@ -13,6 +13,7 @@ type TaskService struct {
 	Sev            *sev.Sev
 	TaskRepository *repository.Task
 	WebhookService *WebhookService
+	PresetService  *PresetService
 }
 
 func (s *TaskService) ListTasks() (*[]model.Task, error) {
@@ -45,6 +46,13 @@ func (s *TaskService) CancelTask(uuid string) (*model.Task, error) {
 }
 
 func (s *TaskService) NewTask(task *dto.NewTask) (*model.Task, error) {
+	if task.Preset != "" {
+		preset, err := s.PresetService.FindByName(task.Preset)
+		if err != nil {
+			return nil, err
+		}
+		task.Command = preset.Command
+	}
 	t, err := s.TaskRepository.Create(task.Command, task.InputFile, task.OutputFile)
 
 	s.Sev.Metrics().Gauge("task.created").Inc()

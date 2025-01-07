@@ -22,6 +22,87 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/presets": {
+            "get": {
+                "description": "List all existing presets",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "presets"
+                ],
+                "summary": "List all presets",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.Preset"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add a new preset",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "presets"
+                ],
+                "summary": "Add a new preset",
+                "parameters": [
+                    {
+                        "description": "new preset",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.NewPreset"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Preset"
+                        }
+                    }
+                }
+            }
+        },
+        "/presets/{uuid}": {
+            "delete": {
+                "description": "Delete a preset by its uuid",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "presets"
+                ],
+                "summary": "Delete a preset",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "the presets uuid",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
         "/tasks": {
             "get": {
                 "description": "List all existing tasks",
@@ -155,7 +236,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/webhook": {
+        "/webhooks": {
             "get": {
                 "description": "List all existing webhooks",
                 "produces": [
@@ -210,7 +291,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/webhook/{uuid}": {
+        "/webhooks/{uuid}": {
             "delete": {
                 "description": "Delete a webhook by its uuid",
                 "produces": [
@@ -238,6 +319,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.NewPreset": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.NewTask": {
             "type": "object",
             "properties": {
@@ -249,6 +341,9 @@ const docTemplate = `{
                 },
                 "outputFile": {
                     "type": "string"
+                },
+                "preset": {
+                    "type": "string"
                 }
             }
         },
@@ -259,6 +354,26 @@ const docTemplate = `{
                     "$ref": "#/definitions/dto.WebhookEvent"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Preset": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "uuid": {
                     "type": "string"
                 }
             }
@@ -342,12 +457,16 @@ const docTemplate = `{
             "enum": [
                 "task.created",
                 "task.status.updated",
+                "preset.created",
+                "preset.deleted",
                 "webhook.created",
                 "webhook.deleted"
             ],
             "x-enum-varnames": [
                 "TASK_CREATED",
                 "TASK_STATUS_UPDATED",
+                "PRESET_CREATED",
+                "PRESET_DELETE",
                 "WEBHOOK_CREATED",
                 "WEBHOOK_DELETED"
             ]

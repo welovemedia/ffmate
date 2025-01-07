@@ -16,6 +16,7 @@ func Init(s *sev.Sev, concurrentTasks uint) {
 	// setup repositories
 	(&repository.Task{DB: s.DB()}).Setup()
 	(&repository.Webhook{DB: s.DB()}).Setup()
+	(&repository.Preset{DB: s.DB()}).Setup()
 
 	// setup metrics
 	metrics := &metrics.Metrics{}
@@ -30,6 +31,7 @@ func Init(s *sev.Sev, concurrentTasks uint) {
 	// setup controllers
 	s.RegisterController(&controller.TaskController{Prefix: prefix})
 	s.RegisterController(&controller.WebhookController{Prefix: prefix})
+	s.RegisterController(&controller.PresetController{Prefix: prefix})
 	s.RegisterController(&controller.WebController{Prefix: prefix})
 	s.RegisterController(&controller.VersionController{Prefix: prefix})
 
