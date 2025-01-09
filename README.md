@@ -1,8 +1,15 @@
-# ffmate
+# ffmate: FFmpeg with a REST API, Web UI, Webhooks & Queues
 
-## The Rest API for FFMpeg with queue support
+`ffmate` bridges the gap between the raw power of FFmpeg and the need for user-friendly interfaces and robust integration capabilities. While FFmpeg is incredibly versatile, its complex command-line syntax can be daunting. `ffmate` solves this by providing simplified interfaces, ready-to-use presets, a robust queueing system, and advanced features like real-time webhook notifications and automated post-transcoding tasks
 
-**ffmate** is a wrapper for **ffmpeg** that adds a Rest API, a queue, webhooks and other features.
+## Key Features
+
+*   **User-Friendly Interfaces:** Offers a REST API, web interface and a modern web interface for easy interaction with FFmpeg.
+*   **Ready-to-Use Presets:** Includes a comprehensive set of pre-configured transcoding presets for common use cases, simplifying common tasks.
+*   **Robust Queueing System:** Manages transcoding tasks with a powerful queue that supports prioritization, grouping, and efficient processing.
+    **Webhook Notifications:** Enables real-time notifications to third-party systems about *all* transcoding events (start, progress, completion, errors), facilitating seamless integration into existing workflows and allowing for automated actions to be triggered based on transcoding status.
+    **Post-Transcoding Tasks:** Allows for the execution of custom scripts *immediately* after transcoding is complete.
+*   **Output Filename Wildcard Support:** Enables dynamic filename generation using wildcards.
 
 ffmates **featureset** (and roadmap) looks like this:
 
