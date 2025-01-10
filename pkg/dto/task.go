@@ -15,7 +15,8 @@ const (
 )
 
 type Task struct {
-	Uuid string `json:"uuid"`
+	Uuid  string `json:"uuid"`
+	Batch string `json:"batch,omitempty"`
 
 	Name string `json:"name,omitempty"`
 

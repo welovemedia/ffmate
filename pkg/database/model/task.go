@@ -14,7 +14,8 @@ type Task struct {
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
-	Uuid string
+	Uuid  string
+	Batch string
 
 	Name string
 
@@ -32,7 +33,8 @@ func (m *Task) ToDto() *dto.Task {
 	return &dto.Task{
 		Uuid: m.Uuid,
 
-		Name: m.Name,
+		Name:  m.Name,
+		Batch: m.Batch,
 
 		Command:    m.Command,
 		InputFile:  m.InputFile,

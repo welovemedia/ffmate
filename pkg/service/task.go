@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/welovemedia/ffmate/pkg/database/model"
 	"github.com/welovemedia/ffmate/pkg/database/repository"
 	"github.com/welovemedia/ffmate/pkg/dto"
@@ -22,6 +23,10 @@ func (s *TaskService) ListTasks() (*[]model.Task, error) {
 
 func (s *TaskService) GetTaskById(uuid string) (*model.Task, error) {
 	return s.TaskRepository.First(uuid)
+}
+
+func (s *TaskService) GetTasksByBatchId(uuid string) (*[]model.Task, error) {
+	return s.TaskRepository.ByBatchId(uuid)
 }
 
 func (s *TaskService) DeleteTask(uuid string) error {
@@ -81,11 +86,37 @@ func (s *TaskService) NewTask(task *dto.NewTask) (*model.Task, error) {
 		}
 		task.Command = preset.Command
 	}
-	t, err := s.TaskRepository.Create(task.Command, task.InputFile, task.OutputFile, task.Name, task.Priority)
+	t, err := s.TaskRepository.Create(task, "")
 
 	s.Sev.Metrics().Gauge("task.created").Inc()
 	s.WebhookService.Fire(dto.TASK_CREATED, t.ToDto())
 
 	s.Sev.Logger().Infof("new task added to queue (uuid: %s)", t.Uuid)
 	return t, err
+}
+
+func (s *TaskService) NewTasks(tasks *[]dto.NewTask) (*[]model.Task, error) {
+	batch := uuid.NewString()
+	newTasks := []model.Task{}
+	for _, task := range *tasks {
+		if task.Preset != "" {
+			preset, err := s.PresetService.FindByName(task.Preset)
+			if err != nil {
+				return nil, err
+			}
+			task.Command = preset.Command
+		}
+		t, err := s.TaskRepository.Create(&task, batch)
+		if err != nil {
+			return nil, err
+		}
+
+		newTasks = append(newTasks, *t)
+
+		s.Sev.Metrics().Gauge("task.created").Inc()
+		s.WebhookService.Fire(dto.TASK_CREATED, t.ToDto())
+
+		s.Sev.Logger().Infof("new task added to queue (uuid: %s)", t.Uuid)
+	}
+	return &newTasks, nil
 }

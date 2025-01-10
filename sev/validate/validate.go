@@ -73,3 +73,25 @@ func (s *Validate) Bind(gin *gin.Context, v interface{}) {
 
 	gin.Next()
 }
+
+func (s *Validate) BindWithoutValidation(gin *gin.Context, v interface{}) {
+	err := gin.BindJSON(v)
+	if err != nil {
+		e := exceptions.HttpInvalidBody(err)
+		gin.AbortWithStatusJSON(e.HttpCode, e)
+		return
+	}
+
+	gin.Next()
+}
+
+func (s *Validate) ValidateOnly(gin *gin.Context, v interface{}) {
+	err := val.Struct(v)
+	if err != nil {
+		e := exceptions.HttpInvalidBody(err)
+		gin.AbortWithStatusJSON(e.HttpCode, e)
+		return
+	}
+
+	gin.Next()
+}

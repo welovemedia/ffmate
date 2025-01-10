@@ -37,7 +37,9 @@ func (c *TaskController) Setup(s *sev.Sev) {
 	c.sev = s
 	s.Gin().GET(c.Prefix+c.getEndpoint(), c.listTasks)
 	s.Gin().POST(c.Prefix+c.getEndpoint(), c.addTask)
+	s.Gin().POST(c.Prefix+c.getEndpoint()+"/batch", c.addTasks)
 	s.Gin().GET(c.Prefix+c.getEndpoint()+"/:uuid", c.getTask)
+	s.Gin().GET(c.Prefix+c.getEndpoint()+"/batch/:uuid", c.getTasks)
 	s.Gin().DELETE(c.Prefix+c.getEndpoint()+"/:uuid", c.deleteTask)
 	s.Gin().PATCH(c.Prefix+c.getEndpoint()+"/:uuid/cancel", c.cancelTask)
 }
@@ -83,6 +85,38 @@ func (c *TaskController) deleteTask(gin *gin.Context) {
 	gin.AbortWithStatus(204)
 }
 
+// @Summary Add a batch of tasks
+// @Description	Add a batch of new tasks to the queue
+// @Tags tasks
+// @Accept json
+// @Param request body []dto.NewTask true "new tasks"
+// @Produce json
+// @Success 200 {object} []dto.Task
+// @Router /tasks/batch [post]
+func (c *TaskController) addTasks(gin *gin.Context) {
+	newTasks := &[]dto.NewTask{}
+	c.sev.Validate().BindWithoutValidation(gin, newTasks)
+
+	// bind and validation in a single step throws a nil error, so we separate those tasks
+	for _, t := range *newTasks {
+		c.sev.Validate().ValidateOnly(gin, &t)
+	}
+
+	tasks, err := c.taskService.NewTasks(newTasks)
+	if err != nil {
+		gin.JSON(400, exceptions.HttpBadRequest(err))
+		return
+	}
+
+	// Transform each task to its DTO
+	var taskDTOs = []dto.Task{}
+	for _, task := range *tasks {
+		taskDTOs = append(taskDTOs, *task.ToDto())
+	}
+
+	gin.JSON(200, taskDTOs)
+}
+
 // @Summary Add a new task
 // @Description	Add a new tasks to the queue
 // @Tags tasks
@@ -120,6 +154,30 @@ func (c *TaskController) getTask(gin *gin.Context) {
 	}
 
 	gin.JSON(200, task.ToDto())
+}
+
+// @Summary Get tasks for batch
+// @Description	Get tasks by batch uuid
+// @Tags tasks
+// @Param uuid path string true "the batch uuid"
+// @Produce json
+// @Success 200 {object} []dto.Task
+// @Router /tasks/batch/{uuid} [get]
+func (c *TaskController) getTasks(gin *gin.Context) {
+	uuid := gin.Param("uuid")
+	tasks, err := c.taskService.GetTasksByBatchId(uuid)
+	if err != nil {
+		gin.JSON(400, exceptions.HttpBadRequest(err))
+		return
+	}
+
+	// Transform each task to its DTO
+	var taskDTOs = []dto.Task{}
+	for _, task := range *tasks {
+		taskDTOs = append(taskDTOs, *task.ToDto())
+	}
+
+	gin.JSON(200, taskDTOs)
 }
 
 // @Summary Cancel a task

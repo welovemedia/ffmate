@@ -21,8 +21,8 @@ func (m *Task) List() (*[]model.Task, error) {
 	return tasks, m.DB.Error
 }
 
-func (m *Task) Create(command string, inputField string, outputFile string, name string, priority uint) (*model.Task, error) {
-	task := &model.Task{Uuid: uuid.NewString(), Command: command, InputFile: inputField, OutputFile: outputFile, Name: name, Priority: priority, Progress: 0, Status: dto.QUEUED}
+func (m *Task) Create(newTask *dto.NewTask, batch string) (*model.Task, error) {
+	task := &model.Task{Uuid: uuid.NewString(), Command: newTask.Command, InputFile: newTask.InputFile, OutputFile: newTask.OutputFile, Name: newTask.Name, Priority: newTask.Priority, Progress: 0, Status: dto.QUEUED, Batch: batch}
 	db := m.DB.Create(task)
 	return task, db.Error
 }
@@ -36,6 +36,12 @@ func (m *Task) First(uuid string) (*model.Task, error) {
 	var task *model.Task
 	db := m.DB.Where("uuid", uuid).First(&task)
 	return task, db.Error
+}
+
+func (m *Task) ByBatchId(uuid string) (*[]model.Task, error) {
+	var tasks = &[]model.Task{}
+	m.DB.Order("created_at DESC").Where("batch = ?", uuid).Find(&tasks)
+	return tasks, m.DB.Error
 }
 
 func (m *Task) Count() (int64, error) {

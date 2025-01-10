@@ -24,11 +24,11 @@ const docTemplate = `{
     "paths": {
         "/debug/namespace": {
             "delete": {
-                "description": "Set debug namespace(s)",
+                "description": "Turn debugging off",
                 "tags": [
                     "debug"
                 ],
-                "summary": "Set debug namespace(s)",
+                "summary": "Turn debugging off",
                 "responses": {
                     "204": {
                         "description": "No Content"
@@ -181,6 +181,78 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.Task"
+                        }
+                    }
+                }
+            }
+        },
+        "/tasks/batch": {
+            "post": {
+                "description": "Add a batch of new tasks to the queue",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Add a batch of tasks",
+                "parameters": [
+                    {
+                        "description": "new tasks",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.NewTask"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.Task"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tasks/batch/{uuid}": {
+            "get": {
+                "description": "Get tasks by batch uuid",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Get tasks for batch",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "the batch uuid",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.Task"
+                            }
                         }
                     }
                 }
@@ -445,6 +517,9 @@ const docTemplate = `{
         "dto.Task": {
             "type": "object",
             "properties": {
+                "batch": {
+                    "type": "string"
+                },
                 "command": {
                     "type": "string"
                 },
