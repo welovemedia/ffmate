@@ -10,7 +10,10 @@ import (
 	"strings"
 
 	"github.com/welovemedia/ffmate/pkg/config"
+	"github.com/yosev/debugo"
 )
+
+var debug = debugo.New("ffmpeg")
 
 // ExecuteFFmpeg runs the ffmpeg command, provides progress updates, and checks the result
 func Execute(request *ExecutionRequest, updateFunc func(progress float64)) error {
@@ -51,7 +54,7 @@ func Execute(request *ExecutionRequest, updateFunc func(progress float64)) error
 				duration = parseDuration(durationStr)
 			}
 			if progress := parseFFmpegOutput(line, duration); progress != nil {
-				request.Logger.Debugf("FFMPEG - progress: %f %+v (uuid: %s)\n", progress.Time/duration*100, progress, request.Task.Uuid)
+				debug.Debugf("progress: %f %+v (uuid: %s)", progress.Time/duration*100, progress, request.Task.Uuid)
 				updateFunc(progress.Time / duration * 100)
 			}
 		}

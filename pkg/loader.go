@@ -26,6 +26,7 @@ func Init(s *sev.Sev, concurrentTasks uint) {
 
 	// setup middlewares
 	s.RegisterMiddleware("404", middleware.E404)
+	s.RegisterMiddleware("debugo", middleware.Debugo)
 	s.RegisterMiddleware("version", middleware.Version)
 
 	// setup controllers
@@ -33,6 +34,7 @@ func Init(s *sev.Sev, concurrentTasks uint) {
 	s.RegisterController(&controller.WebhookController{Prefix: prefix})
 	s.RegisterController(&controller.PresetController{Prefix: prefix})
 	s.RegisterController(&controller.WebController{Prefix: prefix})
+	s.RegisterController(&controller.DebugController{Prefix: prefix})
 	s.RegisterController(&controller.VersionController{Prefix: prefix})
 
 	// Initialize queue processor

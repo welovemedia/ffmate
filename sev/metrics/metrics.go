@@ -3,10 +3,12 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"github.com/yosev/debugo"
 )
 
 var gauges = make(map[string]prometheus.Gauge)
 var dummyGauge = prometheus.NewGauge(prometheus.GaugeOpts{Name: "dummy", Help: "Dummy gauge"})
+var debug = debugo.New("prometheus:register")
 
 type Metrics struct {
 	Registry *prometheus.Registry
@@ -20,7 +22,7 @@ func (m *Metrics) Init() {
 func (m *Metrics) RegisterGauge(name string, gauge prometheus.Gauge) {
 	gauges[name] = gauge
 	m.Registry.MustRegister(gauge)
-	m.Logger.Debugf("registered prometheus gauge '%s'", name)
+	debug.Debugf("registered prometheus gauge '%s'", name)
 }
 
 func (m *Metrics) Gauge(name string) prometheus.Gauge {

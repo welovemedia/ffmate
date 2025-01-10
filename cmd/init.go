@@ -5,10 +5,10 @@ import (
 	"os"
 
 	"github.com/sanbornm/go-selfupdate/selfupdate"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/welovemedia/ffmate/pkg/config"
+	"github.com/yosev/debugo"
 )
 
 var updater *selfupdate.Updater
@@ -20,19 +20,19 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolP("debug", "d", false, "enable debugging")
+	rootCmd.PersistentFlags().StringP("debug", "d", "", "set debugo namespace (eg. '*')")
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 }
 
 func Execute(args []string) {
-	// unmarshal viper into config.Config
-	config.Init()
-
 	// parse cobra flags
 	rootCmd.ParseFlags(args)
 
-	if config.Config().Debug {
-		logrus.SetLevel(logrus.DebugLevel)
+	// unmarshal viper into config.Config
+	config.Init()
+
+	if config.Config().Debug != "" {
+		debugo.SetDebug(config.Config().Debug)
 	}
 
 	if err := rootCmd.Execute(); err != nil {

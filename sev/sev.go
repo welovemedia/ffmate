@@ -15,6 +15,7 @@ import (
 	"github.com/welovemedia/ffmate/docs"
 	"github.com/welovemedia/ffmate/sev/metrics"
 	"github.com/welovemedia/ffmate/sev/validate"
+	"github.com/yosev/debugo"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
@@ -39,13 +40,16 @@ type Sev struct {
 	ctx context.Context
 }
 
-func New(name string, version string, dbPath string, debug bool, port uint) *Sev {
+var debug = debugo.New("sev")
+
+func New(name string, version string, dbPath string, port uint) *Sev {
 	// setup logger
 	logger := logrus.New()
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: "15:04:05.000",
+	})
 	logger.SetLevel(logrus.InfoLevel)
-	if debug {
-		logger.SetLevel(logrus.DebugLevel)
-	}
 
 	// setup gin
 	gin.SetMode(gin.ReleaseMode)
@@ -65,7 +69,7 @@ func New(name string, version string, dbPath string, debug bool, port uint) *Sev
 		logger.Errorf("failed to initialize database connection (path: %s): %v", dbPath, err)
 		os.Exit(1)
 	} else {
-		logger.Debugf("initialized database connection (path: %s)", dbPath)
+		debug.Debugf("initialized database connection (path: %s)", dbPath)
 	}
 
 	metrics := &metrics.Metrics{Logger: logger}
@@ -117,20 +121,23 @@ func (s *Sev) RegisterSignalHook() {
 
 	go func() {
 		<-s.sigChannel
-		s.logger.Debug("received interrupt signal, running shutdown hooks")
+		debug.Debug("received interrupt signal, running shutdown hooks")
 		for _, hook := range s.shutdownHooks {
 			hook(s)
 		}
-		s.logger.Debug("shutting down")
+		debug.Debug("shutting down")
 		os.Exit(0)
 	}()
 }
+
+var debugMiddleware = debug.Extend("middleware")
 
 func (s *Sev) RegisterMiddleware(name string, fn func(c *gin.Context, s *Sev)) {
 	s.gin.Use(func(c *gin.Context) {
 		fn(c, s)
 	})
-	s.logger.Debugf("registered middleware '%s'", name)
+
+	debugMiddleware.Debugf("registered middleware '%s'", name)
 }
 
 func (s *Sev) RegisterStartupHook(hook func(*Sev)) {

@@ -10,7 +10,9 @@ type Controller struct {
 	ControllerImpl
 }
 
+var debugController = debug.Extend("controller")
+
 func (s *Sev) RegisterController(controller ControllerImpl) {
 	controller.Setup(s)
-	s.Logger().Debugf("registered controller '%s'", controller.GetName())
+	debugController.Debugf("registered controller '%s'", controller.GetName())
 }

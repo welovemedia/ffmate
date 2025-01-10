@@ -15,7 +15,7 @@ type ConfigDefinition struct {
 
 	Port               uint   `mapstructure:"port"`
 	Database           string `mapstructure:"database"`
-	Debug              bool   `mapstructure:"debug"`
+	Debug              string `mapstructure:"debug"`
 	MaxConcurrentTasks uint   `mapstructure:"maxConcurrentTasks"`
 	SendTelemetry      bool   `mapstructure:"sendTelemetry"`
 }

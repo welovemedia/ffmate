@@ -6,6 +6,8 @@ import (
 	"github.com/welovemedia/ffmate/sev/metrics"
 )
 
+var debugMetrics = debug.Extend("metrics")
+
 func (s *Sev) Metrics() *metrics.Metrics {
 	return s.metrics
 }
@@ -15,5 +17,5 @@ func (s *Sev) registerMetrics() {
 	s.Gin().GET("/metrics", func(c *gin.Context) {
 		h.ServeHTTP(c.Writer, c.Request)
 	})
-	s.Logger().Debug("registered prometheus http handler")
+	debugMetrics.Debug("registered prometheus http handler")
 }

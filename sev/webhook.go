@@ -15,6 +15,8 @@ type eventMessage struct {
 	Data  interface{}      `json:"data"`
 }
 
+var debugWebhook = debug.Extend("webhook")
+
 func (s *Sev) FireWebhook(webhook *model.Webhook, data interface{}) {
 	msg := eventMessage{
 		Event: webhook.Event,
@@ -39,6 +41,6 @@ func (s *Sev) FireWebhook(webhook *model.Webhook, data interface{}) {
 	if err != nil {
 		s.Logger().Warnf("failed to fire webhook for event '%s' (uuid: %s) due to http problems: %+v", webhook.Event, webhook.Uuid, err)
 	} else {
-		s.Logger().Debugf("fired webhook for event '%s' (uuid: %s)", webhook.Event, webhook.Uuid)
+		debugWebhook.Debugf("fired webhook for event '%s' (uuid: %s)", webhook.Event, webhook.Uuid)
 	}
 }

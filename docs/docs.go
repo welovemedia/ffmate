@@ -22,6 +22,34 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/debug/namespace": {
+            "delete": {
+                "description": "Set debug namespace(s)",
+                "tags": [
+                    "debug"
+                ],
+                "summary": "Set debug namespace(s)",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/debug/namespace/{namespace}": {
+            "patch": {
+                "description": "Set debug namespace(s)",
+                "tags": [
+                    "debug"
+                ],
+                "summary": "Set debug namespace(s)",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
         "/presets": {
             "get": {
                 "description": "List all existing presets",
@@ -185,6 +213,30 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "description": "Delete a task by its uuid",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Delete a task",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "the tasks uuid",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
             }
         },
         "/tasks/{uuid}/cancel": {
@@ -325,6 +377,9 @@ const docTemplate = `{
                 "command": {
                     "type": "string"
                 },
+                "description": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 }
@@ -339,11 +394,17 @@ const docTemplate = `{
                 "inputFile": {
                     "type": "string"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "outputFile": {
                     "type": "string"
                 },
                 "preset": {
                     "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
                 }
             }
         },
@@ -365,6 +426,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "createdAt": {
+                    "type": "string"
+                },
+                "description": {
                     "type": "string"
                 },
                 "name": {
@@ -390,8 +454,14 @@ const docTemplate = `{
                 "inputFile": {
                     "type": "string"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "outputFile": {
                     "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
                 },
                 "progress": {
                     "type": "number"
@@ -456,6 +526,7 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "task.created",
+                "task.deleted",
                 "task.status.updated",
                 "preset.created",
                 "preset.deleted",
@@ -464,9 +535,10 @@ const docTemplate = `{
             ],
             "x-enum-varnames": [
                 "TASK_CREATED",
+                "TASK_DELETED",
                 "TASK_STATUS_UPDATED",
                 "PRESET_CREATED",
-                "PRESET_DELETE",
+                "PRESET_DELETED",
                 "WEBHOOK_CREATED",
                 "WEBHOOK_DELETED"
             ]

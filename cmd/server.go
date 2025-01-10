@@ -35,7 +35,7 @@ func init() {
 func start(cmd *cobra.Command, args []string) {
 	config.Init()
 
-	s := sev.New("ffmate", config.Config().AppVersion, config.Config().Database, config.Config().Debug, config.Config().Port)
+	s := sev.New("ffmate", config.Config().AppVersion, config.Config().Database, config.Config().Port)
 
 	s.RegisterSignalHook()
 
