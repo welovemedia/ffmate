@@ -17,12 +17,16 @@ const (
 type Task struct {
 	Uuid string `json:"uuid"`
 
+	Name string `json:"name,omitempty"`
+
 	Command    string `json:"command"`
 	InputFile  string `json:"inputFile"`
 	OutputFile string `json:"outputFile"`
 
 	Status   TaskStatus `json:"status"`
 	Progress float64    `json:"progress"`
+
+	Priority uint `json:"priority"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

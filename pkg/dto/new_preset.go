@@ -1,6 +1,7 @@
 package dto
 
 type NewPreset struct {
-	Name    string `json:"name"`
-	Command string `json:"command"`
+	Command     string `json:"command"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }

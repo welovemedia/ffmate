@@ -81,7 +81,7 @@ func (s *TaskService) NewTask(task *dto.NewTask) (*model.Task, error) {
 		}
 		task.Command = preset.Command
 	}
-	t, err := s.TaskRepository.Create(task.Command, task.InputFile, task.OutputFile)
+	t, err := s.TaskRepository.Create(task.Command, task.InputFile, task.OutputFile, task.Name, task.Priority)
 
 	s.Sev.Metrics().Gauge("task.created").Inc()
 	s.WebhookService.Fire(dto.TASK_CREATED, t.ToDto())

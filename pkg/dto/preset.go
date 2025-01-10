@@ -5,8 +5,9 @@ import "time"
 type Preset struct {
 	Uuid string `json:"uuid"`
 
-	Name    string `json:"name"`
-	Command string `json:"command"`
+	Command     string `json:"command"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

@@ -15,6 +15,9 @@ mkdir+bin:
 build: mkdir+bin
 	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o _bin/darwin-arm64 main.go
 
+changelog:
+	auto-changelog --output CHANGELOG.md
+
 swagger:
 	swag init --outputTypes go
 
