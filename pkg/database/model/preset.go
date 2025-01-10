@@ -18,14 +18,17 @@ type Preset struct {
 
 	Command string
 	Name    string
+
+	Description string
 }
 
 func (m *Preset) ToDto() *dto.Preset {
 	return &dto.Preset{
 		Uuid: m.Uuid,
 
-		Command: m.Command,
-		Name:    m.Name,
+		Command:     m.Command,
+		Name:        m.Name,
+		Description: m.Description,
 
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,

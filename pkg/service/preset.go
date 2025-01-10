@@ -51,7 +51,7 @@ func (s *PresetService) DeletePreset(uuid string) error {
 	s.Sev.Logger().Infof("deleted preset (uuid: %s)", w.Uuid)
 
 	s.Sev.Metrics().Gauge("preset.deleted").Inc()
-	s.WebhookService.Fire(dto.PRESET_DELETE, w)
+	s.WebhookService.Fire(dto.PRESET_DELETED, w)
 
 	return nil
 }
@@ -62,7 +62,7 @@ func (s *PresetService) NewPreset(newPreset *dto.NewPreset) (*model.Preset, erro
 		return nil, errors.New("preset with given name already exists")
 	}
 
-	w, err := s.PresetRepository.Create(newPreset.Command, newPreset.Name)
+	w, err := s.PresetRepository.Create(newPreset.Command, newPreset.Name, newPreset.Description)
 	s.Sev.Logger().Infof("created new preset (uuid: %s)", w.Uuid)
 
 	s.Sev.Metrics().Gauge("preset.created").Inc()

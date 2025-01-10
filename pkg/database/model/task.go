@@ -16,17 +16,23 @@ type Task struct {
 
 	Uuid string
 
+	Name string
+
 	Command    string
 	InputFile  string
 	OutputFile string
 
 	Status   dto.TaskStatus
 	Progress float64
+
+	Priority uint
 }
 
 func (m *Task) ToDto() *dto.Task {
 	return &dto.Task{
 		Uuid: m.Uuid,
+
+		Name: m.Name,
 
 		Command:    m.Command,
 		InputFile:  m.InputFile,
@@ -34,6 +40,8 @@ func (m *Task) ToDto() *dto.Task {
 
 		Status:   m.Status,
 		Progress: m.Progress,
+
+		Priority: m.Priority,
 
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,

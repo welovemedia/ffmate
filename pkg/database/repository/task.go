@@ -21,8 +21,8 @@ func (m *Task) List() (*[]model.Task, error) {
 	return tasks, m.DB.Error
 }
 
-func (m *Task) Create(command string, inputField string, outputFile string) (*model.Task, error) {
-	task := &model.Task{Uuid: uuid.NewString(), Command: command, InputFile: inputField, OutputFile: outputFile, Progress: 0, Status: dto.QUEUED}
+func (m *Task) Create(command string, inputField string, outputFile string, name string, priority uint) (*model.Task, error) {
+	task := &model.Task{Uuid: uuid.NewString(), Command: command, InputFile: inputField, OutputFile: outputFile, Name: name, Priority: priority, Progress: 0, Status: dto.QUEUED}
 	db := m.DB.Create(task)
 	return task, db.Error
 }
@@ -52,7 +52,7 @@ func (m *Task) CountByStatus(status dto.TaskStatus) (int64, error) {
 
 func (m *Task) NextQueued() (*model.Task, error) {
 	var task *model.Task
-	db := m.DB.Order("created_at ASC").Where("status", dto.QUEUED).First(&task)
+	db := m.DB.Order("priority DESC, created_at ASC").Where("status", dto.QUEUED).First(&task)
 	if db.RowsAffected == 0 {
 		return nil, nil
 	}

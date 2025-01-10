@@ -25,8 +25,8 @@ func (m *Preset) Delete(w *model.Preset) error {
 	return m.DB.Error
 }
 
-func (m *Preset) Create(command string, name string) (*model.Preset, error) {
-	preset := &model.Preset{Uuid: uuid.NewString(), Command: command, Name: name}
+func (m *Preset) Create(command string, name string, description string) (*model.Preset, error) {
+	preset := &model.Preset{Uuid: uuid.NewString(), Command: command, Name: name, Description: description}
 	db := m.DB.Create(preset)
 	return preset, db.Error
 }

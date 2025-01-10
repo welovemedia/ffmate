@@ -8,7 +8,7 @@ const (
 	TASK_STATUS_UPDATED WebhookEvent = "task.status.updated"
 
 	PRESET_CREATED WebhookEvent = "preset.created"
-	PRESET_DELETE  WebhookEvent = "preset.deleted"
+	PRESET_DELETED WebhookEvent = "preset.deleted"
 
 	WEBHOOK_CREATED WebhookEvent = "webhook.created"
 	WEBHOOK_DELETED WebhookEvent = "webhook.deleted"

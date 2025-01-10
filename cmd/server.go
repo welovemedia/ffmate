@@ -33,7 +33,6 @@ func init() {
 }
 
 func start(cmd *cobra.Command, args []string) {
-	// unmarshal viper into config.Config
 	config.Init()
 
 	s := sev.New("ffmate", config.Config().AppVersion, config.Config().Database, config.Config().Debug, config.Config().Port)
