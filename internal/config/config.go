@@ -14,6 +14,7 @@ type ConfigDefinition struct {
 	FFMpeg string `mapstructure:"ffmpeg"`
 
 	Port               uint   `mapstructure:"port"`
+	Headless           bool   `mapstructure:"headless"`
 	Database           string `mapstructure:"database"`
 	Debug              string `mapstructure:"debug"`
 	MaxConcurrentTasks uint   `mapstructure:"maxConcurrentTasks"`

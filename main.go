@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	_ "embed"
 	"os"
 
@@ -11,6 +12,9 @@ import (
 
 //go:embed .version
 var version string
+
+//go:embed all:ui/.output/public/*
+var frontend embed.FS
 
 // @title ffmate API
 // @version {will be injected}
@@ -30,5 +34,5 @@ func main() {
 
 	docs.SwaggerInfo.Schemes = []string{"http"}
 
-	cmd.Execute(os.Args)
+	cmd.Execute(os.Args, frontend)
 }

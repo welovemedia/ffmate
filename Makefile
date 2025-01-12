@@ -12,7 +12,10 @@ dev:
 mkdir+bin:
 	mkdir -p _bin
 
-build: mkdir+bin
+build+frontend:
+	cd ui && pnpm run generate
+
+build: build+frontend mkdir+bin 
 	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -o _bin/darwin-arm64 main.go
 
 changelog:

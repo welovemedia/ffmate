@@ -21,12 +21,14 @@ func init() {
 
 	serverCmd.PersistentFlags().StringP("ffmpeg", "f", "ffmpeg", "path to ffmpeg binary")
 	serverCmd.PersistentFlags().StringP("port", "p", "3000", "the port to listen ob")
+	serverCmd.PersistentFlags().BoolP("headless", "", false, "start without ui")
 	serverCmd.PersistentFlags().StringP("database", "", "db.sqlite", "the path do the database")
 	serverCmd.PersistentFlags().UintP("max-concurrent-tasks", "m", 3, "define maximum concurrent running tasks")
 	serverCmd.PersistentFlags().BoolP("send-telemetry", "", true, "enable sending anonymous telemetry data")
 
 	viper.BindPFlag("ffmpeg", serverCmd.PersistentFlags().Lookup("ffmpeg"))
 	viper.BindPFlag("port", serverCmd.PersistentFlags().Lookup("port"))
+	viper.BindPFlag("headless", serverCmd.PersistentFlags().Lookup("headless"))
 	viper.BindPFlag("database", serverCmd.PersistentFlags().Lookup("database"))
 	viper.BindPFlag("maxConcurrentTasks", serverCmd.PersistentFlags().Lookup("max-concurrent-tasks"))
 	viper.BindPFlag("sendTelemetry", serverCmd.PersistentFlags().Lookup("send-telemetry"))
@@ -68,7 +70,7 @@ func start(cmd *cobra.Command, args []string) {
 		})
 	}
 
-	internal.Init(s, config.Config().MaxConcurrentTasks)
+	internal.Init(s, config.Config().MaxConcurrentTasks, frontend)
 
 	res, found, _ := updateAvailable()
 	if found {

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"embed"
 	"fmt"
 	"os"
 
@@ -12,6 +13,7 @@ import (
 )
 
 var updater *selfupdate.Updater
+var frontend embed.FS
 
 var rootCmd = &cobra.Command{
 	Use:   "ffmate",
@@ -24,7 +26,8 @@ func init() {
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 }
 
-func Execute(args []string) {
+func Execute(args []string, frontendFs embed.FS) {
+	frontend = frontendFs
 	// parse cobra flags
 	rootCmd.ParseFlags(args)
 

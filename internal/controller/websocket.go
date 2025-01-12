@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -14,6 +16,9 @@ var debug = debugo.New("websocket:controller")
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(g *http.Request) bool {
+		return true
+	},
 }
 
 type WebsocketController struct {
@@ -33,11 +38,14 @@ func (c *WebsocketController) Setup(s *sev.Sev) {
 func (c *WebsocketController) websocket(gin *gin.Context) {
 	conn, err := upgrader.Upgrade(gin.Writer, gin.Request, nil)
 	if err != nil {
+		c.sev.Logger().Errorf("failed to establish websocket connection: %v", err)
 		return
 	}
-	defer conn.Close()
-
 	uuid := uuid.NewString()
+
+	defer conn.Close()
+	defer c.websocketService.RemoveConnection(uuid, conn)
+
 	c.websocketService.AddConnection(uuid, conn)
 
 	debug.Debugf("new connection from %s (uuid: %s)", gin.RemoteIP(), uuid)
@@ -45,7 +53,6 @@ func (c *WebsocketController) websocket(gin *gin.Context) {
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
-			c.websocketService.RemoveConnection(uuid, conn)
 			debug.Debugf("disconnection from %s: %v", gin.RemoteIP(), err)
 			break
 		}

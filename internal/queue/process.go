@@ -60,6 +60,7 @@ func (q *Queue) processTask(task *model.Task) {
 		q.updateTaskProgress(task, progress)
 	})
 	if err != nil {
+		q.updateTaskProgress(task, 100)
 		q.updateTaskStatus(task, dto.DONE_ERROR)
 		q.Sev.Logger().Warnf("task failed (uuid: %s):\n%v", task.Uuid, err)
 		return

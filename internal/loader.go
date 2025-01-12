@@ -1,7 +1,10 @@
 package internal
 
 import (
+	"embed"
+
 	"github.com/gin-contrib/cors"
+	"github.com/welovemedia/ffmate/internal/config"
 	"github.com/welovemedia/ffmate/internal/controller"
 	"github.com/welovemedia/ffmate/internal/database/repository"
 	"github.com/welovemedia/ffmate/internal/metrics"
@@ -13,7 +16,7 @@ import (
 
 var prefix = "/api"
 
-func Init(s *sev.Sev, concurrentTasks uint) {
+func Init(s *sev.Sev, concurrentTasks uint, frontend embed.FS) {
 	// setup cors
 	s.Gin().Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
@@ -43,7 +46,9 @@ func Init(s *sev.Sev, concurrentTasks uint) {
 	s.RegisterController(&controller.TaskController{Prefix: prefix})
 	s.RegisterController(&controller.WebhookController{Prefix: prefix})
 	s.RegisterController(&controller.PresetController{Prefix: prefix})
-	s.RegisterController(&controller.WebController{Prefix: prefix})
+	if !config.Config().Headless {
+		s.RegisterController(&controller.WebController{Prefix: prefix, Frontend: frontend})
+	}
 	s.RegisterController(&controller.DebugController{Prefix: prefix})
 	s.RegisterController(&controller.VersionController{Prefix: prefix})
 	s.RegisterController(&controller.WebsocketController{Prefix: prefix})
