@@ -81,13 +81,13 @@ func (q *Queue) postProcessTask(task *model.Task) {
 			if err != nil {
 				q.Sev.Logger().Errorf("failed to marshal task: %v", err)
 			} else {
-				err = os.WriteFile(wildcards.Replace(task.PostProcessing.SidecarPath, task.InputFile, task.OutputFile), b, 0644)
+				err = os.WriteFile(wildcards.Replace(task.PostProcessing.SidecarPath, task.InputFile, task.OutputFile, false), b, 0644)
 				if err != nil {
-					q.Sev.Logger().Errorf("failed to write mashaled task to file: %v", err)
+					q.Sev.Logger().Errorf("failed to write task to file: %v", err)
 				}
 			}
 		}
-		args := strings.Split(wildcards.Replace(task.PostProcessing.ScriptPath, task.InputFile, task.OutputFile), " ")
+		args := strings.Split(wildcards.Replace(task.PostProcessing.ScriptPath, task.InputFile, task.OutputFile, true), " ")
 		cmd := exec.Command(args[0], args[1:]...)
 		q.Sev.Logger().Infof("triggered postProcessing (uuid: %s)", task.Uuid)
 
