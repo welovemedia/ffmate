@@ -1,4 +1,7 @@
-# ffmate: FFmpeg with a REST API, Web UI, Webhooks & Queues
+![ffmatelogo](https://github.com/welovemedia/ffmate/blob/update-readme/ffmate.png)
+
+### FFmpeg with a REST API, Web UI, Webhooks & Queues
+
 
 `ffmate` bridges the gap between the raw power of FFmpeg and the need for user-friendly interfaces and robust integration capabilities. While FFmpeg is incredibly versatile, its complex command-line syntax can be daunting. `ffmate` solves this by providing simplified interfaces, ready-to-use presets, a robust queueing system, and advanced features like real-time webhook notifications and automated post-transcoding tasks.
 
@@ -244,6 +247,194 @@ You can use these wildcards to dynamically generate unique folder and file names
   ```
   /processed_audio/podcasts/2024/Tech_Talk_Ep1705318712.mp3
   ```
+
+## Webhooks
+
+FFmate provides **real-time notifications** to external systems through **webhooks**, allowing you to seamlessly integrate transcoding updates with other applications. When certain events occur (e.g., creation of a task, start of processing, completion, failure, or periodic progress updates), FFmate will send an HTTP POST request with a JSON body to the webhook URL(s) you have configured.
+
+### Webhook Events
+
+#### **`Task.created`**  
+**Description:** Triggered when a new Task is added to the queue.
+
+**Example payload:**
+```json
+{
+  "id": "uuid",
+  "status": "pending",
+  "input": "input.mp4",
+  "output": "output.mp4",
+  "created_at": "2024-01-15T14:05:32Z"
+}
+```
+
+---
+
+#### **`Task.started`**  
+**Description:** Triggered when Task processing begins.
+
+**Example payload:**
+```json
+{
+  "id": "uuid",
+  "status": "processing",
+  "input": "input.mp4",
+  "output": "output.mp4",
+  "started_at": "2024-01-15T14:05:32Z"
+}
+```
+
+---
+
+#### **`Task.completed`**  
+**Description:** Triggered when a Task completes successfully.
+
+**Example payload:**
+```json
+{
+  "id": "uuid",
+  "status": "completed",
+  "input": "input.mp4",
+  "output": "output.mp4",
+  "started_at": "2024-01-15T14:05:32Z",
+  "completed_at": "2024-01-15T14:15:32Z",
+  "duration_seconds": 600
+}
+```
+
+---
+
+#### **`Task.failed`**  
+**Description:** Triggered when a Task fails.
+
+**Example payload:**
+```json
+{
+  "id": "uuid",
+  "status": "failed",
+  "input": "input.mp4",
+  "output": "output.mp4",
+  "started_at": "2024-01-15T14:05:32Z",
+  "failed_at": "2024-01-15T14:06:32Z",
+  "error": "FFmpeg failed with exit code 1"
+}
+```
+
+---
+
+#### **`Task.progress`**  
+**Description:** Triggered periodically during processing.
+
+**Example payload:**
+```json
+{
+  "id": "uuid",
+  "status": "processing",
+  "input": "input.mp4",
+  "output": "output.mp4",
+  "progress": {
+    "percent": 45.2,
+    "frame": 1234,
+    "fps": 25,
+    "time": "00:05:23",
+    "bitrate": "2150kbps",
+    "size": "15MB"
+  }
+}
+```
+
+
+## Advanced Configuration
+
+### Command-Line flags and environment variables
+
+Configuration options for FFmate can be set using command-line flags and environment variables.
+
+#### Configuration Options
+
+| Flag | Env Variable | Description | Default | Example |
+|------|--------------|-------------|---------|---------|
+| `--ffmpeg`, `-f` | `FFMATE_FFMPEG_PATH` | By default, FFmate uses the system FFmpeg installation path. If FFmpeg is installed in a non-standard location, use the flag to specify the full path to the FFmpeg binary. | `ffmpeg` | `/usr/local/bin/ffmpeg` |
+| `--port`, `-p` | `FFMATE_PORT` | Specify the network port FFmate will use to listen for incoming connections. | `3000` | `8080` |
+| `--database` | `FFMATE_DATABASE_PATH` | Set an alternative file path for the SQLite database used to store task and system information. This allows multiple FFmate instances to share the same database. | `db.sqlite` | `/data/ffmate.db` |
+| `--max-concurrent-tasks`, `-m` | `FFMATE_MAX_CONCURRENT_TASKS` | Limit the number of simultaneous transcoding jobs that can run concurrently. | `1` | `4` |
+| `--send-telemetry` | `FFMATE_TELEMETRY` | Disable anonymous telemetry data collection used for analysis and improvement of the tool. | `true` | `false` |
+
+
+#### Environment Variable Configuration
+```bash
+# Configure using environment variables
+FFMATE_FFMPEG_PATH=/usr/local/bin/ffmpeg \
+FFMATE_PORT=8080 \
+FFMATE_DATABASE_PATH=/data/ffmate.db \
+FFMATE_MAX_CONCURRENT_TASKS=4 \
+FFMATE_TELEMETRY=false \
+ffmate server
+```
+
+### Telemetry
+
+FFmate collects anonymous usage data by default to help improve the project. You can disable this by:
+- Setting `--send-telemetry=false` when starting the server
+- Setting `FFMATE_TELEMETRY=false` as an environment variable
+
+### Command Completion
+
+ffmate provides command-line completion for:
+
+- Command suggestions
+- Flag completion 
+- Debug namespace completion
+- File path completion for media files
+
+### Installation
+
+Here's the separated and formatted version:
+
+For zsh, add to your `~/.zshrc`:
+```zsh
+source <(ffmate completion zsh)
+```
+
+For bash, add to your `~/.bashrc`:
+```bash
+source <(ffmate completion bash)
+```
+
+### Examples
+1. Command completion:
+```bash
+ffmate [TAB]
+# Shows available commands:
+#   server   Start the ffmate server
+#   version  Show version information
+#   help     Show help
+```
+
+2. Flag completion:
+```bash 
+ffmate server -[TAB]
+# Shows available flags:
+#   -d, --debug        Enable debug logging
+#   -p, --port        Server port
+```
+
+3. Debug namespace completion:
+```bash
+ffmate server -d [TAB]
+# Shows available namespaces:
+#   ffmpeg
+#   gin  
+#   queue
+#   sev
+#   prometheus:register
+```
+
+4. File path completion:
+```bash
+ffmate convert ~/Movies/[TAB]
+# Shows media files in ~/Movies directory
+```
 
 ## Contributing
 
