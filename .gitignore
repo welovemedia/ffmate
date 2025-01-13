@@ -2,6 +2,7 @@
 db.sqlite
 tmp/
 _footage/
+_foo tage/
 _update
 _bin/
 dist/

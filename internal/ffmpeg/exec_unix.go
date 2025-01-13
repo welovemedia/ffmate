@@ -21,7 +21,7 @@ var debug = debugo.New("ffmpeg")
 func Execute(request *ExecutionRequest, updateFunc func(progress float64)) error {
 	request.Command = wildcards.Replace(request.Command, request.InputFile, request.OutputFile)
 
-	args := strings.Split(request.Command, " ")
+	args := splitCommand(request.Command)
 	args = append(args, "-progress", "pipe:2")
 	cmd := exec.Command(config.Config().FFMpeg, args...)
 
@@ -79,4 +79,32 @@ func Execute(request *ExecutionRequest, updateFunc func(progress float64)) error
 	fmt.Sprintf("last line: %s", lastLine)
 
 	return nil
+}
+
+func splitCommand(cmd string) []string {
+	var args []string
+	var current strings.Builder
+	var escaping bool
+
+	for _, r := range cmd {
+		switch {
+		case escaping:
+			current.WriteRune(r)
+			escaping = false
+		case r == '\\':
+			escaping = true
+		case r == ' ':
+			if current.Len() > 0 {
+				args = append(args, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if current.Len() > 0 {
+		args = append(args, current.String())
+	}
+
+	return args
 }
