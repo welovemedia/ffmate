@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/welovemedia/ffmate/internal/database/model"
 	"github.com/welovemedia/ffmate/internal/dto"
@@ -12,7 +14,10 @@ type Task struct {
 }
 
 func (t *Task) Setup() {
-	t.DB.AutoMigrate(&model.Task{})
+	err := t.DB.AutoMigrate(&model.Task{})
+	if err != nil {
+		fmt.Printf("failed to initialize database: %v", err)
+	}
 }
 
 func (m *Task) List() (*[]model.Task, error) {
@@ -75,14 +80,7 @@ func (m *Task) NextQueued() (*model.Task, error) {
 	return task, db.Error
 }
 
-func (m *Task) SetTaskStatus(task *model.Task, taskStatus dto.TaskStatus) (*model.Task, error) {
-	task.Status = taskStatus
-	db := m.DB.Save(task)
-	return task, db.Error
-}
-
-func (m *Task) SetTaskProgress(task *model.Task, progress float64) (*model.Task, error) {
-	task.Progress = progress
+func (m *Task) UpdateTask(task *model.Task) (*model.Task, error) {
 	db := m.DB.Save(task)
 	return task, db.Error
 }

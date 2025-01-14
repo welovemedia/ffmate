@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	"time"
 )
 
 type TaskStatus string
@@ -18,9 +17,22 @@ const (
 	DONE_CANCELED   TaskStatus = "DONE_CANCELED"
 )
 
+type Resolved struct {
+	Command        string `json:"command"`
+	InputFile      string `json:"inputFile"`
+	OutputFile     string `json:"outputFile"`
+	PostProcessing struct {
+		ScriptPath  string `json:"scriptPath"`
+		SidecarPath string `json:"sidecarPath"`
+	} `json:"postProcessing"`
+}
+
 type PostProcessing struct {
 	ScriptPath  string `json:"scriptPath"`
 	SidecarPath string `json:"sidecarPath"`
+	Error       string `json:"error,omitempty"`
+	StartedAt   int64  `json:"startedAt,omitempty"`
+	FinishedAt  int64  `json:"finishedAt,omitempty"`
 }
 
 type Task struct {
@@ -29,19 +41,25 @@ type Task struct {
 
 	Name string `json:"name,omitempty"`
 
+	Resolved *Resolved `json:"resolved,omitempty"`
+
 	Command    string `json:"command"`
 	InputFile  string `json:"inputFile"`
 	OutputFile string `json:"outputFile"`
 
 	Status   TaskStatus `json:"status"`
 	Progress float64    `json:"progress"`
+	Error    string     `json:"error,omitempty"`
 
 	Priority uint `json:"priority"`
 
 	PostProcessing *PostProcessing `json:"postProcessing,omitempty"`
 
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	StartedAt  int64 `json:"startedAt,omitempty"`
+	FinishedAt int64 `json:"finishedAt,omitempty"`
+
+	CreatedAt int64 `json:"createdAt"`
+	UpdatedAt int64 `json:"updatedAt"`
 }
 
 func (p PostProcessing) Value() (driver.Value, error) {
@@ -49,6 +67,21 @@ func (p PostProcessing) Value() (driver.Value, error) {
 }
 
 func (p *PostProcessing) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(bytes, p)
+}
+
+func (p Resolved) Value() (driver.Value, error) {
+	return json.Marshal(p)
+}
+
+func (p *Resolved) Scan(value interface{}) error {
 	if value == nil {
 		return nil
 	}

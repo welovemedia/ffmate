@@ -69,7 +69,9 @@ func (s *TaskService) CancelTask(uuid string) (*model.Task, error) {
 		return nil, errors.New("failed to cancel job, not in status 'queue'")
 	}
 
-	task, err := s.TaskRepository.SetTaskStatus(t, dto.DONE_CANCELED)
+	t.Progress = 100
+	t.Status = dto.DONE_CANCELED
+	task, err := s.TaskRepository.UpdateTask(t)
 	if err != nil {
 		return nil, err
 	}

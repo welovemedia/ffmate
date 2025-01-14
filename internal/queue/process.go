@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/welovemedia/ffmate/internal/database/model"
@@ -38,6 +37,7 @@ func (q *Queue) Init() {
 				} else if task == nil {
 					debug.Debug("no queued tasks found")
 				} else {
+
 					go q.processTask(task)
 				}
 			} else {
@@ -52,63 +52,93 @@ func (q *Queue) processTask(task *model.Task) {
 	runningTasks++
 	defer func() { runningTasks-- }()
 
-	q.updateTaskStatus(task, dto.RUNNING)
+	task.Status = dto.RUNNING
+	task.StartedAt = time.Now().UnixMilli()
+	q.updateTask(task)
 	q.Sev.Logger().Infof("processing task (uuid: %s)", task.Uuid)
 
-	cmd := task.Command
-	err := ffmpeg.Execute(&ffmpeg.ExecutionRequest{Task: task, Command: cmd, InputFile: task.InputFile, OutputFile: task.OutputFile, Logger: q.Sev.Logger()}, func(progress float64) {
-		q.updateTaskProgress(task, progress)
+	// resolve wildcards
+	inFile := wildcards.Replace(task.InputFile, task.InputFile, task.OutputFile, false)
+	outFile := wildcards.Replace(task.OutputFile, task.InputFile, task.OutputFile, false)
+	task.Resolved = &dto.Resolved{
+		InputFile:  inFile,
+		OutputFile: outFile,
+		Command:    wildcards.Replace(task.Command, inFile, outFile, true),
+	}
+
+	err := ffmpeg.Execute(&ffmpeg.ExecutionRequest{Task: task, Command: task.Resolved.Command, Logger: q.Sev.Logger()}, func(progress float64) {
+		task.Progress = progress
+		q.updateTask(task)
 	})
+
+	// task is done (successful or not)
+	task.Progress = 100
+
 	if err != nil {
-		q.updateTaskProgress(task, 100)
-		q.updateTaskStatus(task, dto.DONE_ERROR)
+		task.FinishedAt = time.Now().UnixMilli()
+		task.Status = dto.DONE_ERROR
+		task.Error = err.Error()
+		q.updateTask(task)
 		q.Sev.Logger().Warnf("task failed (uuid: %s):\n%v", task.Uuid, err)
 		return
 	}
 
 	q.postProcessTask(task)
 
-	q.updateTaskStatus(task, dto.DONE_SUCCESSFUL)
+	task.FinishedAt = time.Now().UnixMilli()
+	task.Status = dto.DONE_SUCCESSFUL
+	q.updateTask(task)
 	q.Sev.Logger().Infof("task successful (uuid: %s)", task.Uuid)
 
 }
 
 func (q *Queue) postProcessTask(task *model.Task) {
 	if task.PostProcessing != nil {
-		q.updateTaskStatus(task, dto.POST_PROCESSING)
+		q.Sev.Logger().Infof("starting postProcessing (uuid: %s)", task.Uuid)
+		task.PostProcessing.StartedAt = time.Now().UnixMilli()
+		task.Status = dto.POST_PROCESSING
+		q.updateTask(task)
 		if task.PostProcessing.SidecarPath != "" {
 			b, err := json.Marshal(task.ToDto())
 			if err != nil {
-				q.Sev.Logger().Errorf("failed to marshal task: %v", err)
+				q.Sev.Logger().Errorf("failed to marshal task to write sidecar file: %v", err)
 			} else {
-				err = os.WriteFile(wildcards.Replace(task.PostProcessing.SidecarPath, task.InputFile, task.OutputFile, false), b, 0644)
+				task.Resolved.PostProcessing.SidecarPath = wildcards.Replace(task.PostProcessing.SidecarPath, task.Resolved.InputFile, task.Resolved.OutputFile, false)
+				err = os.WriteFile(task.Resolved.PostProcessing.ScriptPath, b, 0644)
 				if err != nil {
-					q.Sev.Logger().Errorf("failed to write task to file: %v", err)
+					q.Sev.Logger().Errorf("failed to write sidecar file: %v", err)
+				} else {
+					debug.Debug("wrote sidecar file (uuid: %s)", task.Uuid)
 				}
+
 			}
 		}
-		args := strings.Split(wildcards.Replace(task.PostProcessing.ScriptPath, task.InputFile, task.OutputFile, true), " ")
-		cmd := exec.Command(args[0], args[1:]...)
-		q.Sev.Logger().Infof("triggered postProcessing (uuid: %s)", task.Uuid)
 
-		if err := cmd.Start(); err != nil {
-			q.Sev.Logger().Errorf("failed to start postProcessing (uuid: %s): %v", task.Uuid, err)
+		if task.PostProcessing.ScriptPath != "" {
+			task.Resolved.PostProcessing.ScriptPath = wildcards.Replace(task.PostProcessing.ScriptPath, task.Resolved.InputFile, task.Resolved.OutputFile, true)
+			args := ffmpeg.SplitCommand(task.Resolved.PostProcessing.ScriptPath)
+			cmd := exec.Command(args[0], args[1:]...)
+			debug.Debugf("triggered postProcessing script (uuid: %s)", task.Uuid)
+
+			if err := cmd.Start(); err != nil {
+				task.PostProcessing.Error = err.Error()
+				q.Sev.Logger().Errorf("failed to start postProcessing script (uuid: %s): %v", task.Uuid, err)
+			} else {
+				if err := cmd.Wait(); err != nil {
+					task.PostProcessing.Error = err.Error()
+					q.Sev.Logger().Errorf("failed postProcessing script (uuid: %s): %v", task.Uuid, err)
+				}
+
+			}
 		}
 
-		if err := cmd.Wait(); err != nil {
-			q.Sev.Logger().Errorf("failed postProcessing (uuid: %s): %v", task.Uuid, err)
-		}
+		task.PostProcessing.FinishedAt = time.Now().UnixMilli()
 		q.Sev.Logger().Infof("finished postProcessing (uuid: %s)", task.Uuid)
 	}
 }
 
-func (q *Queue) updateTaskProgress(task *model.Task, progress float64) {
-	q.TaskRepository.SetTaskProgress(task, progress)
-	q.WebsocketService.Broadcast(service.TASK_UPDATED, task.ToDto())
-}
-
-func (q *Queue) updateTaskStatus(task *model.Task, status dto.TaskStatus) {
-	q.TaskRepository.SetTaskStatus(task, status)
+func (q *Queue) updateTask(task *model.Task) {
+	q.TaskRepository.UpdateTask(task)
 	q.WebsocketService.Broadcast(service.TASK_UPDATED, task.ToDto())
 	q.Sev.Metrics().Gauge("task.status.updated").Inc()
 	q.WebhookService.Fire(dto.TASK_STATUS_UPDATED, task.ToDto())

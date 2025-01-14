@@ -17,9 +17,7 @@ type FFmpegProgress struct {
 type ExecutionRequest struct {
 	Task *model.Task
 
-	Command    string
-	InputFile  string
-	OutputFile string
+	Command string
 
 	Logger *logrus.Logger
 }
