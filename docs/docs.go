@@ -443,6 +443,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.NewPrePostProcessing": {
+            "type": "object",
+            "properties": {
+                "scriptPath": {
+                    "type": "string"
+                },
+                "sidecarPath": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.NewPreset": {
             "type": "object",
             "properties": {
@@ -454,6 +465,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
                 }
             }
         },
@@ -471,6 +485,12 @@ const docTemplate = `{
                 },
                 "outputFile": {
                     "type": "string"
+                },
+                "postProcessing": {
+                    "$ref": "#/definitions/dto.NewPrePostProcessing"
+                },
+                "preProcessing": {
+                    "$ref": "#/definitions/dto.NewPrePostProcessing"
                 },
                 "preset": {
                     "type": "string"
@@ -491,6 +511,26 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PrePostProcessing": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "finishedAt": {
+                    "type": "integer"
+                },
+                "scriptPath": {
+                    "$ref": "#/definitions/dto.RawResolved"
+                },
+                "sidecarPath": {
+                    "$ref": "#/definitions/dto.RawResolved"
+                },
+                "startedAt": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.Preset": {
             "type": "object",
             "properties": {
@@ -506,10 +546,30 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "postProcessing": {
+                    "$ref": "#/definitions/dto.PrePostProcessing"
+                },
+                "preProcessing": {
+                    "$ref": "#/definitions/dto.PrePostProcessing"
+                },
+                "priority": {
+                    "type": "integer"
+                },
                 "updatedAt": {
                     "type": "string"
                 },
                 "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RawResolved": {
+            "type": "object",
+            "properties": {
+                "raw": {
+                    "type": "string"
+                },
+                "resolved": {
                     "type": "string"
                 }
             }
@@ -521,19 +581,31 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "command": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.RawResolved"
                 },
                 "createdAt": {
+                    "type": "integer"
+                },
+                "error": {
                     "type": "string"
                 },
+                "finishedAt": {
+                    "type": "integer"
+                },
                 "inputFile": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.RawResolved"
                 },
                 "name": {
                     "type": "string"
                 },
                 "outputFile": {
-                    "type": "string"
+                    "$ref": "#/definitions/dto.RawResolved"
+                },
+                "postProcessing": {
+                    "$ref": "#/definitions/dto.PrePostProcessing"
+                },
+                "preProcessing": {
+                    "$ref": "#/definitions/dto.PrePostProcessing"
                 },
                 "priority": {
                     "type": "integer"
@@ -541,11 +613,14 @@ const docTemplate = `{
                 "progress": {
                     "type": "number"
                 },
+                "startedAt": {
+                    "type": "integer"
+                },
                 "status": {
                     "$ref": "#/definitions/dto.TaskStatus"
                 },
                 "updatedAt": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "uuid": {
                     "type": "string"
@@ -557,6 +632,8 @@ const docTemplate = `{
             "enum": [
                 "QUEUED",
                 "RUNNING",
+                "PRE_PROCESSING",
+                "POST_PROCESSING",
                 "DONE_SUCCESSFUL",
                 "DONE_ERROR",
                 "DONE_CANCELED"
@@ -564,6 +641,8 @@ const docTemplate = `{
             "x-enum-varnames": [
                 "QUEUED",
                 "RUNNING",
+                "PRE_PROCESSING",
+                "POST_PROCESSING",
                 "DONE_SUCCESSFUL",
                 "DONE_ERROR",
                 "DONE_CANCELED"
@@ -600,22 +679,34 @@ const docTemplate = `{
         "dto.WebhookEvent": {
             "type": "string",
             "enum": [
+                "batch.created",
+                "batch.finished",
                 "task.created",
+                "task.updated",
                 "task.deleted",
-                "task.status.updated",
                 "preset.created",
+                "preset.updated",
                 "preset.deleted",
                 "webhook.created",
-                "webhook.deleted"
+                "webhook.deleted",
+                "watchfolder.created",
+                "watchfolder.updated",
+                "watchfolder.deleted"
             ],
             "x-enum-varnames": [
+                "BATCH_CREATED",
+                "BATCH_FINISHED",
                 "TASK_CREATED",
+                "TASK_UPDATED",
                 "TASK_DELETED",
-                "TASK_STATUS_UPDATED",
                 "PRESET_CREATED",
+                "PRESET_UPDATED",
                 "PRESET_DELETED",
                 "WEBHOOK_CREATED",
-                "WEBHOOK_DELETED"
+                "WEBHOOK_DELETED",
+                "WATCHFOLDER_CREATED",
+                "WATCHFOLDER_UPDATED",
+                "WATCHFOLDER_DELETED"
             ]
         }
     }

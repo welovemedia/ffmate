@@ -9,6 +9,11 @@ type Preset struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 
+	Priority uint `json:"priority"`
+
+	PreProcessing  *PrePostProcessing `json:"preProcessing,omitempty"`
+	PostProcessing *PrePostProcessing `json:"postProcessing,omitempty"`
+
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

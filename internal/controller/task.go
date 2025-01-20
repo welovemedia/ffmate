@@ -33,7 +33,7 @@ func (c *TaskController) Setup(s *sev.Sev) {
 				DB: s.DB(),
 			},
 		},
-		Websocketservice: &service.WebsocketService{},
+		WebsocketService: &service.WebsocketService{},
 	}
 	c.sev = s
 	s.Gin().GET(c.Prefix+c.getEndpoint(), c.listTasks)
@@ -130,7 +130,7 @@ func (c *TaskController) addTask(gin *gin.Context) {
 	newTask := &dto.NewTask{}
 	c.sev.Validate().Bind(gin, newTask)
 
-	task, err := c.taskService.NewTask(newTask)
+	task, err := c.taskService.NewTask(newTask, "")
 	if err != nil {
 		gin.JSON(400, exceptions.HttpBadRequest(err))
 		return

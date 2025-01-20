@@ -15,7 +15,7 @@ type TaskService struct {
 	TaskRepository   *repository.Task
 	WebhookService   *WebhookService
 	PresetService    *PresetService
-	Websocketservice *WebsocketService
+	WebsocketService *WebsocketService
 }
 
 func (s *TaskService) ListTasks() (*[]model.Task, error) {
@@ -28,6 +28,14 @@ func (s *TaskService) GetTaskById(uuid string) (*model.Task, error) {
 
 func (s *TaskService) GetTasksByBatchId(uuid string) (*[]model.Task, error) {
 	return s.TaskRepository.ByBatchId(uuid)
+}
+
+func (s *TaskService) UpdateTask(task *model.Task) (*model.Task, error) {
+	task, err := s.TaskRepository.UpdateTask(task)
+	s.WebsocketService.Broadcast(TASK_UPDATED, task.ToDto())
+	s.Sev.Metrics().Gauge("task.updated").Inc()
+	s.WebhookService.Fire(dto.TASK_UPDATED, task.ToDto())
+	return task, err
 }
 
 func (s *TaskService) DeleteTask(uuid string) error {
@@ -54,7 +62,7 @@ func (s *TaskService) DeleteTask(uuid string) error {
 
 	s.Sev.Metrics().Gauge("task.deleted").Inc()
 	s.WebhookService.Fire(dto.TASK_DELETED, w.ToDto())
-	s.Websocketservice.Broadcast(TASK_DELETED, w.ToDto())
+	s.WebsocketService.Broadcast(TASK_DELETED, w.ToDto())
 
 	return nil
 }
@@ -76,26 +84,35 @@ func (s *TaskService) CancelTask(uuid string) (*model.Task, error) {
 		return nil, err
 	}
 
-	s.Sev.Metrics().Gauge("task.status.updated").Inc()
+	s.Sev.Metrics().Gauge("task.updated").Inc()
 	s.WebhookService.Fire(dto.TASK_UPDATED, task.ToDto())
-	s.Websocketservice.Broadcast(TASK_UPDATED, task.ToDto())
+	s.WebsocketService.Broadcast(TASK_UPDATED, task.ToDto())
 
 	return task, err
 }
 
-func (s *TaskService) NewTask(task *dto.NewTask) (*model.Task, error) {
+func (s *TaskService) NewTask(task *dto.NewTask, batch string) (*model.Task, error) {
 	if task.Preset != "" {
 		preset, err := s.PresetService.FindByName(task.Preset)
 		if err != nil {
 			return nil, err
 		}
 		task.Command = preset.Command
+		if task.Priority == 0 {
+			task.Priority = preset.Priority
+		}
+		if preset.PreProcessing != nil && task.PreProcessing == nil {
+			task.PreProcessing = &dto.NewPrePostProcessing{ScriptPath: preset.PreProcessing.ScriptPath.Raw, SidecarPath: preset.PreProcessing.ScriptPath.Raw}
+		}
+		if preset.PostProcessing != nil && task.PostProcessing == nil {
+			task.PostProcessing = &dto.NewPrePostProcessing{ScriptPath: preset.PostProcessing.ScriptPath.Raw, SidecarPath: preset.PostProcessing.ScriptPath.Raw}
+		}
 	}
-	t, err := s.TaskRepository.Create(task, "", "api")
+	t, err := s.TaskRepository.Create(task, batch, "api")
 
 	s.Sev.Metrics().Gauge("task.created").Inc()
 	s.WebhookService.Fire(dto.TASK_CREATED, t.ToDto())
-	s.Websocketservice.Broadcast(TASK_CREATED, t.ToDto())
+	s.WebsocketService.Broadcast(TASK_CREATED, t.ToDto())
 
 	s.Sev.Logger().Infof("new task added to queue (uuid: %s)", t.Uuid)
 	return t, err
@@ -105,25 +122,21 @@ func (s *TaskService) NewTasks(tasks *[]dto.NewTask) (*[]model.Task, error) {
 	batch := uuid.NewString()
 	newTasks := []model.Task{}
 	for _, task := range *tasks {
-		if task.Preset != "" {
-			preset, err := s.PresetService.FindByName(task.Preset)
-			if err != nil {
-				return nil, err
-			}
-			task.Command = preset.Command
-		}
-		t, err := s.TaskRepository.Create(&task, batch, "api")
+		t, err := s.NewTask(&task, batch)
 		if err != nil {
 			return nil, err
 		}
 
 		newTasks = append(newTasks, *t)
-
-		s.Sev.Metrics().Gauge("task.created").Inc()
-		s.WebhookService.Fire(dto.TASK_CREATED, t.ToDto())
-		s.Websocketservice.Broadcast(TASK_CREATED, t.ToDto())
-
-		s.Sev.Logger().Infof("new task added to queue (uuid: %s)", t.Uuid)
 	}
+
+	// Transform each task to its DTO
+	var taskDTOs = []dto.Task{}
+	for _, task := range newTasks {
+		taskDTOs = append(taskDTOs, *task.ToDto())
+	}
+
+	s.Sev.Metrics().Gauge("batch.created").Inc()
+	s.WebhookService.Fire(dto.BATCH_CREATED, taskDTOs)
 	return &newTasks, nil
 }

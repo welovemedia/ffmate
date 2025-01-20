@@ -21,6 +21,7 @@ import (
 type Queue struct {
 	Sev                *sev.Sev
 	TaskRepository     *repository.Task
+	TaskService        *service.TaskService
 	WebhookService     *service.WebhookService
 	WebsocketService   *service.WebsocketService
 	MaxConcurrentTasks uint
@@ -59,10 +60,7 @@ func (q *Queue) processTask(task *model.Task) {
 
 	err := q.preProcessTask(task)
 	if err != nil {
-		task.FinishedAt = time.Now().UnixMilli()
-		task.Status = dto.DONE_ERROR
-		task.Error = fmt.Sprintf("PreProcessing failed: %v", err)
-		q.updateTask(task)
+		q.failTask(task, fmt.Errorf("PreProcessing failed: %v", err))
 		return
 	}
 
@@ -83,20 +81,13 @@ func (q *Queue) processTask(task *model.Task) {
 	task.Progress = 100
 
 	if err != nil {
-		task.FinishedAt = time.Now().UnixMilli()
-		task.Status = dto.DONE_ERROR
-		task.Error = err.Error()
-		q.updateTask(task)
-		q.Sev.Logger().Warnf("task failed (uuid: %s):\n%v", task.Uuid, err)
+		q.failTask(task, err)
 		return
 	}
 
 	err = q.postProcessTask(task)
 	if err != nil {
-		task.FinishedAt = time.Now().UnixMilli()
-		task.Status = dto.DONE_ERROR
-		task.Error = fmt.Sprintf("PostProcessing failed: %v", err)
-		q.updateTask(task)
+		q.failTask(task, fmt.Errorf("PostProcessing failed: %v", err))
 		return
 	}
 
@@ -121,12 +112,11 @@ func (q *Queue) preProcessTask(task *model.Task) error {
 				task.PreProcessing.SidecarPath.Resolved = wildcards.Replace(task.PreProcessing.SidecarPath.Raw, task.InputFile.Raw, task.OutputFile.Raw, false)
 				q.updateTask(task)
 				err = os.WriteFile(task.PreProcessing.SidecarPath.Resolved, b, 0644)
-				fmt.Println("path is:" + task.PreProcessing.SidecarPath.Resolved)
 				if err != nil {
 					task.PreProcessing.Error = fmt.Errorf("failed to write sidecar: %v", err).Error()
 					q.Sev.Logger().Errorf("failed to write sidecar file: %v", err)
 				} else {
-					debug.Debug("wrote sidecar file (uuid: %s)", task.Uuid)
+					debug.Debugf("wrote sidecar file (uuid: %s)", task.Uuid)
 				}
 			}
 		}
@@ -178,7 +168,7 @@ func (q *Queue) postProcessTask(task *model.Task) error {
 					task.PostProcessing.Error = fmt.Errorf("failed to write sidecar: %v", err).Error()
 					q.Sev.Logger().Errorf("failed to write sidecar file: %v", err)
 				} else {
-					debug.Debug("wrote sidecar file (uuid: %s)", task.Uuid)
+					debug.Debugf("wrote sidecar file (uuid: %s)", task.Uuid)
 				}
 			}
 		}
@@ -213,9 +203,15 @@ func (q *Queue) postProcessTask(task *model.Task) error {
 	return nil
 }
 
+func (q *Queue) failTask(task *model.Task, err error) {
+	task.FinishedAt = time.Now().UnixMilli()
+	task.Progress = 100
+	task.Status = dto.DONE_ERROR
+	task.Error = err.Error()
+	q.updateTask(task)
+	q.Sev.Logger().Warnf("task failed (uuid: %s):\n%v", task.Uuid, err)
+}
+
 func (q *Queue) updateTask(task *model.Task) {
-	q.TaskRepository.UpdateTask(task)
-	q.WebsocketService.Broadcast(service.TASK_UPDATED, task.ToDto())
-	q.Sev.Metrics().Gauge("task.status.updated").Inc()
-	q.WebhookService.Fire(dto.TASK_UPDATED, task.ToDto())
+	q.TaskService.UpdateTask(task)
 }
