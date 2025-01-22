@@ -15,7 +15,6 @@ var resetCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(serverCmd)
 	resetCmd.PersistentFlags().StringP("database", "", "db.sqlite", "the path do the database")
 	viper.BindPFlag("database", resetCmd.PersistentFlags().Lookup("database"))
 	rootCmd.AddCommand(resetCmd)
