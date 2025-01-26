@@ -61,10 +61,12 @@ func (q *Queue) processTask(task *model.Task) {
 	go func() {
 		for {
 			select {
-			case <-service.TaskService().GetTaskUpdates():
-				canceledTask = true
-				cancelTask(errors.New("task canceled by user"))
-				return
+			case t := <-service.TaskService().GetTaskUpdates():
+				if t.Uuid == task.Uuid {
+					canceledTask = true
+					cancelTask(errors.New("task canceled by user"))
+					return
+				}
 			case <-processCtx.Done():
 				return
 			default:
