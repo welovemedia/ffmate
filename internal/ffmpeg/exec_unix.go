@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mattn/go-shellwords"
 	"github.com/welovemedia/ffmate/internal/config"
 	"github.com/yosev/debugo"
 )
@@ -20,7 +21,11 @@ var debug = debugo.New("ffmpeg")
 
 // ExecuteFFmpeg runs the ffmpeg command, provides progress updates, and checks the result
 func Execute(request *ExecutionRequest) error {
-	args := SplitCommand(request.Command)
+	// args := SplitCommand(request.Command)
+	args, err := shellwords.NewParser().Parse(request.Command)
+	if err != nil {
+		return fmt.Errorf("FFMPEG - failed to parse command: %v", err)
+	}
 	args = append(args, "-progress", "pipe:2")
 	cmd := exec.CommandContext(request.Ctx, config.Config().FFMpeg, args...)
 
@@ -83,7 +88,7 @@ func Execute(request *ExecutionRequest) error {
 func SplitCommand(cmd string) []string {
 	var args []string
 	var current strings.Builder
-	var escaping bool
+	var escaping, inQuotes bool
 
 	for _, r := range cmd {
 		switch {
@@ -92,7 +97,9 @@ func SplitCommand(cmd string) []string {
 			escaping = false
 		case r == '\\':
 			escaping = true
-		case r == ' ':
+		case r == '"':
+			inQuotes = !inQuotes
+		case r == ' ' && !inQuotes:
 			if current.Len() > 0 {
 				args = append(args, current.String())
 				current.Reset()
