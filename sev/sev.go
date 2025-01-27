@@ -122,12 +122,16 @@ func (s *Sev) RegisterSignalHook() {
 	go func() {
 		<-s.sigChannel
 		debug.Debug("received interrupt signal, running shutdown hooks")
-		for _, hook := range s.shutdownHooks {
-			hook(s)
-		}
-		debug.Debug("shutting down")
-		os.Exit(0)
+		s.Shutdown()
 	}()
+}
+
+func (s *Sev) Shutdown() {
+	for _, hook := range s.shutdownHooks {
+		hook(s)
+	}
+	debug.Debug("shutting down")
+	os.Exit(0)
 }
 
 var debugMiddleware = debug.Extend("middleware")

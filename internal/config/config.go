@@ -15,6 +15,7 @@ type ConfigDefinition struct {
 
 	Port               uint   `mapstructure:"port"`
 	Headless           bool   `mapstructure:"headless"`
+	Tray               bool   `mapstructure:"tray"`
 	Database           string `mapstructure:"database"`
 	Debug              string `mapstructure:"debug"`
 	MaxConcurrentTasks uint   `mapstructure:"maxConcurrentTasks"`
@@ -28,6 +29,10 @@ func Init() {
 	if err != nil {
 		fmt.Printf("failed to unmarshal config: %s\n", err)
 		os.Exit(1)
+	}
+
+	if config.Debug == "" {
+		config.Debug = os.Getenv("DEBUGO")
 	}
 }
 

@@ -30,19 +30,11 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 }
 
-func updateAvailable() (string, bool, error) {
-	res, err := updater.UpdateAvailable()
-	if err != nil {
-		return "", false, err
-	}
-	if res == "" || res == config.Config().AppVersion {
-		return "", false, nil
-	}
-
-	return res, true, nil
+func update(cmd *cobra.Command, args []string) {
+	checkForUpdate(false)
 }
 
-func update(cmd *cobra.Command, args []string) {
+func checkForUpdate(force bool) {
 	res, found, err := updateAvailable()
 	if err != nil {
 		fmt.Printf("failed to contact update server: %+v", err)
@@ -55,7 +47,7 @@ func update(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Printf("newer version found: %s\n", res)
-	if !dry {
+	if !dry || force {
 		err = updater.Update()
 		if err != nil {
 			fmt.Printf("failed to update to version:  %+v\n", err)
@@ -63,4 +55,16 @@ func update(cmd *cobra.Command, args []string) {
 			fmt.Printf("updated to version: %s\n", res)
 		}
 	}
+}
+
+func updateAvailable() (string, bool, error) {
+	res, err := updater.UpdateAvailable()
+	if err != nil {
+		return "", false, err
+	}
+	if res == "" || res == config.Config().AppVersion {
+		return "", false, nil
+	}
+
+	return res, true, nil
 }

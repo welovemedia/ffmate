@@ -25,12 +25,13 @@ type Stats struct {
 
 	Metrics map[string]float64
 
-	Custom map[string]interface{}
+	Stats  map[string]interface{}
+	Config map[string]interface{}
 }
 
 var debugTelemtry = debug.Extend("telemetry")
 
-func (s *Sev) SendTelemtry(targetUrl string, custom map[string]interface{}) {
+func (s *Sev) SendTelemtry(targetUrl string, statistics map[string]interface{}, conf map[string]interface{}) {
 	stats := Stats{
 		AppName:    config.Config().AppName,
 		AppVersion: config.Config().AppVersion,
@@ -42,7 +43,8 @@ func (s *Sev) SendTelemtry(targetUrl string, custom map[string]interface{}) {
 
 		Metrics: make(map[string]float64),
 
-		Custom: custom,
+		Stats:  statistics,
+		Config: conf,
 	}
 
 	for name, gauge := range s.Metrics().Gauges() {
