@@ -1,23 +1,48 @@
-version: 2
-
-before:
-  hooks:
-    - go mod tidy
+version: 1
 
 builds:
-  - env:
-      - CGO_ENABLED=1
+  - main: ./main.go
+    id: linuxAmd
     goos:
-      # - linux
-      # - windows
-      - darwin
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=1
+      - CC=x86_64-linux-musl-gcc
+    ldflags:
+      - -s -w
+      - -linkmode=external
+      - -extldflags=-static
+
+  - main: ./main.go
+    id: linuxArm
+    goos:
+      - linux
     goarch:
       - arm64
-      - amd64      
+    env:
+      - CGO_ENABLED=1
+      - CC=aarch64-linux-musl-gcc
+    ldflags:
+      - -s -w
+      - -linkmode=external
+      - -extldflags=-static
+
+  - main: ./main.go
+    id: darwin
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=1
+    ldflags:
+      - -s -w
 
 archives:
   - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -25,19 +50,9 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
     format_overrides:
       - goos: windows
         format: zip
-# nfpms:
-# - maintainer: Severin Siebertz <severinsiebertz@googlemail.com>
-#   description: ffmate
-#   homepage: https://github.com/welovemedia/ffmate
-#   license: MIT
-#   formats:
-#   - deb
-#   - rpm
-#   - apk
 changelog:
   sort: asc
   filters:
