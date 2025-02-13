@@ -1,4 +1,4 @@
-version: 2
+version: 1
 
 before:
   hooks:
@@ -8,16 +8,15 @@ builds:
   - env:
       - CGO_ENABLED=1
     goos:
-      # - linux
+      - linux
       # - windows
       - darwin
     goarch:
       - arm64
-      - amd64      
+      - amd64
 
 archives:
   - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -25,19 +24,9 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
     format_overrides:
       - goos: windows
         format: zip
-# nfpms:
-# - maintainer: Severin Siebertz <severinsiebertz@googlemail.com>
-#   description: ffmate
-#   homepage: https://github.com/welovemedia/ffmate
-#   license: MIT
-#   formats:
-#   - deb
-#   - rpm
-#   - apk
 changelog:
   sort: asc
   filters:
