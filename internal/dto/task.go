@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"fmt"
 )
 
 type TaskStatus string
@@ -46,6 +47,8 @@ type Task struct {
 	InputFile  *RawResolved `json:"inputFile"`
 	OutputFile *RawResolved `json:"outputFile"`
 
+	Metadata *InterfaceMap `json:"metadata,omitempty"` // Additional metadata for the task
+
 	Status    TaskStatus `json:"status"`
 	Progress  float64    `json:"progress"`
 	Remaining float64    `json:"remaining"`
@@ -64,6 +67,29 @@ type Task struct {
 
 	CreatedAt int64 `json:"createdAt"`
 	UpdatedAt int64 `json:"updatedAt"`
+}
+
+type InterfaceMap map[string]interface{}
+
+func (j InterfaceMap) Value() (interface{}, error) {
+	return json.Marshal(j)
+}
+
+func (j *InterfaceMap) Scan(value interface{}) error {
+	if value == nil {
+		*j = InterfaceMap{}
+		return nil
+	}
+
+	// Handle different types (DB drivers may return different types)
+	switch v := value.(type) {
+	case []byte:
+		return json.Unmarshal(v, j)
+	case string:
+		return json.Unmarshal([]byte(v), j)
+	default:
+		return fmt.Errorf("unsupported data type: %T", value)
+	}
 }
 
 func (p PrePostProcessing) Value() (driver.Value, error) {

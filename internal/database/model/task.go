@@ -21,6 +21,8 @@ type Task struct {
 	InputFile  *dto.RawResolved `gorm:"type:json"`
 	OutputFile *dto.RawResolved `gorm:"type:json"`
 
+	Metadata *dto.InterfaceMap `gorm:"serializer:json"` // Additional metadata for the task
+
 	Status    dto.TaskStatus `gorm:"index"`
 	Error     string
 	Progress  float64
@@ -49,6 +51,8 @@ func (m *Task) ToDto() *dto.Task {
 		Command:    m.Command,
 		InputFile:  m.InputFile,
 		OutputFile: m.OutputFile,
+
+		Metadata: m.Metadata,
 
 		Status:    m.Status,
 		Progress:  m.Progress,

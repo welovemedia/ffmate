@@ -80,6 +80,7 @@ func (m *Task) Create(newTask *dto.NewTask, batch string, source string, session
 		Command:    &dto.RawResolved{Raw: newTask.Command},
 		InputFile:  &dto.RawResolved{Raw: newTask.InputFile},
 		OutputFile: &dto.RawResolved{Raw: newTask.OutputFile},
+		Metadata:   newTask.Metadata, // Ensure Metadata is not nil
 		Name:       newTask.Name,
 		Priority:   newTask.Priority,
 		Progress:   0,

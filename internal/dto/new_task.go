@@ -9,6 +9,8 @@ type NewTask struct {
 	InputFile  string `json:"inputFile"`
 	OutputFile string `json:"outputFile"`
 
+	Metadata *InterfaceMap `json:"metadata,omitempty"` // Additional metadata for the task
+
 	Priority uint `json:"priority"`
 
 	PreProcessing  *NewPrePostProcessing `json:"preProcessing"`
