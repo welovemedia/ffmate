@@ -5,7 +5,8 @@ import "github.com/prometheus/client_golang/prometheus"
 var namespace = "ffmate"
 
 var gauges = map[string]prometheus.Gauge{
-	"batch.created": prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "batch_created", Help: "Number of created batches"}),
+	"batch.created":  prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "batch_created", Help: "Number of created batches"}),
+	"batch.finished": prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "batch_finished", Help: "Number of finished batches"}),
 
 	"task.created":   prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "task_created", Help: "Number of created tasks"}),
 	"task.deleted":   prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "task_deleted", Help: "Number of deleted tasks"}),

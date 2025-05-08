@@ -47,6 +47,19 @@ func (s *taskSvc) UpdateTask(task *model.Task) (*model.Task, error) {
 	WebsocketService().Broadcast(TASK_UPDATED, task.ToDto())
 	s.sev.Metrics().Gauge("task.updated").Inc()
 	WebhookService().Fire(dto.TASK_UPDATED, task.ToDto())
+
+	if task.Batch != "" {
+		switch task.Status {
+		case dto.DONE_SUCCESSFUL, dto.DONE_ERROR, dto.DONE_CANCELED:
+			c, _ := s.taskRepository.CountNonFinishedTasksByBatchId(task.Batch)
+			if c == 0 {
+				WebsocketService().Broadcast(BATCH_FINISHED, task.ToDto())
+				s.sev.Metrics().Gauge("batch.finished").Inc()
+				WebhookService().Fire(dto.BATCH_FINISHED, task.ToDto())
+			}
+		}
+	}
+
 	return task, err
 }
 

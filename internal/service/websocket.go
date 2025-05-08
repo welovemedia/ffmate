@@ -26,6 +26,9 @@ const (
 	WATCHFOLDER_UPDATED Subject = "watchfolder:updated"
 	WATCHFOLDER_DELETED Subject = "watchfolder:deleted"
 
+	BATCH_CREATED  Subject = "batch:created"
+	BATCH_FINISHED Subject = "batch:finished"
+
 	LOG Subject = "log"
 )
 
