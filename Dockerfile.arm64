@@ -1,0 +1,15 @@
+FROM alpine:3.21
+LABEL org.opencontainers.image.source=https://github.com/welovemedia/ffmate
+LABEL org.opencontainers.image.description="FFmate is a modern and powerful automation layer built on top of FFmpeg — designed to make video and audio transcoding simpler, smarter, and easier to integrate."
+LABEL org.opencontainers.image.licenses=SSPL
+WORKDIR /app
+RUN apk update && apk add ffmpeg
+COPY ./_bin/linux-arm64 /app/ffmate
+ENV PORT=3000
+ENV DB=/app/db/sqlite.db
+ENV DEBUGO=*
+ENV LOGLEVEL=info
+ENV MAX_CONCURRENT_TASKS=3
+EXPOSE ${PORT}
+RUN mkdir -p /app/db
+CMD /app/ffmate server -p $PORT -d $DEBUGO -b $DB -l $LOGLEVEL -m $MAX_CONCURRENT_TASKS
