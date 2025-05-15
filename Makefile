@@ -34,7 +34,7 @@ build+app: build
 	cp _bin/darwin-amd64 _app/ffmate_amd64/ffmate.app/Contents/MacOS/ffmate
 
 docker+build:
-	docker buildx build -f Dockerfile.amd64 -t ${DOCKER_REPO}:${VERSION}-amd64 -t ${DOCKER_REPO}:latest --platform linux/amd64 --load .
+	docker buildx build -f Dockerfile.amd64 -t ${DOCKER_REPO}:${VERSION}-amd64 --platform linux/amd64 --load .
 	docker buildx build -f Dockerfile.arm64 -t ${DOCKER_REPO}:${VERSION}-arm64 --platform linux/arm64 --load .
 
 docker+push: 
@@ -45,6 +45,8 @@ docker+push:
 docker+manifest:
 	docker manifest create ${DOCKER_REPO}:${VERSION} --amend ${DOCKER_REPO}:${VERSION}-amd64 ${DOCKER_REPO}:${VERSION}-arm64
 	docker manifest push ${DOCKER_REPO}:${VERSION}
+	docker manifest create ${DOCKER_REPO}:latest --amend ${DOCKER_REPO}:${VERSION}-amd64 ${DOCKER_REPO}:${VERSION}-arm64
+	docker manifest push ${DOCKER_REPO}:latest
 
 docker+release: docker+build docker+push docker+manifest
 
