@@ -57,7 +57,7 @@ swagger:
 update: build
 	rm -rf _update
 	go-selfupdate -o=_update/ffmate _bin/ $(VERSION)
-	aws s3 sync _update s3://ffmate/_update --profile cloudflare-r2 --delete
+	aws s3 sync _update s3://ffmate/_update --profile cloudflare-r2 --delete --checksum-algorithm=CRC32
 
 release: update
 	git tag -a v$(VERSION) -m "v$(VERSION)"

@@ -97,6 +97,7 @@ func start(cmd *cobra.Command, args []string) {
 		s.Logger().Infof("server is listening on 0.0.0.0:%d", config.Config().Port)
 	})
 	if config.Config().SendTelemetry {
+		_, err := os.Stat("/.dockerenv")
 		s.RegisterShutdownHook(func(s *sev.Sev) {
 			taskRepo := &repository.Task{DB: s.DB()}
 			webhookRepo := &repository.Webhook{DB: s.DB()}
@@ -129,6 +130,7 @@ func start(cmd *cobra.Command, args []string) {
 					"Port":               config.Config().Port,
 					"MaxConcurrentTasks": config.Config().MaxConcurrentTasks,
 					"Debug":              config.Config().Debug,
+					"Docker":             err == nil,
 				},
 			)
 		})
