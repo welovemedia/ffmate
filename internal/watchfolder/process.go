@@ -53,7 +53,10 @@ func (w *Watchfolder) monitorWatchfolderUpdates() {
 			// Cancel running watchfolder if found and remove context
 			cancel.(context.CancelCauseFunc)(errors.New("updated"))
 			watchfolderCtx.Delete(watchfolder.Uuid)
-		} else if !watchfolder.Suspended && !watchfolder.DeletedAt.Valid {
+			debug.Debugf("canceled watchfolder (uuid: %s)", watchfolder.Uuid)
+		}
+
+		if !watchfolder.Suspended && !watchfolder.DeletedAt.Valid {
 			ctx, cancel := context.WithCancelCause(context.Background())
 			watchfolderCtx.Store(watchfolder.Uuid, cancel)
 			// Create a deep copy of the watchfolder to avoid race conditions

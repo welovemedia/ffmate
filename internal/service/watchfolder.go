@@ -96,5 +96,7 @@ func (s *watchfolderSvc) UpdateWatchfolder(watchfolderUuid string, newWatchfolde
 	w.Interval = newWatchfolder.Interval
 	w.Filter = newWatchfolder.Filter
 
+	watchfolderUpdates <- w
+
 	return s.UpdateWatchfolderInternal(w)
 }
