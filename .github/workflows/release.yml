@@ -1,0 +1,96 @@
+name: Cross-platform cgo Build and Release
+
+on:
+  push:
+    branches:
+      - ci-release
+
+jobs:
+  build:
+    continue-on-error: true 
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        arch: [amd64, arm64]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Go modules & build cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.3'
+
+      - name: Install cross-compiler (Linux only)
+        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-aarch64-linux-gnu
+
+      - name: Setup Zig (Windows)
+        if: matrix.os == 'windows-latest'
+        uses:  mlugg/setup-zig@v2
+
+      - name: Build binary (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+          GOOS: "${{ matrix.os == 'ubuntu-latest' && 'linux' || 'darwin' }}"
+          GOARCH: "${{ matrix.arch }}"
+          CC: "${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64' && 'aarch64-linux-gnu-gcc' || '' }}"
+          EXT: ""
+        run: |
+          echo "Building for $GOOS/$GOARCH"
+          go build -o ffmate-${GOOS}-${GOARCH}${EXT} .
+
+      - name: Build binary (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          CGO_ENABLED: "1"
+          GOOS: "windows"
+          GOARCH: "${{ matrix.arch }}"
+          CC: ${{ matrix.arch == 'arm64' && 'zig cc -target aarch64-windows-gnu' || 'zig cc -target x86_64-windows-gnu' }}
+          EXT: ".exe"
+        run: |
+          Write-Host "Building for $env:GOOS/$env:GOARCH with CC=[$env:CC]"
+          # Configure Go to use Zig as the C compiler
+          go env -w CGO_ENABLED=1
+          go env -w CC="$env:CC"
+          # Now invoke go build normally
+          go build -o ffmate-$($env:GOOS)-$($env:GOARCH)$env:EXT .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmate-${{ matrix.os }}-${{ matrix.arch }}
+          path: ffmate-*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          files: dist/**/*  # upload all platform binaries
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
