@@ -1,0 +1,241 @@
+name: Cross-platform cgo Build and Release
+
+on:
+  push:
+    branches:
+      - ci-release
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # - name: Cache Go modules & build cache
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: |
+      #       ~/.cache/go-build
+      #       ~/go/pkg/mod
+      #     key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-go-
+
+      # - name: Set up Go
+      #   uses: actions/setup-go@v5
+      #   with:
+      #     go-version: '1.24.3'
+
+      # - name: Test
+      #   run: |
+      #     go test ./...
+
+  build-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install PNPM 10
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Build frontend
+        run: |
+          make build+frontend
+
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmate-frontend
+          path: |
+            ui-build/
+     
+  build:
+    needs: build-frontend
+    continue-on-error: false
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        arch: [amd64, arm64]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Go modules & build cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.3'
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ffmate-frontend
+          path: ui-build
+
+      - name: Install cross-compiler (Linux only)
+        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64'
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-aarch64-linux-gnu
+
+      - name: Setup Zig (Windows)
+        if: matrix.os == 'windows-latest'
+        uses:  mlugg/setup-zig@v2
+
+      - name: Build binary (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        env:
+          CGO_ENABLED: "1"
+          GOOS: ${{ matrix.os == 'ubuntu-latest' && 'linux' || 'darwin' }}
+          GOARCH: ${{ matrix.arch }}
+          CC: ${{ matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64' && 'aarch64-linux-gnu-gcc' || '' }}
+          LDFLAGS: ${{ matrix.os == 'macos-latest' && '-s -w' || '-s -w -linkmode external -extldflags "-static"' }}
+        run: |
+          echo "Building for $GOOS/$GOARCH with ldflags: $LDFLAGS"
+          go build -ldflags "$LDFLAGS" -o ffmate .
+
+      - name: Build binary (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        env:
+          CGO_ENABLED: "1"
+          GOOS: "windows"
+          GOARCH: "${{ matrix.arch }}"
+          CC: ${{ matrix.arch == 'arm64' && 'zig cc -target aarch64-windows-gnu' || 'zig cc -target x86_64-windows-gnu' }}
+          EXT: ".exe"
+        run: |
+          Write-Host "Building for $env:GOOS/$env:GOARCH with CC=[$env:CC]"
+          # Configure Go to use Zig as the C compiler
+          go env -w CGO_ENABLED=1
+          go env -w CC="$env:CC"
+          # Now invoke go build normally
+          go build -o ffmate$env:EXT .
+
+      - name: Package artifact (Unix)
+        if: matrix.os != 'windows-latest'
+        shell: bash
+        run: |
+          # Derive GOOS from matrix.os
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            GOOS=linux
+          else
+            GOOS=darwin
+          fi
+          GOARCH=${{ matrix.arch }}
+          gzip -n -c ffmate > ffmate-${GOOS}-${GOARCH}.gz
+      
+      - name: Package artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $GOOS = "windows"
+          $GOARCH = "${{ matrix.arch }}"
+          $EXT = ".exe"
+          $base = "ffmate"
+          Write-Host "Zipping $base$EXT into $base.zip"
+          Compress-Archive -Path "$base$EXT" -DestinationPath "$base-$GOOS-$GOARCH.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmate-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            ffmate-${{ matrix.os == 'ubuntu-latest' && 'linux' || (matrix.os == 'macos-latest' && 'darwin') }}-${{ matrix.arch }}.gz
+            ffmate-windows-${{ matrix.arch }}.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install unzip
+        run: sudo apt-get update && sudo apt-get install -y unzip
+
+      - uses: geekyeggo/delete-artifact@v5
+        with:
+          name: ffmate-frontend
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Install go-selfupdate
+        run: go install github.com/sanbornm/go-selfupdate/cmd/go-selfupdate@latest
+
+      - name: Prepare update binaries
+        run: |
+          rm -rf _bin
+          mkdir -p _bin
+          gunzip -c dist/ffmate-macos-latest-arm64/ffmate-darwin-arm64.gz > _bin/darwin-arm64
+          gunzip -c dist/ffmate-ubuntu-latest-amd64/ffmate-linux-amd64.gz > _bin/linux-amd64
+          gunzip -c dist/ffmate-ubuntu-latest-arm64/ffmate-linux-arm64.gz > _bin/linux-arm64
+          gunzip -c dist/ffmate-macos-latest-amd64/ffmate-darwin-amd64.gz > _bin/darwin-amd64
+          unzip -p dist/ffmate-windows-latest-amd64/ffmate-windows-amd64.zip ffmate.exe > _bin/windows-amd64
+          unzip -p dist/ffmate-windows-latest-arm64/ffmate-windows-arm64.zip ffmate.exe > _bin/windows-arm64
+
+      - name: Execute go-selfupdate
+        run: |
+          rm -rf _update
+          ${GOPATH:-$HOME/go}/bin/go-selfupdate -o=_update/ffmate _bin/ 1.1.1
+
+      - name: Upload update binaries to S3
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --acl public-read --follow-symlinks --delete
+        env:
+          AWS_S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY_SECRET }}
+          AWS_REGION: ${{ secrets.S3_REGION }}
+          AWS_S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          DEST_DIR: "_update_test"
+          SOURCE_DIR: "_update"
+
+      - name: Generate CHANGELOG.md
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null \
+                    || git rev-list --max-parents=0 HEAD)
+          echo "## Changelog" > CHANGELOG.md
+          git log $PREV_TAG..HEAD --pretty=format:"* %h %s" >> CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG.md
+          draft: true
+          make_latest: true
+          files: dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

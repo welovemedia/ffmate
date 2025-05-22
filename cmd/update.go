@@ -22,12 +22,11 @@ func init() {
 
 	updater = &selfupdate.Updater{
 		CurrentVersion: config.Config().AppVersion,
-		ApiURL:         "https://earth.ffmate.io/_update/",
-		BinURL:         "https://earth.ffmate.io/_update/",
+		ApiURL:         "https://earth.ffmate.io/_update_test/",
+		BinURL:         "https://earth.ffmate.io/_update_test/",
 		ForceCheck:     true,
 		CmdName:        "ffmate",
 	}
-
 	rootCmd.AddCommand(updateCmd)
 }
 
@@ -49,13 +48,13 @@ func checkForUpdate(force bool) (string, bool, error) {
 	}
 
 	if !found {
-		return fmt.Sprintf("no newer version found"), false, nil
+		return "no newer version found", false, nil
 	}
 
 	if !dry || force {
 		err = updater.Update()
 		if err != nil {
-			return "", true, fmt.Errorf("failed to update to version:  %+v\n", err)
+			return "", true, fmt.Errorf("failed to update to version: %+v", err)
 		} else {
 			return fmt.Sprintf("updated to version: %s\n", res), true, nil
 		}

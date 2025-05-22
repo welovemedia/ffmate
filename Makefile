@@ -22,7 +22,7 @@ mkdir+bin:
 
 build+frontend:
 	cd ui && pnpm i && pnpm run generate
-	cp -r ui/.output/public/ ui-build
+	cp -r ui/.output/public/* ui-build/
 
 build: test swagger build+frontend mkdir+bin 
 
