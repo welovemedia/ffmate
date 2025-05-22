@@ -22,6 +22,26 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/ai": {
+            "get": {
+                "description": "Get AI configuration",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Get AI configuration",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AI"
+                        }
+                    }
+                }
+            }
+        },
         "/debug/namespace": {
             "delete": {
                 "description": "Turn debugging off",
@@ -680,6 +700,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.AI": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "vendor": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.InterfaceMap": {
             "type": "object",
             "additionalProperties": true

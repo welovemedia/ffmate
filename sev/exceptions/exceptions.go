@@ -31,3 +31,7 @@ func HttpInvalidParam(name string) *HttpError {
 func HttpInvalidQuery(name string) *HttpError {
 	return &HttpError{HttpCode: 400, Code: "002.000.0007", Error: "invalid.query", Message: "invalid query '" + name + "'"}
 }
+
+func HttpNotFound(err error, docs string) *HttpError {
+	return &HttpError{HttpCode: 400, Code: "002.000.0008", Error: "not.found", Message: err.Error(), Docs: docs}
+}

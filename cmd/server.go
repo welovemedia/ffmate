@@ -45,7 +45,7 @@ func init() {
 	serverCmd.PersistentFlags().BoolP("tray", "t", false, "start with tray menu (experimental)")
 	serverCmd.PersistentFlags().StringP("database", "b", "~/.ffmate/db.sqlite", "the path do the database")
 	serverCmd.PersistentFlags().UintP("max-concurrent-tasks", "m", 3, "define maximum concurrent running tasks")
-
+	serverCmd.PersistentFlags().StringP("ai", "", "", "ai vendor:model:key")
 	serverCmd.PersistentFlags().BoolP("send-telemetry", "s", true, "enable sending anonymous telemetry data")
 
 	viper.BindPFlag("ffmpeg", serverCmd.PersistentFlags().Lookup("ffmpeg"))
@@ -53,6 +53,7 @@ func init() {
 	viper.BindPFlag("tray", serverCmd.PersistentFlags().Lookup("tray"))
 	viper.BindPFlag("database", serverCmd.PersistentFlags().Lookup("database"))
 	viper.BindPFlag("maxConcurrentTasks", serverCmd.PersistentFlags().Lookup("max-concurrent-tasks"))
+	viper.BindPFlag("ai", serverCmd.PersistentFlags().Lookup("ai"))
 	viper.BindPFlag("sendTelemetry", serverCmd.PersistentFlags().Lookup("send-telemetry"))
 }
 
@@ -131,6 +132,7 @@ func start(cmd *cobra.Command, args []string) {
 					"MaxConcurrentTasks": config.Config().MaxConcurrentTasks,
 					"Debug":              config.Config().Debug,
 					"Docker":             err == nil,
+					"AI":                 config.Config().AI != "",
 				},
 			)
 		})
