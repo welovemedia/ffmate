@@ -234,7 +234,9 @@ jobs:
           rm -rf _bin
           mkdir -p _bin
           gunzip -c dist/ffmate-ubuntu-latest-amd64/ffmate-linux-amd64.gz > _bin/linux-amd64
+          chmod u+x _bin/linux-amd64
           gunzip -c dist/ffmate-ubuntu-latest-arm64/ffmate-linux-arm64.gz > _bin/linux-arm64
+          chmod u+x _bin/linux-arm64
 
       - name: Login docker to ghcr.io
         uses: docker/login-action@v3
