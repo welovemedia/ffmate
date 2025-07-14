@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/welovemedia/ffmate/internal/config"
 )
 
 func Replace(input string, inputFile string, outputFile string, source string) string {
@@ -46,6 +47,8 @@ func Replace(input string, inputFile string, outputFile string, source string) s
 	input = strings.ReplaceAll(input, "${SOURCE}", source)
 
 	input = strings.ReplaceAll(input, "${UUID}", uuid.NewString())
+
+	input = strings.ReplaceAll(input, "${FFMPEG}", config.Config().FFMpeg)
 
 	return input
 }
