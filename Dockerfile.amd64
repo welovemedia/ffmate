@@ -3,7 +3,7 @@ LABEL org.opencontainers.image.source=https://github.com/welovemedia/ffmate
 LABEL org.opencontainers.image.description="FFmate is a modern and powerful automation layer built on top of FFmpeg — designed to make video and audio transcoding simpler, smarter, and easier to integrate."
 LABEL org.opencontainers.image.licenses=AGPL-3.0
 WORKDIR /app
-RUN apk update && apk add ffmpeg
+RUN apk update && apk add ffmpeg bash jq
 COPY ./_bin/linux-amd64 /app/ffmate
 ENV PORT=3000
 ENV DB=/app/db/sqlite.db
