@@ -208,6 +208,10 @@ func sendTelemetry(s *sev.Sev, isDocker bool) {
 	presetRepo := &repository.Preset{DB: s.DB()}
 	watchfolderRepo := &repository.Watchfolder{DB: s.DB()}
 	count, _ := taskRepo.Count()
+
+	countSourceWatchfolder, _ := taskRepo.CountBySource("watchfolder")
+	countSourceAPI, _ := taskRepo.CountBySource("api")
+
 	countDeleted, _ := taskRepo.CountDeleted()
 	countQueued, _ := taskRepo.CountByStatus(dto.QUEUED)
 	countRunning, _ := taskRepo.CountByStatus(dto.RUNNING)
@@ -243,6 +247,9 @@ func sendTelemetry(s *sev.Sev, isDocker bool) {
 			"TasksDeletedSuccessful": countDeletedSuccessful,
 			"TasksDeletedFailed":     countDeletedFailed,
 			"TasksDeletedCanceled":   countDeletedCanceled,
+
+			"TaskSourceWatchfolder": countSourceWatchfolder,
+			"TaskSourceAPI":         countSourceAPI,
 
 			"Webhooks":        countWebhooks,
 			"WebhooksDeleted": countWebhooksDeleted,
