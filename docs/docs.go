@@ -906,6 +906,9 @@ const docTemplate = `{
                 "finishedAt": {
                     "type": "integer"
                 },
+                "importSidecar": {
+                    "type": "boolean"
+                },
                 "scriptPath": {
                     "$ref": "#/definitions/dto.RawResolved"
                 },
