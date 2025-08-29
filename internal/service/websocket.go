@@ -26,6 +26,10 @@ const (
 	WATCHFOLDER_UPDATED Subject = "watchfolder:updated"
 	WATCHFOLDER_DELETED Subject = "watchfolder:deleted"
 
+	WEBHOOK_CREATED Subject = "webhook:created"
+	WEBHOOK_UPDATED Subject = "webhook:updated"
+	WEBHOOK_DELETED Subject = "webhook:deleted"
+
 	BATCH_CREATED  Subject = "batch:created"
 	BATCH_FINISHED Subject = "batch:finished"
 

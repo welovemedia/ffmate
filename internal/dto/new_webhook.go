@@ -15,6 +15,7 @@ const (
 	PRESET_DELETED WebhookEvent = "preset.deleted"
 
 	WEBHOOK_CREATED WebhookEvent = "webhook.created"
+	WEBHOOK_UPDATED WebhookEvent = "webhook.updated"
 	WEBHOOK_DELETED WebhookEvent = "webhook.deleted"
 
 	WATCHFOLDER_CREATED WebhookEvent = "watchfolder.created"

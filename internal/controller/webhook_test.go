@@ -85,7 +85,7 @@ func TestWebhookController(t *testing.T) {
 	defer sqlDB.Close()
 
 	// Setup webhook server and expected calls
-	webhookURL, webhookCalls := setupWebhookServer(t, 2) // Expect: created, deleted
+	webhookURL, webhookCalls := setupWebhookServer(t, 3) // Expect: created, updated, deleted
 
 	// Setup webhooks for webhook events
 	service.WebhookService().NewWebhook(&dto.NewWebhook{
@@ -93,11 +93,16 @@ func TestWebhookController(t *testing.T) {
 		Url:   webhookURL,
 	})
 	service.WebhookService().NewWebhook(&dto.NewWebhook{
+		Event: dto.WEBHOOK_UPDATED,
+		Url:   webhookURL,
+	})
+	service.WebhookService().NewWebhook(&dto.NewWebhook{
 		Event: dto.WEBHOOK_DELETED,
 		Url:   webhookURL,
 	})
 
-	// Wait for the webhook listener creation events (as we create two webhook lsiteners)
+	// Wait for the webhook listener creation events (as we create two webhook listeners)
+	waitForWebhook(t, webhookCalls, dto.WEBHOOK_CREATED)
 	waitForWebhook(t, webhookCalls, dto.WEBHOOK_CREATED)
 	waitForWebhook(t, webhookCalls, dto.WEBHOOK_CREATED)
 
@@ -152,6 +157,58 @@ func TestWebhookController(t *testing.T) {
 
 		if len(response) < 1 {
 			t.Error("Expected at least one webhook")
+		}
+	})
+
+	t.Run("Get webhook", func(t *testing.T) {
+		webhooks, _, _ := service.WebhookService().ListWebhooks(0, 1)
+		if len(*webhooks) > 0 {
+			w := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/v1/webhooks/"+(*webhooks)[0].Uuid, nil)
+			s.Gin().ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+			}
+
+			var response dto.Webhook
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			if err != nil {
+				t.Fatalf("Failed to unmarshal response: %v", err)
+			}
+		}
+	})
+
+	t.Run("Update webhook", func(t *testing.T) {
+		webhooks, _, _ := service.WebhookService().ListWebhooks(0, 1)
+		if len(*webhooks) > 0 {
+			newWebhook := dto.NewWebhook{
+				Event: dto.TASK_UPDATED,
+				Url:   "http://localhost:8080/test",
+			}
+
+			body, _ := json.Marshal(newWebhook)
+			w := httptest.NewRecorder()
+			uuid := (*webhooks)[0].Uuid
+			req := httptest.NewRequest("PUT", "/v1/webhooks/"+uuid, bytes.NewBuffer(body))
+			req.Header.Set("Content-Type", "application/json")
+
+			s.Gin().ServeHTTP(w, req)
+			waitForWebhook(t, webhookCalls, dto.WEBHOOK_UPDATED)
+
+			if w.Code != http.StatusOK {
+				t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+			}
+
+			var response dto.Webhook
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			if err != nil {
+				t.Fatalf("Failed to unmarshal response: %v", err)
+			}
+
+			if response.Event != newWebhook.Event {
+				t.Errorf("Expected event %s, got %s", newWebhook.Event, response.Event)
+			}
 		}
 	})
 

@@ -24,8 +24,11 @@ func (m *Webhook) List(page int, perPage int) (*[]model.Webhook, int64, error) {
 
 func (m *Webhook) First(uuid string) (*model.Webhook, error) {
 	var webhook = &model.Webhook{}
-	m.DB.Where("uuid = ?", uuid).Find(&webhook)
-	return webhook, m.DB.Error
+	err := m.DB.Where("uuid = ?", uuid).First(&webhook).Error
+	if err != nil {
+		return nil, err
+	}
+	return webhook, nil
 }
 
 func (m *Webhook) Count() (int64, error) {
@@ -38,6 +41,11 @@ func (m *Webhook) CountDeleted() (int64, error) {
 	var count int64
 	db := m.DB.Unscoped().Model(&model.Webhook{}).Where("deleted_at IS NOT NULL").Count(&count)
 	return count, db.Error
+}
+
+func (m *Webhook) Update(w *model.Webhook) (*model.Webhook, error) {
+	m.DB.Save(w)
+	return w, m.DB.Error
 }
 
 func (m *Webhook) Delete(w *model.Webhook) error {

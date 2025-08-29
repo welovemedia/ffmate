@@ -20,6 +20,7 @@ var gauges = map[string]prometheus.Gauge{
 
 	"webhook.created":  prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "webhook_created", Help: "Number of created webhooks"}),
 	"webhook.executed": prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "webhook_executed", Help: "Number of executed webhooks"}),
+	"webhook.updated":  prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "webhook_updated", Help: "Number of updated webhooks"}),
 	"webhook.deleted":  prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "webhook_deleted", Help: "Number of deleted webhooks"}),
 
 	"watchfolder.created":  prometheus.NewGauge(prometheus.GaugeOpts{Namespace: namespace, Name: "watchfolder_created", Help: "Number of created watchfolders"}),

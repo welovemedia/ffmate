@@ -673,6 +673,65 @@ const docTemplate = `{
             }
         },
         "/webhooks/{uuid}": {
+            "get": {
+                "description": "Get a single webhook by its uuid",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Get single webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "the webhooks uuid",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Webhook"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update a webhook for an event",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Update a webhook",
+                "parameters": [
+                    {
+                        "description": "updated webhook",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.NewWebhook"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.Webhook"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "description": "Delete a webhook by its uuid",
                 "produces": [
@@ -704,6 +763,9 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "arch": {
+                    "type": "string"
+                },
+                "ffmpeg": {
                     "type": "string"
                 },
                 "os": {
@@ -1098,6 +1160,7 @@ const docTemplate = `{
                 "preset.updated",
                 "preset.deleted",
                 "webhook.created",
+                "webhook.updated",
                 "webhook.deleted",
                 "watchfolder.created",
                 "watchfolder.updated",
@@ -1113,6 +1176,7 @@ const docTemplate = `{
                 "PRESET_UPDATED",
                 "PRESET_DELETED",
                 "WEBHOOK_CREATED",
+                "WEBHOOK_UPDATED",
                 "WEBHOOK_DELETED",
                 "WATCHFOLDER_CREATED",
                 "WATCHFOLDER_UPDATED",

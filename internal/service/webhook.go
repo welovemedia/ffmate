@@ -39,8 +39,34 @@ func (s *webhookSvc) DeleteWebhook(uuid string) error {
 
 	s.sev.Metrics().Gauge("webhook.deleted").Inc()
 	s.Fire(dto.WEBHOOK_DELETED, w)
+	WebsocketService().Broadcast(WEBHOOK_DELETED, w.ToDto())
 
 	return nil
+}
+
+func (s *webhookSvc) GetWebhookById(uuid string) (*model.Webhook, error) {
+	return s.webhookRepository.First(uuid)
+}
+
+func (s *webhookSvc) UpdateWebhook(webhookUuid string, webhook *dto.NewWebhook) (*model.Webhook, error) {
+	w, err := s.GetWebhookById(webhookUuid)
+	if err != nil {
+		return nil, err
+	}
+
+	w.Event = webhook.Event
+	w.Url = webhook.Url
+
+	w, err = s.webhookRepository.Update(w)
+	if err != nil {
+		return nil, err
+	}
+
+	s.sev.Metrics().Gauge("webhook.updated").Inc()
+	s.Fire(dto.WEBHOOK_UPDATED, w)
+	WebsocketService().Broadcast(WEBHOOK_UPDATED, w.ToDto())
+
+	return w, nil
 }
 
 func (s *webhookSvc) NewWebhook(webhook *dto.NewWebhook) (*model.Webhook, error) {
@@ -49,6 +75,7 @@ func (s *webhookSvc) NewWebhook(webhook *dto.NewWebhook) (*model.Webhook, error)
 
 	s.sev.Metrics().Gauge("webhook.created").Inc()
 	s.Fire(dto.WEBHOOK_CREATED, w)
+	WebsocketService().Broadcast(WEBHOOK_CREATED, w.ToDto())
 
 	return w, err
 }

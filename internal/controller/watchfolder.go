@@ -36,13 +36,13 @@ func (c *WatchfolderController) Setup(s *sev.Sev) {
 // @Router /watchfolder/{uuid} [get]
 func (c *WatchfolderController) getWatchfolder(gin *gin.Context) {
 	uuid := gin.Param("uuid")
-	task, err := service.WatchfolderService().GetWatchfolderById(uuid)
+	watchfolder, err := service.WatchfolderService().GetWatchfolderById(uuid)
 	if err != nil {
 		gin.JSON(400, exceptions.HttpBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#getting-a-single-watchfolder"))
 		return
 	}
 
-	gin.JSON(200, task.ToDto())
+	gin.JSON(200, watchfolder.ToDto())
 }
 
 // @Summary Delete a watchfolder
