@@ -132,11 +132,34 @@ func (w *Watchfolder) process(watchfolder *model.Watchfolder, ctx context.Contex
 }
 
 func (w *Watchfolder) createTask(path string, watchfolder *model.Watchfolder) {
-	_, err := service.TaskService().NewTask(&dto.NewTask{
+	// create ffmate metadata map
+	ffmate := map[string]map[string]string{
+		"watchfolder": {
+			"uuid": watchfolder.Uuid,
+			"path": watchfolder.Path,
+		},
+	}
+	metadata := &dto.InterfaceMap{"ffmate": ffmate}
+
+	// create new task
+	task := &dto.NewTask{
 		Preset:    watchfolder.Preset,
 		Name:      filepath.Base(path),
+		Metadata:  metadata,
 		InputFile: path,
-	}, "", "watchfolder")
+	}
+
+	// hydrate paths in ffmate metadata map
+	relPath, err := filepath.Rel(watchfolder.Path, path)
+	if err != nil {
+		w.Sev.Logger().Errorf("failed to get relative path for %s (base: %s): %v", path, watchfolder.Path, err)
+	} else {
+		ffmate["watchfolder"]["relativePath"] = relPath
+		ffmate["watchfolder"]["relativeDir"] = filepath.Dir(relPath)
+	}
+
+	// add new Task
+	_, err = service.TaskService().NewTask(task, "", "watchfolder")
 	if err != nil {
 		w.Sev.Logger().Errorf("failed to create task for watchfolder (uuid: %s) file: %s: %v", watchfolder.Uuid, path, err)
 		return

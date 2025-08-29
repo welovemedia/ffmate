@@ -53,7 +53,9 @@ func Replace(input string, inputFile string, outputFile string, source string, m
 
 	input = strings.ReplaceAll(input, "${UUID}", uuid.NewString())
 
+	config.Config().Mutex.RLock()
 	input = strings.ReplaceAll(input, "${FFMPEG}", config.Config().FFMpeg)
+	defer config.Config().Mutex.RUnlock()
 
 	// handle metadata wildcard
 	if metadata != nil {
