@@ -143,9 +143,9 @@ func (m *Task) CountDeleted() (int64, error) {
 	return count, db.Error
 }
 
-func (m *Task) CountBySource(source string) (int64, error) {
+func (m *Task) CountAllBySource(source string) (int64, error) {
 	var count int64
-	db := m.DB.Unscoped().Model(&model.Task{}).Where("deleted_at IS NOT NULL and source = ?", source).Count(&count)
+	db := m.DB.Unscoped().Model(&model.Task{}).Where("source = ?", source).Count(&count)
 	return count, db.Error
 }
 

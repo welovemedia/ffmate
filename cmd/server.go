@@ -209,8 +209,8 @@ func sendTelemetry(s *sev.Sev, isDocker bool) {
 	watchfolderRepo := &repository.Watchfolder{DB: s.DB()}
 	count, _ := taskRepo.Count()
 
-	countSourceWatchfolder, _ := taskRepo.CountBySource("watchfolder")
-	countSourceAPI, _ := taskRepo.CountBySource("api")
+	countSourceWatchfolder, _ := taskRepo.CountAllBySource("watchfolder")
+	countSourceAPI, _ := taskRepo.CountAllBySource("api")
 
 	countDeleted, _ := taskRepo.CountDeleted()
 	countQueued, _ := taskRepo.CountByStatus(dto.QUEUED)
