@@ -91,8 +91,9 @@ func (m *Task) Create(newTask *dto.NewTask, batch string, source string, session
 	}
 	if newTask.PreProcessing != nil {
 		task.PreProcessing = &dto.PrePostProcessing{
-			ScriptPath:  &dto.RawResolved{Raw: newTask.PreProcessing.ScriptPath},
-			SidecarPath: &dto.RawResolved{Raw: newTask.PreProcessing.SidecarPath},
+			ScriptPath:    &dto.RawResolved{Raw: newTask.PreProcessing.ScriptPath},
+			SidecarPath:   &dto.RawResolved{Raw: newTask.PreProcessing.SidecarPath},
+			ImportSidecar: newTask.PreProcessing.ImportSidecar,
 		}
 	}
 	if newTask.PostProcessing != nil {

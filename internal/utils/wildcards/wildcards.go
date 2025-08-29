@@ -15,6 +15,7 @@ import (
 func Replace(input string, inputFile string, outputFile string, source string) string {
 	input = strings.ReplaceAll(input, "${INPUT_FILE}", fmt.Sprintf("\"%s\"", inputFile))
 	input = strings.ReplaceAll(input, "${OUTPUT_FILE}", fmt.Sprintf("\"%s\"", outputFile))
+
 	input = strings.ReplaceAll(input, "${INPUT_FILE_BASE}", filepath.Base(inputFile))
 	input = strings.ReplaceAll(input, "${OUTPUT_FILE_BASE}", filepath.Base(inputFile))
 	input = strings.ReplaceAll(input, "${INPUT_FILE_EXTENSION}", filepath.Ext(filepath.Base(inputFile)))

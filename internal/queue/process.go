@@ -220,6 +220,20 @@ func (q *Queue) prePostProcessTask(task *model.Task, processor *dto.PrePostProce
 			}
 		}
 
+		// re-import the sidecar file and unmarshal into task
+		// enabled modifying the task from within a preProcess script by modifying the sideCar file before re-importing it
+		if processorType == "pre" && processor.SidecarPath != nil && processor.SidecarPath.Raw != "" && processor.ImportSidecar {
+			b, err := os.ReadFile(processor.SidecarPath.Resolved)
+			if err != nil {
+				return err
+			}
+			err = json.Unmarshal(b, task)
+			if err != nil {
+				return err
+			}
+			debug.Debugf("re-imported sidecar file (uuid: %s)", task.Uuid)
+		}
+
 		processor.FinishedAt = time.Now().UnixMilli()
 		if processor.Error != "" {
 			q.Sev.Logger().Infof("finished %sProcessing with error (uuid: %s)", processorType, task.Uuid)

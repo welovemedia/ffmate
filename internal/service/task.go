@@ -147,7 +147,7 @@ func (s *taskSvc) NewTask(task *dto.NewTask, batch string, source string) (*mode
 			task.Priority = preset.Priority
 		}
 		if preset.PreProcessing != nil && task.PreProcessing == nil {
-			task.PreProcessing = &dto.NewPrePostProcessing{ScriptPath: preset.PreProcessing.ScriptPath, SidecarPath: preset.PreProcessing.SidecarPath}
+			task.PreProcessing = &dto.NewPrePostProcessing{ScriptPath: preset.PreProcessing.ScriptPath, SidecarPath: preset.PreProcessing.SidecarPath, ImportSidecar: preset.PreProcessing.ImportSidecar}
 		}
 		if preset.PostProcessing != nil && task.PostProcessing == nil {
 			task.PostProcessing = &dto.NewPrePostProcessing{ScriptPath: preset.PostProcessing.ScriptPath, SidecarPath: preset.PostProcessing.SidecarPath}

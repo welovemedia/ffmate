@@ -28,6 +28,8 @@ func (c *ClientController) Setup(s *sev.Sev) {
 // @Success 200 {object} dto.Client
 // @Router /client [get]
 func (c *ClientController) getClient(gin *gin.Context) {
+	config.Config().Mutex.RLock()
+	defer config.Config().Mutex.RUnlock()
 	gin.JSON(200, &dto.Client{
 		Version: config.Config().AppVersion,
 		FFmpeg:  config.Config().FFMpeg,
