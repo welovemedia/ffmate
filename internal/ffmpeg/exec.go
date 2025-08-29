@@ -34,6 +34,9 @@ func Execute(request *ExecutionRequest) error {
 			return fmt.Errorf("FFMPEG - failed to parse command: %v", err)
 		}
 		args = append(args, "-progress", "pipe:2")
+		if !strings.Contains(cmdStr, "-stats_period") {
+			args = append(args, "-stats_period", "1")
+		}
 		config.Config().Mutex.RLock()
 		var cmd *exec.Cmd
 		if index > 0 {
