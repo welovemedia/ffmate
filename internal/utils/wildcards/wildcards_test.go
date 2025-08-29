@@ -3,9 +3,12 @@ package wildcards
 import (
 	"runtime"
 	"testing"
+
+	"github.com/welovemedia/ffmate/internal/dto"
 )
 
 func TestReplace(t *testing.T) {
+	metadata := &dto.InterfaceMap{"color": "red", "user": map[string]interface{}{"name": "Alice", "age": 30}, "tracks": []string{"track1", "track2"}}
 	tests := []struct {
 		name        string
 		input       string
@@ -41,11 +44,35 @@ func TestReplace(t *testing.T) {
 			source:     "test",
 			want:       "OS: " + runtime.GOOS + " " + runtime.GOARCH,
 		},
+		{
+			name:       "Metadata color",
+			input:      "Color: ${METADATA_color}",
+			inputFile:  "test.mp4",
+			outputFile: "out.mp4",
+			source:     "test",
+			want:       "Color: red",
+		},
+		{
+			name:       "Metadata user age",
+			input:      "Age: ${METADATA_user.age}",
+			inputFile:  "test.mp4",
+			outputFile: "out.mp4",
+			source:     "test",
+			want:       "Age: 30",
+		},
+		{
+			name:       "Metadata tracks track2",
+			input:      "Track: ${METADATA_tracks.1}",
+			inputFile:  "test.mp4",
+			outputFile: "out.mp4",
+			source:     "test",
+			want:       "Track: track2",
+		},
 	}
 
 	for index, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Replace(tt.input, tt.inputFile, tt.outputFile, tt.source)
+			got := Replace(tt.input, tt.inputFile, tt.outputFile, tt.source, metadata)
 			var want = tt.want
 			if runtime.GOOS == "windows" {
 				if tt.wantWin != "" {

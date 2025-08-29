@@ -7,7 +7,7 @@ prepare:
 	go mod tidy
 
 test:
-	go test -race ./...
+	go test -v -race ./...
 test+slow:
 	go test ./... --tags=slow
 
