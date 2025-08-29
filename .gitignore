@@ -13,3 +13,4 @@ TODO
 _app
 ui-build/
 +ui-build/index.html
+.vscode
