@@ -38,7 +38,7 @@ func (c *WebhookController) getWebhook(gin *gin.Context) {
 	uuid := gin.Param("uuid")
 	webhook, err := service.WebhookService().GetWebhookById(uuid)
 	if err != nil {
-		gin.JSON(400, exceptions.HttpBadRequest(err, "https://docs.ffmate.io/docs/webhooks#getting-a-webhook"))
+		gin.JSON(400, exceptions.HttpBadRequest(err, "https://docs.ffmate.io/docs/webhooks#getting-a-single-webhook"))
 		return
 	}
 
