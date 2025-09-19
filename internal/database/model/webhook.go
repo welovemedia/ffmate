@@ -31,7 +31,3 @@ func (m *Webhook) ToDto() *dto.Webhook {
 		UpdatedAt: m.UpdatedAt,
 	}
 }
-
-func (Webhook) TableName() string {
-	return "webhook"
-}

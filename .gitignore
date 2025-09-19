@@ -1,16 +1,12 @@
 .DS_STORE
-db.sqlite
 tmp/
-_footage/
-_foo\ tage/
 _update
 _bin/
 dist/
+node_modules/
 .vscode/
-moo.txt
-uptime.sh
-TODO
+todo.txt
 _app
-ui-build/
-+ui-build/index.html
 .vscode
+**/ui-build/*
+!**/ui-build/index.html
