@@ -12,12 +12,12 @@ COPY ./_bin/linux-arm64 /app/ffmate
 
 ENV PORT=3000 \
     DATABASE=/app/db/sqlite.db \
-    DEBUGO= \
-    LOGLEVEL=info \
-    MAX_CONCURRENT_TASKS=3
+    DEBUGO="info:?,warn:?,error:?" \
+    MAX_CONCURRENT_TASKS=3 \
+    IDENTIFIER=
 
 EXPOSE ${PORT}
 
 RUN mkdir -p /app/db
 
-CMD sh -c '/app/ffmate server -p "$PORT" -d "$DEBUGO" -b "$DATABASE" -l "$LOGLEVEL" -m "$MAX_CONCURRENT_TASKS"'
+CMD sh -c '/app/ffmate server --port="$PORT" --identifier="$IDENTIFIER" --debug="$DEBUGO" --database="$DATABASE" --max-concurrent-tasks="$MAX_CONCURRENT_TASKS"'

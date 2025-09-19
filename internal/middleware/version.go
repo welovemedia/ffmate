@@ -1,12 +1,22 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/welovemedia/ffmate/internal/config"
-	"github.com/welovemedia/ffmate/sev"
+	"github.com/welovemedia/ffmate/internal/debug"
+	"goyave.dev/goyave/v5"
 )
 
-func Version(c *gin.Context, s *sev.Sev) {
-	c.Writer.Header().Set("X-Server", config.Config().AppName+"/v"+config.Config().AppVersion)
-	c.Next()
+type VersionMiddleware struct {
+	goyave.Component
+}
+
+func (m *VersionMiddleware) Init(server *goyave.Server) {
+	m.Component.Init(server)
+	debug.Middleware.Debug("registered version middleware")
+}
+
+func (m *VersionMiddleware) Handle(next goyave.Handler) goyave.Handler {
+	return func(response *goyave.Response, request *goyave.Request) {
+		response.Header().Set("X-Server", m.Config().GetString("app.name")+"/v"+m.Config().GetString("app.version"))
+		next(response, request)
+	}
 }

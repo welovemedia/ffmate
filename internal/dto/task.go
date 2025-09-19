@@ -1,10 +1,10 @@
 package dto
 
-import (
-	"database/sql/driver"
-	"encoding/json"
-	"errors"
-	"fmt"
+type TaskSource string
+
+const (
+	API         TaskSource = "api"
+	WATCHFOLDER TaskSource = "watchfolder"
 )
 
 type TaskStatus string
@@ -19,24 +19,23 @@ const (
 	DONE_CANCELED   TaskStatus = "DONE_CANCELED"
 )
 
-type NewPrePostProcessing struct {
-	ScriptPath    string `json:"scriptPath,omitempty"`
-	SidecarPath   string `json:"sidecarPath,omitempty"`
-	ImportSidecar bool   `json:"importSidecar,omitempty"`
-}
+type NewTask struct {
+	Command string `json:"command"`
+	Preset  string `json:"preset"`
 
-type PrePostProcessing struct {
-	ScriptPath    *RawResolved `json:"scriptPath,omitempty"`
-	SidecarPath   *RawResolved `json:"sidecarPath,omitempty"`
-	ImportSidecar bool         `json:"importSidecar,omitempty"`
-	Error         string       `json:"error,omitempty"`
-	StartedAt     int64        `json:"startedAt,omitempty"`
-	FinishedAt    int64        `json:"finishedAt,omitempty"`
-}
+	Name string `json:"name"`
 
-type RawResolved struct {
-	Raw      string `json:"raw"`
-	Resolved string `json:"resolved,omitempty"`
+	InputFile  string `json:"inputFile"`
+	OutputFile string `json:"outputFile"`
+
+	Metadata *MetadataMap `json:"metadata"`
+
+	Priority uint `json:"priority"`
+
+	Webhooks *DirectWebhooks `json:"webhooks"`
+
+	PreProcessing  *NewPrePostProcessing `json:"preProcessing"`
+	PostProcessing *NewPrePostProcessing `json:"postProcessing"`
 }
 
 type Task struct {
@@ -49,7 +48,7 @@ type Task struct {
 	InputFile  *RawResolved `json:"inputFile"`
 	OutputFile *RawResolved `json:"outputFile"`
 
-	Metadata *InterfaceMap `json:"metadata,omitempty"` // Additional metadata for the task
+	Metadata *MetadataMap `json:"metadata,omitempty"` // Additional metadata for the task
 
 	Status    TaskStatus `json:"status"`
 	Progress  float64    `json:"progress"`
@@ -59,10 +58,14 @@ type Task struct {
 
 	Priority uint `json:"priority"`
 
-	Source string `json:"source,omitempty"`
+	Source TaskSource `json:"source,omitempty"`
+
+	Webhooks *DirectWebhooks `json:"webhooks,omitempty"`
 
 	PreProcessing  *PrePostProcessing `json:"preProcessing,omitempty"`
 	PostProcessing *PrePostProcessing `json:"postProcessing,omitempty"`
+
+	Client *Client `json:"client,omitempty"`
 
 	StartedAt  int64 `json:"startedAt,omitempty"`
 	FinishedAt int64 `json:"finishedAt,omitempty"`
@@ -71,70 +74,4 @@ type Task struct {
 	UpdatedAt int64 `json:"updatedAt"`
 }
 
-type InterfaceMap map[string]interface{}
-
-func (j InterfaceMap) Value() (interface{}, error) {
-	return json.Marshal(j)
-}
-
-func (j *InterfaceMap) Scan(value interface{}) error {
-	if value == nil {
-		*j = InterfaceMap{}
-		return nil
-	}
-
-	// Handle different types (DB drivers may return different types)
-	switch v := value.(type) {
-	case []byte:
-		return json.Unmarshal(v, j)
-	case string:
-		return json.Unmarshal([]byte(v), j)
-	default:
-		return fmt.Errorf("unsupported data type: %T", value)
-	}
-}
-
-func (p PrePostProcessing) Value() (driver.Value, error) {
-	return json.Marshal(p)
-}
-
-func (p *PrePostProcessing) Scan(value interface{}) error {
-	if value == nil {
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
-	}
-	return json.Unmarshal(bytes, p)
-}
-
-func (p RawResolved) Value() (driver.Value, error) {
-	return json.Marshal(p)
-}
-
-func (p *RawResolved) Scan(value interface{}) error {
-	if value == nil {
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
-	}
-	return json.Unmarshal(bytes, p)
-}
-
-func (n NewPrePostProcessing) Value() (driver.Value, error) {
-	return json.Marshal(n)
-}
-
-func (n *NewPrePostProcessing) Scan(value interface{}) error {
-	if value == nil {
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
-	}
-	return json.Unmarshal(bytes, n)
-}
+type MetadataMap map[string]any

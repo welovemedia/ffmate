@@ -1,20 +1,14 @@
 package main
 
 import (
-	"embed"
-	_ "embed"
-	"os"
-
 	"github.com/spf13/viper"
 	"github.com/welovemedia/ffmate/cmd"
-	"github.com/welovemedia/ffmate/docs"
+
+	_ "embed"
 )
 
 //go:embed .version
 var version string
-
-//go:embed all:ui-build/*
-var frontend embed.FS
 
 // @title ffmate API
 // @version
@@ -29,10 +23,8 @@ var frontend embed.FS
 // @host localhost
 // @BasePath /api/v1
 func main() {
-	viper.Set("appName", "ffmate")
-	viper.Set("appVersion", version)
+	viper.Set("app.name", "ffmate")
+	viper.Set("app.version", version)
 
-	docs.SwaggerInfo.Schemes = []string{"http"}
-
-	cmd.Execute(os.Args, frontend)
+	cmd.Execute()
 }

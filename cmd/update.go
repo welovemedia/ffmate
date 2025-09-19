@@ -6,8 +6,13 @@ import (
 
 	"github.com/sanbornm/go-selfupdate/selfupdate"
 	"github.com/spf13/cobra"
-	"github.com/welovemedia/ffmate/internal/config"
+	"github.com/spf13/viper"
+	updateSvc "github.com/welovemedia/ffmate/internal/service/update"
+	"goyave.dev/goyave/v5"
+	"goyave.dev/goyave/v5/config"
 )
+
+var updater *selfupdate.Updater
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
@@ -18,20 +23,34 @@ var updateCmd = &cobra.Command{
 var dry bool
 
 func init() {
-	updateCmd.PersistentFlags().BoolVarP(&dry, "dry", "", false, "run in dry mode (no real update)")
+	rootCmd.AddCommand(updateCmd)
+
+	updateCmd.Flags().BoolVar(&dry, "dry", false, "run in dry mode (no real update)")
+	viper.BindPFlag("dry", updateCmd.Flags().Lookup("dry"))
 
 	updater = &selfupdate.Updater{
-		CurrentVersion: config.Config().AppVersion,
+		CurrentVersion: viper.GetString("app.version"),
 		ApiURL:         "https://earth.ffmate.io/_update/",
 		BinURL:         "https://earth.ffmate.io/_update/",
 		ForceCheck:     true,
 		CmdName:        "ffmate",
 	}
-	rootCmd.AddCommand(updateCmd)
 }
 
 func update(cmd *cobra.Command, args []string) {
-	res, _, err := checkForUpdate(false)
+	server, err := goyave.New(goyave.Options{
+		Config: config.LoadDefault(),
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	// register update service
+	svc := updateSvc.NewService(viper.GetString("app.version"))
+	server.RegisterService(svc)
+
+	res, _, err := svc.CheckForUpdate(false, viper.GetBool("dry"))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -39,41 +58,4 @@ func update(cmd *cobra.Command, args []string) {
 		fmt.Println(res)
 		os.Exit(0)
 	}
-}
-
-func checkForUpdate(force bool) (string, bool, error) {
-	res, found, err := updateAvailable()
-	if err != nil {
-		return "", false, fmt.Errorf("failed to contact update server: %+v", err)
-	}
-
-	if !found {
-		return "no newer version found", false, nil
-	}
-
-	if dry && !force {
-		return fmt.Sprintf("found newer version: %s\n", res), false, nil
-	}
-
-	if !dry || force {
-		err = updater.Update()
-		if err != nil {
-			return "", true, fmt.Errorf("failed to update to version: %+v", err)
-		} else {
-			return fmt.Sprintf("updated to version: %s\n", res), true, nil
-		}
-	}
-	return "no updates found", false, nil
-}
-
-func updateAvailable() (string, bool, error) {
-	res, err := updater.UpdateAvailable()
-	if err != nil {
-		return "", false, err
-	}
-	if res == "" || res == config.Config().AppVersion {
-		return "", false, nil
-	}
-
-	return res, true, nil
 }

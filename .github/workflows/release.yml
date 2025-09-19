@@ -10,38 +10,34 @@ permissions:
   packages: write
 
 jobs:
-  # test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-  #     - name: Cache Go modules & build cache
-  #       uses: actions/cache@v3
-  #       with:
-  #         path: |
-  #           ~/.cache/go-build
-  #           ~/go/pkg/mod
-  #         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-go-
+      - name: Cache Go modules & build cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
-  #     - name: Set up Go
-  #       uses: actions/setup-go@v5
-  #       with:
-  #         go-version: '1.24.3'
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.0"
 
-  #     - name: Test unit
-  #       run: |
-  #         make test
-
-  #     - name: Test e2e
-  #       run: |
-  #         make e2e
+      - name: Test unit
+        run: |
+          make test
 
   build-frontend:
-    # needs: test
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,7 +64,7 @@ jobs:
         with:
           name: ffmate-frontend
           path: |
-            ui-build/
+            internal/controller/ui/ui-build/
 
   build:
     needs: build-frontend
@@ -95,13 +91,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24.3"
+          go-version: "1.25.0"
 
       - name: Download frontend artifacts
         uses: actions/download-artifact@v4
         with:
           name: ffmate-frontend
-          path: ui-build
+          path: internal/controller/ui/ui-build
 
       - name: Read .version
         id: dockertag
@@ -329,7 +325,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           body_path: CHANGELOG.md
-          draft: false
+          draft: true
           tag_name: ${{ steps.dockertag.outputs.content }}
           make_latest: "true"
           files: dist/**/*

@@ -1,34 +1,49 @@
 package repository
 
 import (
-	"github.com/google/uuid"
+	"errors"
+
 	"github.com/welovemedia/ffmate/internal/database/model"
 	"gorm.io/gorm"
+	"goyave.dev/goyave/v5/database"
 )
 
 type Client struct {
 	DB *gorm.DB
 }
 
-func (c *Client) GetOrCreateClient() (*model.Client, error) {
-	var client *model.Client
-	err := c.DB.First(&client).Error
-	if err == nil {
-		return client, nil
-	}
-
-	client = &model.Client{
-		Uuid: uuid.NewString(),
-	}
-
-	db := c.DB.Create(client)
-	return client, db.Error
+func (r *Client) Setup() *Client {
+	r.DB.AutoMigrate(&model.Client{})
+	return r
 }
 
-func (c *Client) Setup() {
-	c.DB.AutoMigrate(&model.Client{})
+func (r *Client) List(page int, perPage int) (*[]model.Client, int64, error) {
+	var tasks = &[]model.Client{}
+	tx := r.DB.Order("last_seen DESC")
+	d := database.NewPaginator(tx, page+1, perPage, tasks)
+	err := d.Find()
+	return d.Records, d.Total, err
 }
 
-func (Client) TableName() string {
-	return "client"
+func (r *Client) Add(newClient *model.Client) (*model.Client, error) {
+	db := r.DB.Save(newClient)
+	return newClient, db.Error
+}
+
+func (m *Client) First() (*model.Client, error) {
+	var client model.Client
+	result := m.DB.First(&client)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+	return &client, nil
+}
+
+func (r *Client) Count() (int64, error) {
+	var count int64
+	db := r.DB.Model(&model.Client{}).Count(&count)
+	return count, db.Error
 }
