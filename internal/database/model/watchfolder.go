@@ -27,6 +27,8 @@ type Watchfolder struct {
 
 	Suspended bool
 
+	LastRun int64
+
 	Error     string
 	LastCheck int64
 }

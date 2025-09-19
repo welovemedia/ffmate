@@ -1,50 +1,34 @@
 package repository
 
 import (
-	"github.com/google/uuid"
+	"errors"
+	"time"
+
 	"github.com/welovemedia/ffmate/internal/database/model"
-	"github.com/welovemedia/ffmate/internal/dto"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"goyave.dev/goyave/v5/database"
 )
 
 type Watchfolder struct {
 	DB *gorm.DB
 }
 
-func (t *Watchfolder) Setup() {
-	t.DB.AutoMigrate(&model.Watchfolder{})
-}
-
-func (m *Watchfolder) List(page int, perPage int) (*[]model.Watchfolder, int64, error) {
-	total, _ := m.Count()
-	var watchfolder = &[]model.Watchfolder{}
-	if page >= 0 && perPage >= 0 {
-		m.DB.Order("created_at DESC").Limit(perPage).Offset(page * perPage).Find(&watchfolder)
-	} else {
-		m.DB.Order("created_at DESC").Find(&watchfolder)
-	}
-	return watchfolder, total, m.DB.Error
+func (r *Watchfolder) Setup() *Watchfolder {
+	r.DB.AutoMigrate(&model.Watchfolder{})
+	return r
 }
 
 func (m *Watchfolder) First(uuid string) (*model.Watchfolder, error) {
-	var watchfolder = &model.Watchfolder{}
-	err := m.DB.Where("uuid = ?", uuid).First(&watchfolder).Error
-	if err != nil {
-		return nil, err
+	var watchfolder model.Watchfolder
+	result := m.DB.Where("uuid = ?", uuid).First(&watchfolder)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
 	}
-	return watchfolder, nil
-}
-
-func (m *Watchfolder) Count() (int64, error) {
-	var count int64
-	db := m.DB.Model(&model.Watchfolder{}).Count(&count)
-	return count, db.Error
-}
-
-func (m *Watchfolder) CountDeleted() (int64, error) {
-	var count int64
-	db := m.DB.Unscoped().Model(&model.Watchfolder{}).Where("deleted_at IS NOT NULL").Count(&count)
-	return count, db.Error
+	return &watchfolder, nil
 }
 
 func (m *Watchfolder) Delete(w *model.Watchfolder) error {
@@ -52,23 +36,79 @@ func (m *Watchfolder) Delete(w *model.Watchfolder) error {
 	return m.DB.Error
 }
 
-func (m *Watchfolder) Update(w *model.Watchfolder) (*model.Watchfolder, error) {
-	m.DB.Save(w)
-	return w, m.DB.Error
+func (r *Watchfolder) List(page int, perPage int) (*[]model.Watchfolder, int64, error) {
+	var watchfolders = &[]model.Watchfolder{}
+
+	// return all (internal usage)
+	if page == -1 && perPage == -1 {
+		total, _ := r.Count()
+		r.DB.Order("created_at DESC").Find(&watchfolders)
+		return watchfolders, total, r.DB.Error
+	} else {
+		tx := r.DB.Order("created_at DESC")
+		d := database.NewPaginator(tx, page+1, perPage, watchfolders)
+		err := d.Find()
+		return d.Records, d.Total, err
+	}
 }
 
-func (m *Watchfolder) Create(newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, error) {
-	watchfolder := &model.Watchfolder{
-		Uuid:         uuid.NewString(),
-		Name:         newWatchfolder.Name,
-		Description:  newWatchfolder.Description,
-		Preset:       newWatchfolder.Preset,
-		Path:         newWatchfolder.Path,
-		Interval:     newWatchfolder.Interval,
-		Filter:       newWatchfolder.Filter,
-		GrowthChecks: newWatchfolder.GrowthChecks,
-		Suspended:    newWatchfolder.Suspended,
-	}
-	db := m.DB.Create(watchfolder)
+func (r *Watchfolder) Add(newWatchfolder *model.Watchfolder) (*model.Watchfolder, error) {
+	db := r.DB.Create(newWatchfolder)
+	return newWatchfolder, db.Error
+}
+
+func (r *Watchfolder) Update(watchfolder *model.Watchfolder) (*model.Watchfolder, error) {
+	db := r.DB.Save(watchfolder)
 	return watchfolder, db.Error
+}
+
+func (r *Watchfolder) Count() (int64, error) {
+	var count int64
+	db := r.DB.Model(&model.Watchfolder{}).Count(&count)
+	return count, db.Error
+}
+
+/**
+ * Processing related methods
+ */
+
+func (m *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error) {
+	var watchfolder model.Watchfolder
+	var locked = false
+	err := m.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("uuid = ?", uuid).
+			First(&watchfolder).Error; err != nil {
+			return err
+		}
+
+		// calculate the next allowed run time based on Interval + 50ms buffer
+		nextRun := time.UnixMilli(watchfolder.LastRun).Add(time.Duration(watchfolder.Interval)*time.Second - 50*time.Millisecond)
+		if time.Now().Before(nextRun) {
+			locked = true
+			return nil
+		}
+
+		if err := tx.Model(&watchfolder).Update("last_run", time.Now().UnixMilli()).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, locked, nil
+	}
+
+	return &watchfolder, locked, err
+}
+
+/**
+ * Stats (telemetry) related methods
+ */
+
+func (r *Watchfolder) CountDeleted() (int64, error) {
+	var count int64
+	result := r.DB.Unscoped().Model(&model.Watchfolder{}).Unscoped().Where("deleted_at IS NOT NULL").Count(&count)
+	return count, result.Error
 }

@@ -17,11 +17,11 @@ type Task struct {
 
 	Name string
 
-	Command    *dto.RawResolved `gorm:"type:json"`
-	InputFile  *dto.RawResolved `gorm:"type:json"`
-	OutputFile *dto.RawResolved `gorm:"type:json"`
+	Command    *dto.RawResolved `gorm:"type:jsonb"`
+	InputFile  *dto.RawResolved `gorm:"type:jsonb"`
+	OutputFile *dto.RawResolved `gorm:"type:jsonb"`
 
-	Metadata *dto.InterfaceMap `gorm:"serializer:json"` // Additional metadata for the task
+	Metadata *dto.MetadataMap `gorm:"serializer:json"` // Additional metadata for the task
 
 	Status    dto.TaskStatus `gorm:"index"`
 	Error     string
@@ -30,19 +30,22 @@ type Task struct {
 
 	Priority uint
 
-	PreProcessing  *dto.PrePostProcessing `gorm:"type:json"`
-	PostProcessing *dto.PrePostProcessing `gorm:"type:json"`
+	Webhooks *dto.DirectWebhooks `gorm:"type:jsonb"`
 
-	Source string
+	PreProcessing  *dto.PrePostProcessing `gorm:"type:jsonb"`
+	PostProcessing *dto.PrePostProcessing `gorm:"type:jsonb"`
 
-	Session string
+	Source dto.TaskSource
+
+	ClientIdentifier string  `gorm:"index"`
+	Client           *Client `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;foreignKey:ClientIdentifier;references:Identifier"`
 
 	StartedAt  int64
 	FinishedAt int64
 }
 
 func (m *Task) ToDto() *dto.Task {
-	return &dto.Task{
+	d := &dto.Task{
 		Uuid: m.Uuid,
 
 		Name:  m.Name,
@@ -64,6 +67,8 @@ func (m *Task) ToDto() *dto.Task {
 
 		Priority: m.Priority,
 
+		Webhooks: m.Webhooks,
+
 		PreProcessing:  m.PreProcessing,
 		PostProcessing: m.PostProcessing,
 
@@ -73,6 +78,20 @@ func (m *Task) ToDto() *dto.Task {
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
 	}
+
+	if m.Client != nil {
+		d.Client = &dto.Client{
+			Identifier: m.Client.Identifier,
+			Session:    m.Client.Session,
+			Cluster:    m.Client.Cluster,
+			OS:         m.Client.OS,
+			Arch:       m.Client.Arch,
+			Version:    m.Client.Version,
+			LastSeen:   m.Client.LastSeen,
+		}
+	}
+
+	return d
 }
 
 func (Task) TableName() string {

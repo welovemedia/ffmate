@@ -23,8 +23,10 @@ type Preset struct {
 
 	Priority uint
 
-	PreProcessing  *dto.NewPrePostProcessing `gorm:"type:json"`
-	PostProcessing *dto.NewPrePostProcessing `gorm:"type:json"`
+	Webhooks *dto.DirectWebhooks `gorm:"type:jsonb"`
+
+	PreProcessing  *dto.NewPrePostProcessing `gorm:"type:jsonb"`
+	PostProcessing *dto.NewPrePostProcessing `gorm:"type:jsonb"`
 
 	Description string
 }
@@ -40,6 +42,8 @@ func (m *Preset) ToDto() *dto.Preset {
 		OutputFile: m.OutputFile,
 
 		Priority: m.Priority,
+
+		Webhooks: m.Webhooks,
 
 		PreProcessing:  m.PreProcessing,
 		PostProcessing: m.PostProcessing,

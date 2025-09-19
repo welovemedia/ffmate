@@ -7,12 +7,12 @@ tmp_dir = "tmp"
   bin = "./tmp/main"
   cmd = "go build -o ./tmp/main ."
   delay = 250
-  exclude_dir = ["assets", "tmp", "vendor", "ui", "_update", "_sbin", "footage", "foo tage", "testdata"]
+  exclude_dir = []
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
-  full_bin = "./tmp/main server -d '*' --send-telemetry=false --tray=true --no-ui"
+  full_bin = "./tmp/main server --debug=\"*\" --send-telemetry=false --no-ui=true --database=\"${FFMATE_DB_SQLITE}\""
   include_dir = []
   include_ext = ["go", "tpl", "tmpl", "html"]
   include_file = []

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/welovemedia/ffmate/internal/config"
+	"github.com/spf13/viper"
 )
 
 var versionCmd = &cobra.Command{
@@ -18,5 +18,5 @@ func init() {
 }
 
 func version(cmd *cobra.Command, args []string) {
-	fmt.Printf("version: %s\n", config.Config().AppVersion)
+	fmt.Printf("version: %s\n", viper.GetString("app.version"))
 }
