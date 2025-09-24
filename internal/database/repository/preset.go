@@ -19,7 +19,7 @@ func (r *Preset) Setup() *Preset {
 
 func (m *Preset) First(uuid string) (*model.Preset, error) {
 	var preset model.Preset
-	result := m.DB.Where("uuid = ?", uuid).First(&preset)
+	result := m.DB.Preload("Labels").Where("uuid = ?", uuid).First(&preset)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -36,19 +36,21 @@ func (m *Preset) Delete(w *model.Preset) error {
 
 func (r *Preset) List(page int, perPage int) (*[]model.Preset, int64, error) {
 	var presets = &[]model.Preset{}
-	tx := r.DB.Order("created_at DESC")
+	tx := r.DB.Preload("Labels").Order("created_at DESC")
 	d := database.NewPaginator(tx, page+1, perPage, presets)
 	err := d.Find()
 	return d.Records, d.Total, err
 }
 
-func (r *Preset) Add(newPreset *model.Preset) (*model.Preset, error) {
-	db := r.DB.Create(newPreset)
-	return newPreset, db.Error
-}
-
-func (r *Preset) Update(preset *model.Preset) (*model.Preset, error) {
+func (r *Preset) Save(preset *model.Preset) (*model.Preset, error) {
 	db := r.DB.Save(preset)
+
+	for i := range preset.Labels {
+		r.DB.FirstOrCreate(&preset.Labels[i], model.Label{Value: preset.Labels[i].Value})
+	}
+
+	r.DB.Model(preset).Association("Labels").Replace(preset.Labels)
+
 	return preset, db.Error
 }
 

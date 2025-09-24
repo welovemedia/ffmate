@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/welovemedia/ffmate/internal/cfg"
+	"github.com/welovemedia/ffmate/internal/database/repository"
 	"github.com/welovemedia/ffmate/internal/dto"
 	"github.com/welovemedia/ffmate/internal/service"
 	"github.com/welovemedia/ffmate/internal/service/client"
@@ -22,6 +23,7 @@ var newTask = &dto.NewTask{
 	Name:       "Test task",
 	Command:    "-y",
 	Priority:   100,
+	Labels:     []string{"test-label-1", "test-label-2", "test-label-3"},
 	OutputFile: "/dev/null",
 }
 
@@ -43,6 +45,10 @@ func TestTaskCreate(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/tasks")
 	assert.Equal(t, task.Name, "Test task", "POST /api/v1/tasks")
+	assert.Contains(t, task.Labels, "test-label-1", "POST /api/v1/tasks")
+	assert.Contains(t, task.Labels, "test-label-2", "POST /api/v1/tasks")
+	assert.Contains(t, task.Labels, "test-label-3", "POST /api/v1/tasks")
+	assert.NotContains(t, task.Labels, "test-label-0", "POST /api/v1/tasks")
 	assert.Equal(t, task.Status, dto.QUEUED, "POST /api/v1/tasks")
 	assert.NotEmpty(t, task.Uuid, "POST /api/v1/tasks")
 }
@@ -104,7 +110,8 @@ func TestTaskUpdate(t *testing.T) {
 	// change client identifier
 	svc, _ := server.Service(service.Client).(*client.Service)
 	cfg.Set("ffmate.identifier", "test-client-changed")
-	svc.UpdateClientInfo()
+
+	svc.UpdateClientInfo(false)
 
 	request := httptest.NewRequest(http.MethodPatch, "/api/v1/tasks/"+task.Uuid+"/cancel", nil)
 	response = server.TestRequest(request)
@@ -149,4 +156,49 @@ func TestTaskCreateBatch(t *testing.T) {
 	assert.Equal(t, len(body2.Tasks), 1, "GET /api/v1/tasks/{uuid/tasjs")
 	assert.Equal(t, body2.Tasks[0].Batch, body.Uuid, "GET /api/v1/tasks/{uuid/tasjs")
 	assert.Equal(t, body2.Uuid, body.Uuid, "GET /api/v1/tasks/{uuid/tasjs")
+}
+
+func TestTaskNextFromQueue(t *testing.T) {
+	// tasks by label
+	server := testsuite.InitServer(t)
+
+	createTask(t, server)
+	createTask(t, server)
+	createTask(t, server)
+
+	taskRepo := (&repository.Task{DB: server.DB()}).Setup()
+	tasks, err := taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
+	assert.NotNil(t, tasks, "Find next tasks by labels")
+	assert.NoError(t, err, tasks, "Find next tasks by labels")
+	assert.Equal(t, 3, len(*tasks), "Find next tasks by labels")
+
+	// no matching tasks
+	cfg.Set("ffmate.labels", []string{"no-labels"})
+	server = testsuite.InitServer(t)
+
+	createTask(t, server)
+	createTask(t, server)
+	createTask(t, server)
+
+	taskRepo = (&repository.Task{DB: server.DB()}).Setup()
+	tasks, err = taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
+	assert.Nil(t, tasks, "Find next tasks by labels")
+
+	// 1/3 matching tasks
+	createTask(t, server)
+	createTask(t, server)
+
+	b := *newTask
+	b.Labels = append(b.Labels, "no-labels")
+	body, _ := json.Marshal(b)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/tasks", bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response := server.TestRequest(request)
+	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/tasks")
+
+	taskRepo = (&repository.Task{DB: server.DB()}).Setup()
+	tasks, err = taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
+	assert.NotNil(t, tasks, "Find next tasks by labels")
+	assert.NoError(t, err, tasks, "Find next tasks by labels")
+	assert.Equal(t, 1, len(*tasks), "Find next tasks by labels")
 }

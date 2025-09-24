@@ -22,8 +22,7 @@ import (
 
 type Repository interface {
 	List(page int, perPage int) (*[]model.Watchfolder, int64, error)
-	Add(*model.Watchfolder) (*model.Watchfolder, error)
-	Update(*model.Watchfolder) (*model.Watchfolder, error)
+	Save(*model.Watchfolder) (*model.Watchfolder, error)
 	First(string) (*model.Watchfolder, error)
 	Delete(*model.Watchfolder) error
 	Count() (int64, error)
@@ -65,7 +64,12 @@ func (s *Service) List(page int, perPage int) (*[]model.Watchfolder, int64, erro
 }
 
 func (s *Service) Add(newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, error) {
-	w, err := s.repository.Add(&model.Watchfolder{
+	var labels = make([]model.Label, len(newWatchfolder.Labels))
+	for i, label := range newWatchfolder.Labels {
+		labels[i] = model.Label{Value: label}
+	}
+
+	w, err := s.repository.Save(&model.Watchfolder{
 		Uuid: uuid.NewString(),
 
 		Name:        newWatchfolder.Name,
@@ -78,6 +82,7 @@ func (s *Service) Add(newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, e
 		Filter: newWatchfolder.Filter,
 
 		Preset: newWatchfolder.Preset,
+		Labels: labels,
 
 		Suspended: newWatchfolder.Suspended,
 	})
@@ -93,6 +98,11 @@ func (s *Service) Add(newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, e
 }
 
 func (s *Service) Update(uuid string, newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, error) {
+	var labels = make([]model.Label, len(newWatchfolder.Labels))
+	for i, label := range newWatchfolder.Labels {
+		labels[i] = model.Label{Value: label}
+	}
+
 	w, err := s.repository.First(uuid)
 	if err != nil {
 		return nil, err
@@ -109,9 +119,10 @@ func (s *Service) Update(uuid string, newWatchfolder *dto.NewWatchfolder) (*mode
 	w.GrowthChecks = newWatchfolder.GrowthChecks
 	w.Filter = newWatchfolder.Filter
 	w.Preset = newWatchfolder.Preset
+	w.Labels = labels
 	w.Suspended = newWatchfolder.Suspended
 
-	w, err = s.repository.Update(w)
+	w, err = s.repository.Save(w)
 	if err != nil {
 		debug.Log.Error("failed to update watchfolder (uuid: %s): %v", w.Uuid, err)
 		return nil, err
@@ -128,7 +139,7 @@ func (s *Service) Update(uuid string, newWatchfolder *dto.NewWatchfolder) (*mode
 
 // updates the whole watchfolder without previous validation (internal usage)
 func (s *Service) UpdateInternal(watchfolder *model.Watchfolder) (*model.Watchfolder, error) {
-	w, err := s.repository.Update(watchfolder)
+	w, err := s.repository.Save(watchfolder)
 	if err == nil {
 		s.websocketService.Broadcast(websocket.WATCHFOLDER_UPDATED, w.ToDto())
 	}
@@ -208,6 +219,10 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 			debug.Watchfolder.Debug("watchfolder skipped as it is suspended (uuid: %s)", wf.Uuid)
 			continue
 		}
+		if !hasLabelOverlap(wf.Labels, cfg.GetStringSlice("ffmate.labels")) {
+			debug.Watchfolder.Debug("watchfolder skipped as labels did not match (uuid: %s)", wf.Uuid)
+			continue
+		}
 		if locked {
 			debug.Watchfolder.Debug("watchfolder skipped as it is locked (uuid: %s)", wf.Uuid)
 			continue
@@ -265,6 +280,21 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 		wf.LastCheck = time.Now().UnixMilli()
 		s.UpdateInternal(wf)
 	}
+}
+
+// check if watchfolder and user labels have at least one overlap
+func hasLabelOverlap(a []model.Label, b []string) bool {
+	set := make(map[string]struct{}, len(a))
+	for _, s := range a {
+		set[s.Value] = struct{}{}
+	}
+
+	for _, s := range b {
+		if _, ok := set[s]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 // shouldProcessFile determines if a file is ready for processing based on growth attempts.

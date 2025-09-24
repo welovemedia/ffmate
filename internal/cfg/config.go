@@ -48,6 +48,15 @@ func Has(key string) bool {
 }
 
 // Typed helpers (like viper)
+func GetStringSlice(key string) []string {
+	val := Get(key)
+	typed, ok := val.([]string)
+	if !ok {
+		panic("config key is not []string: " + key)
+	}
+	return typed
+}
+
 func GetString(key string) string {
 	if v, ok := Get(key).(string); ok {
 		return v

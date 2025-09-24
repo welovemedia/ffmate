@@ -15,8 +15,7 @@ import (
 
 type Repository interface {
 	List(page int, perPage int) (*[]model.Preset, int64, error)
-	Add(*model.Preset) (*model.Preset, error)
-	Update(*model.Preset) (*model.Preset, error)
+	Save(*model.Preset) (*model.Preset, error)
 	First(string) (*model.Preset, error)
 	Delete(*model.Preset) error
 	Count() (int64, error)
@@ -54,6 +53,11 @@ func (s *Service) List(page int, perPage int) (*[]model.Preset, int64, error) {
 }
 
 func (s *Service) Add(newPreset *dto.NewPreset) (*model.Preset, error) {
+	var labels = make([]model.Label, len(newPreset.Labels))
+	for i, label := range newPreset.Labels {
+		labels[i] = model.Label{Value: label}
+	}
+
 	preset := &model.Preset{
 		Uuid:           uuid.NewString(),
 		Command:        newPreset.Command,
@@ -61,11 +65,12 @@ func (s *Service) Add(newPreset *dto.NewPreset) (*model.Preset, error) {
 		Description:    newPreset.Description,
 		Priority:       newPreset.Priority,
 		Webhooks:       newPreset.Webhooks,
+		Labels:         labels,
 		OutputFile:     newPreset.OutputFile,
 		PreProcessing:  newPreset.PreProcessing,
 		PostProcessing: newPreset.PostProcessing,
 	}
-	w, err := s.repository.Add(preset)
+	w, err := s.repository.Save(preset)
 	debug.Log.Info("created preset (uuid: %s)", w.Uuid)
 
 	if newPreset.GlobalPresetName != "" {
@@ -81,6 +86,11 @@ func (s *Service) Add(newPreset *dto.NewPreset) (*model.Preset, error) {
 }
 
 func (s *Service) Update(uuid string, newPreset *dto.NewPreset) (*model.Preset, error) {
+	var labels = make([]model.Label, len(newPreset.Labels))
+	for i, label := range newPreset.Labels {
+		labels[i] = model.Label{Value: label}
+	}
+
 	w, err := s.repository.First(uuid)
 	if err != nil {
 		return nil, err
@@ -96,10 +106,11 @@ func (s *Service) Update(uuid string, newPreset *dto.NewPreset) (*model.Preset, 
 	w.PreProcessing = newPreset.PreProcessing
 	w.PostProcessing = newPreset.PostProcessing
 	w.OutputFile = newPreset.OutputFile
+	w.Labels = labels
 	w.Priority = newPreset.Priority
 	w.Webhooks = newPreset.Webhooks
 
-	w, err = s.repository.Update(w)
+	w, err = s.repository.Save(w)
 	if err != nil {
 		debug.Log.Error("failed to update preset (uuid: %s): %v", w.Uuid, err)
 		return nil, err

@@ -15,6 +15,7 @@ func (ctrl *Controller) NewWatchfolderRequest(_ *goyave.Request) v.RuleSet {
 		{Path: "growthChecks", Rules: v.List{v.Int(), v.Required()}},
 		{Path: "suspended", Rules: v.List{v.Bool()}},
 		{Path: "preset", Rules: v.List{v.String(), v.Required()}},
+		{Path: "labels[]", Rules: v.List{v.String()}},
 		{Path: "filter", Rules: v.List{v.Object()}},
 		{Path: "filter.extensions", Rules: v.List{v.Object()}},
 		{Path: "filter.extensions.exclude[]", Rules: v.List{v.String()}},

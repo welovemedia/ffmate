@@ -10,6 +10,7 @@ type Client struct {
 
 	Session string
 	Cluster string
+	Labels  []Label `gorm:"many2many:client_labels;"`
 
 	OS      string
 	Arch    string
@@ -20,15 +21,21 @@ type Client struct {
 }
 
 func (c *Client) ToDto() *dto.Client {
+	var labels = make([]string, len(c.Labels))
+	for i, label := range c.Labels {
+		labels[i] = label.Value
+	}
+
 	client := &dto.Client{
 		Identifier: c.Identifier,
 		Session:    c.Session,
 		Cluster:    c.Cluster,
-		OS:         c.OS,
-		Arch:       c.Arch,
-		Version:    c.Version,
-		FFMpeg:     c.FFMpeg,
-		LastSeen:   c.LastSeen,
+		Labels:     labels,
+		OS:       c.OS,
+		Arch:     c.Arch,
+		Version:  c.Version,
+		FFMpeg:   c.FFMpeg,
+		LastSeen: c.LastSeen,
 	}
 
 	if c.Session == cfg.GetString("ffmate.session") {

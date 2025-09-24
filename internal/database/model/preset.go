@@ -23,6 +23,8 @@ type Preset struct {
 
 	Priority uint
 
+	Labels []Label `gorm:"many2many:preset_labels;"`
+
 	Webhooks *dto.DirectWebhooks `gorm:"type:jsonb"`
 
 	PreProcessing  *dto.NewPrePostProcessing `gorm:"type:jsonb"`
@@ -32,6 +34,11 @@ type Preset struct {
 }
 
 func (m *Preset) ToDto() *dto.Preset {
+	var labels = make([]string, len(m.Labels))
+	for i, label := range m.Labels {
+		labels[i] = label.Value
+	}
+
 	return &dto.Preset{
 		Uuid: m.Uuid,
 
@@ -44,6 +51,8 @@ func (m *Preset) ToDto() *dto.Preset {
 		Priority: m.Priority,
 
 		Webhooks: m.Webhooks,
+
+		Labels: labels,
 
 		PreProcessing:  m.PreProcessing,
 		PostProcessing: m.PostProcessing,

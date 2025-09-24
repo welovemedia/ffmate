@@ -64,7 +64,12 @@ func InitServer(t *testing.T) *testutil.TestServer {
 	if !cfg.Has("ffmate.identifier") {
 		cfg.Set("ffmate.identifier", "test-client")
 	}
+	if !cfg.Has("ffmate.labels") {
+		cfg.Set("ffmate.labels", []string{"test-label-1", "test-label-2", "test-label-3"})
+	}
+
 	cfg.Set("ffmate.session", uuid.NewString())
+	cfg.Set("ffmate.ffmpeg", "ffmpeg")
 	cfg.Set("ffmate.maxConcurrentTasks", 3)
 	cfg.Set("ffmate.isTray", false)
 	cfg.Set("ffmate.isCluster", false)
@@ -94,11 +99,11 @@ func InitServer(t *testing.T) *testutil.TestServer {
 	telemetrySvc := telemetry.NewService(server.Config(), server.DB())
 	ffmpegSvc := ffmpeg.NewService()
 	websocketSvc := websocketService.NewService(server.DB())
+	clientSvc := clientService.NewService(clientRepository, "test-1.0.0", websocketSvc)
 	webhookSvc := webhookService.NewService(webhookRepository, webhookExecutionRepository, server.Config(), websocketSvc)
 	presetSvc := presetService.NewService(presetRepository, webhookSvc, websocketSvc)
 	taskSvc := taskService.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc).ProcessQueue()
 	watchfolderSvc := watchfolderService.NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
-	clientSvc := clientService.NewService(clientRepository, "test-1.0.0", websocketSvc)
 	for _, svc := range map[string]goyave.Service{
 		service.FFMpeg:      ffmpegSvc,
 		service.Telemetry:   telemetrySvc,
