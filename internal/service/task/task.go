@@ -41,7 +41,7 @@ type Repository interface {
 	Count() (int64, error)
 	CountUnfinishedByBatch(uuid string) (int64, error)
 	CountAllStatus(session string) (int, int, int, int, int, error)
-	NextQueued(int) (*[]model.Task, error)
+	NextQueued(int, dto.Labels) (*[]model.Task, error)
 }
 
 type Service struct {
@@ -203,6 +203,15 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 			newTask.PostProcessing = &dto.NewPrePostProcessing{ScriptPath: preset.PostProcessing.ScriptPath, SidecarPath: preset.PostProcessing.SidecarPath}
 		}
 
+		// apply labels from preset if no direct labels are set
+		if len(newTask.Labels) == 0 {
+			var labels = make(dto.Labels, len(preset.Labels))
+			for i, label := range preset.Labels {
+				labels[i] = label.Value
+			}
+			newTask.Labels = labels
+		}
+
 		if preset.Webhooks != nil {
 			if newTask.Webhooks == nil {
 				newTask.Webhooks = preset.Webhooks
@@ -223,6 +232,11 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 		newTask.Webhooks = &filtered
 	}
 
+	var labels = make([]model.Label, len(newTask.Labels))
+	for i, label := range newTask.Labels {
+		labels[i] = model.Label{Value: label}
+	}
+
 	task := &model.Task{
 		Uuid:             uuid.NewString(),
 		Command:          &dto.RawResolved{Raw: newTask.Command},
@@ -233,6 +247,7 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 		Priority:         newTask.Priority,
 		Progress:         0,
 		Source:           source,
+		Labels:           labels,
 		Status:           dto.QUEUED,
 		Batch:            batch,
 		Webhooks:         newTask.Webhooks,
@@ -362,7 +377,7 @@ func (s *Service) processQueue() {
 			continue
 		}
 
-		task, err := s.repository.NextQueued(maxConcurrentTasks - taskQueueLength)
+		task, err := s.repository.NextQueued(maxConcurrentTasks-taskQueueLength, cfg.GetStringSlice("ffmate.labels"))
 		if err != nil {
 			debug.Log.Error("failed to receive queued task from db: %v", err)
 			continue

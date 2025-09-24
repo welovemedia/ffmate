@@ -32,6 +32,8 @@ type NewTask struct {
 
 	Priority uint `json:"priority"`
 
+	Labels Labels `json:"labels,omitempty"`
+
 	Webhooks *DirectWebhooks `json:"webhooks"`
 
 	PreProcessing  *NewPrePostProcessing `json:"preProcessing"`
@@ -53,6 +55,8 @@ type Task struct {
 	Status    TaskStatus `json:"status"`
 	Progress  float64    `json:"progress"`
 	Remaining float64    `json:"remaining"`
+
+	Labels Labels `json:"labels,omitempty"`
 
 	Error string `json:"error,omitempty"`
 

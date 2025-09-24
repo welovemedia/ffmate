@@ -86,13 +86,13 @@ func Init(options goyave.Options) {
 	ffmpegSvc := ffmpeg.NewService()
 	updateSvc := update.NewService(server.Config().GetString("app.version"))
 	websocketSvc := websocket.NewService(server.DB())
+	clientSvc := client.NewService(clientRepository, server.Config().GetString("app.version"), websocketSvc)
 	webhookSvc := webhook.NewService(webhookRepository, webhookExecutionRepository, server.Config(), websocketSvc)
 	presetSvc := preset.NewService(presetRepository, webhookSvc, websocketSvc)
 	taskSvc := task.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc).ProcessQueue()
 	traySvc := tray.NewService(server, taskSvc, updateSvc)
 	watchfolderSvc := watchfolder.NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
 	settingSvc := settings.NewService(settingRepository)
-	clientSvc := client.NewService(clientRepository, server.Config().GetString("app.version"), websocketSvc)
 	for name, svc := range map[string]goyave.Service{
 		service.Tray:        traySvc,
 		service.Update:      updateSvc,

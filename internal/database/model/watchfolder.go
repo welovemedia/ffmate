@@ -24,6 +24,7 @@ type Watchfolder struct {
 	Filter *dto.WatchfolderFilter
 
 	Preset string
+	Labels []Label `gorm:"many2many:watchfolder_labels;"`
 
 	Suspended bool
 
@@ -34,6 +35,11 @@ type Watchfolder struct {
 }
 
 func (m *Watchfolder) ToDto() *dto.Watchfolder {
+	var labels = make([]string, len(m.Labels))
+	for i, label := range m.Labels {
+		labels[i] = label.Value
+	}
+
 	return &dto.Watchfolder{
 		Uuid: m.Uuid,
 
@@ -45,6 +51,7 @@ func (m *Watchfolder) ToDto() *dto.Watchfolder {
 		GrowthChecks: m.GrowthChecks,
 
 		Preset: m.Preset,
+		Labels: labels,
 
 		Filter: m.Filter,
 

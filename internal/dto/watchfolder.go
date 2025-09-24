@@ -16,6 +16,8 @@ type NewWatchfolder struct {
 
 	Filter *WatchfolderFilter `json:"filter"`
 
+	Labels Labels `json:"labels"`
+
 	Suspended bool `json:"suspended"`
 
 	Preset string `json:"preset"`
@@ -36,6 +38,8 @@ type Watchfolder struct {
 	Filter *WatchfolderFilter `json:"filter"`
 
 	Preset string `json:"preset"`
+
+	Labels Labels `json:"labels,omitempty"`
 
 	CreatedAt int64 `json:"createdAt"`
 	UpdatedAt int64 `json:"updatedAt"`

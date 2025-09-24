@@ -17,6 +17,8 @@ type Task struct {
 
 	Name string
 
+	Labels []Label `gorm:"many2many:task_labels;"`
+
 	Command    *dto.RawResolved `gorm:"type:jsonb"`
 	InputFile  *dto.RawResolved `gorm:"type:jsonb"`
 	OutputFile *dto.RawResolved `gorm:"type:jsonb"`
@@ -45,6 +47,11 @@ type Task struct {
 }
 
 func (m *Task) ToDto() *dto.Task {
+	var labels = make([]string, len(m.Labels))
+	for i, label := range m.Labels {
+		labels[i] = label.Value
+	}
+
 	d := &dto.Task{
 		Uuid: m.Uuid,
 
@@ -60,6 +67,8 @@ func (m *Task) ToDto() *dto.Task {
 		Status:    m.Status,
 		Progress:  m.Progress,
 		Remaining: m.Remaining,
+
+		Labels: labels,
 
 		Error: m.Error,
 

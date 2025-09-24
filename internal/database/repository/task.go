@@ -6,7 +6,6 @@ import (
 	"github.com/welovemedia/ffmate/internal/database/model"
 	"github.com/welovemedia/ffmate/internal/dto"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"goyave.dev/goyave/v5/database"
 )
 
@@ -21,7 +20,7 @@ func (r *Task) Setup() *Task {
 
 func (m *Task) First(uuid string) (*model.Task, error) {
 	var task model.Task
-	result := m.DB.Preload("Client").Where("uuid = ?", uuid).First(&task)
+	result := m.DB.Preload("Client").Preload("Labels").Where("uuid = ?", uuid).First(&task)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -38,7 +37,7 @@ func (m *Task) Delete(w *model.Task) error {
 
 func (r *Task) List(page int, perPage int) (*[]model.Task, int64, error) {
 	var tasks = &[]model.Task{}
-	tx := r.DB.Preload("Client").Order("created_at DESC")
+	tx := r.DB.Preload("Client").Preload("Labels").Order("created_at DESC")
 	d := database.NewPaginator(tx, page+1, perPage, tasks)
 	err := d.Find()
 	return d.Records, d.Total, err
@@ -46,14 +45,21 @@ func (r *Task) List(page int, perPage int) (*[]model.Task, int64, error) {
 
 func (r *Task) ListByBatch(uuid string, page int, perPage int) (*[]model.Task, int64, error) {
 	var tasks = &[]model.Task{}
-	tx := r.DB.Preload("Client").Order("created_at DESC").Where("batch = ?", uuid)
+	tx := r.DB.Preload("Client").Preload("Labels").Order("created_at DESC").Where("batch = ?", uuid)
 	d := database.NewPaginator(tx, page+1, perPage, tasks)
 	err := d.Find()
 	return d.Records, d.Total, err
 }
 
 func (r *Task) Add(newTask *model.Task) (*model.Task, error) {
-	db := r.DB.Create(newTask)
+	db := r.DB.Preload("Labels").Create(newTask)
+
+	for i := range newTask.Labels {
+		r.DB.FirstOrCreate(&newTask.Labels[i], model.Label{Value: newTask.Labels[i].Value})
+	}
+
+	r.DB.Model(newTask).Association("Labels").Replace(newTask.Labels)
+
 	if db.Error != nil {
 		return newTask, db.Error
 	}
@@ -62,7 +68,7 @@ func (r *Task) Add(newTask *model.Task) (*model.Task, error) {
 
 func (r *Task) Update(task *model.Task) (*model.Task, error) {
 	task.Client = nil // will be re-linked during save
-	db := r.DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(task)
+	db := r.DB.Session(&gorm.Session{FullSaveAssociations: true}).Preload("Labels").Save(task)
 	if db.Error != nil {
 		return task, db.Error
 	}
@@ -128,18 +134,22 @@ func (m *Task) CountAllStatus(session string) (queued, running, doneSuccessful, 
 /**
  * Processing related methods
  */
-
-func (m *Task) NextQueued(amount int) (*[]model.Task, error) {
+func (m *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, error) {
 	var tasks []model.Task
 
 	err := m.DB.Transaction(func(tx *gorm.DB) error {
-		// Select tasks with FOR UPDATE
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Preload("Client").
-			Order("priority DESC, created_at ASC").
-			Where("status = ?", dto.QUEUED).
-			Limit(amount).
-			Find(&tasks).Error; err != nil {
+		// Subquery: task IDs with at least one overlapping label
+		sub := tx.Model(&model.Task{}).
+			Select("DISTINCT tasks.id").
+			Joins("JOIN task_labels tl ON tl.task_id = tasks.id").
+			Joins("JOIN labels l ON l.id = tl.label_id").
+			Where("tasks.status = ?", dto.QUEUED).
+			Where("l.value IN ?", clientLabels).
+			Order("tasks.priority DESC, tasks.created_at ASC").
+			Limit(amount)
+
+		// Load tasks
+		if err := tx.Preload("Labels").Where("tasks.id IN (?)", sub).Find(&tasks).Error; err != nil {
 			return err
 		}
 
@@ -147,7 +157,7 @@ func (m *Task) NextQueued(amount int) (*[]model.Task, error) {
 			return gorm.ErrRecordNotFound
 		}
 
-		// Extract IDs to ensure we only update the selected ones
+		// Update selected tasks to RUNNING
 		ids := make([]uint, len(tasks))
 		for i, t := range tasks {
 			ids[i] = t.ID
@@ -165,6 +175,7 @@ func (m *Task) NextQueued(amount int) (*[]model.Task, error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
+
 	return &tasks, err
 }
 

@@ -12,5 +12,5 @@ func TestBroadcastLogger(t *testing.T) {
 		assert.Contains(t, string(msg), "info:test", "Msg")
 	})
 
-	Log.Info("test-message")
+	Test.Info("test-message")
 }

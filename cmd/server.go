@@ -42,6 +42,7 @@ func init() {
 	serverCmd.Flags().Bool("send-telemetry", true, "enable sending anonymous telemetry data")
 	serverCmd.Flags().Bool("no-ui", false, "do not open the ui in the browser")
 	serverCmd.Flags().String("identifier", "", "a unique client identifier (default to hostname)")
+	serverCmd.Flags().StringSlice("labels", []string{}, "a unique client identifier (default to hostname)")
 
 	viper.BindPFlag("ffmpeg", serverCmd.Flags().Lookup("ffmpeg"))
 	viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
@@ -51,6 +52,7 @@ func init() {
 	viper.BindPFlag("sendTelemetry", serverCmd.Flags().Lookup("send-telemetry"))
 	viper.BindPFlag("noUI", serverCmd.Flags().Lookup("no-ui"))
 	viper.BindPFlag("identifier", serverCmd.Flags().Lookup("identifier"))
+	viper.BindPFlag("labels", serverCmd.Flags().Lookup("labels"))
 }
 
 func server(cmd *cobra.Command, args []string) {
@@ -78,6 +80,11 @@ func setupConfig() {
 		}
 	}
 
+	labels := viper.GetStringSlice("labels")
+	for i := range labels {
+		labels[i] = strings.TrimSpace(labels[i])
+	}
+
 	cfg.Set("ffmate.ffmpeg", viper.GetString("ffmpeg"))
 	cfg.Set("ffmate.debug", viper.GetString("debug"))
 	cfg.Set("ffmate.maxConcurrentTasks", viper.GetInt("maxConcurrentTasks"))
@@ -85,9 +92,9 @@ func setupConfig() {
 	cfg.Set("ffmate.isTray", viper.GetBool("tray"))
 	cfg.Set("ffmate.isUI", !viper.GetBool("noUI"))
 	cfg.Set("ffmate.isCluster", isCluster)
-
 	cfg.Set("ffmate.isFFmpeg", false)
 	cfg.Set("ffmate.identifier", client)
+	cfg.Set("ffmate.labels", labels)
 	cfg.Set("ffmate.session", uuid.NewString())
 	cfg.Set("ffmate.telemetry.send", viper.GetBool("sendTelemetry"))
 	cfg.Set("ffmate.telemetry.url", "https://telemetry.ffmate.io")

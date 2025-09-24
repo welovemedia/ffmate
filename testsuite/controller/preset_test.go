@@ -20,6 +20,7 @@ var newPreset = &dto.NewPreset{
 	Description: "Test desc",
 	Command:     "-y",
 	Priority:    100,
+	Labels:      []string{"test-label-1", "test-label-2", "test-label-3"},
 	OutputFile:  "/dev/null",
 }
 
@@ -41,6 +42,10 @@ func TestPresetCreate(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/presets")
 	assert.Equal(t, preset.Name, "Test preset", "POST /api/v1/presets")
+	assert.Contains(t, preset.Labels, "test-label-1", "POST /api/v1/presets")
+	assert.Contains(t, preset.Labels, "test-label-2", "POST /api/v1/presets")
+	assert.Contains(t, preset.Labels, "test-label-3", "POST /api/v1/presets")
+	assert.NotContains(t, preset.Labels, "test-label-0", "POST /api/v1/presets")
 	assert.NotEmpty(t, preset.Uuid, "POST /api/v1/presets")
 }
 
@@ -94,6 +99,7 @@ func TestPresetUpdate(t *testing.T) {
 	preset, _ := testsuite.ParseJsonBody[dto.Preset](response.Body)
 
 	preset.Name = "Test Updated preset"
+	preset.Labels = append(preset.Labels, "test-label-4")
 	body, _ := json.Marshal(preset)
 	request := httptest.NewRequest(http.MethodPut, "/api/v1/presets/"+preset.Uuid, bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
@@ -101,5 +107,6 @@ func TestPresetUpdate(t *testing.T) {
 	response = server.TestRequest(request)
 	preset, _ = testsuite.ParseJsonBody[dto.Preset](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/presets/{uuid}")
+	assert.Contains(t, preset.Labels, "test-label-4", "POST /api/v1/presets")
 	assert.Equal(t, preset.Name, "Test Updated preset", "GET /api/v1/preset/{uuid}")
 }

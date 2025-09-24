@@ -17,6 +17,8 @@ type NewPreset struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 
+	Labels Labels `json:"labels"`
+
 	GlobalPresetName string `json:"globalPresetName"`
 }
 
@@ -33,6 +35,8 @@ type Preset struct {
 
 	PreProcessing  *NewPrePostProcessing `json:"preProcessing,omitempty"`
 	PostProcessing *NewPrePostProcessing `json:"postProcessing,omitempty"`
+
+	Labels Labels `json:"labels,omitempty"`
 
 	Webhooks *DirectWebhooks `json:"webhooks,omitempty"`
 

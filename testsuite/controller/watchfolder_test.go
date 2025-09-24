@@ -16,7 +16,7 @@ import (
 	"goyave.dev/goyave/v5/util/testutil"
 )
 
-var newWatchfolder = &dto.Watchfolder{
+var newWatchfolder = &dto.NewWatchfolder{
 	Name:        "Test watchfolder",
 	Description: "Test desc",
 
@@ -27,6 +27,7 @@ var newWatchfolder = &dto.Watchfolder{
 	GrowthChecks: 1,
 
 	Suspended: false,
+	Labels:    []string{"test-label-1", "test-label-2", "test-label-3"},
 
 	Filter: &dto.WatchfolderFilter{
 		Extensions: &dto.WatchfolderFilterExtensions{
@@ -58,6 +59,10 @@ func TestWatchfolderCreate(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/watchfolder")
 	assert.Equal(t, watchfolder.Name, "Test watchfolder", "POST /api/v1/watchfolder")
+	assert.Contains(t, watchfolder.Labels, "test-label-1", "POST /api/v1/watchfolder")
+	assert.Contains(t, watchfolder.Labels, "test-label-2", "POST /api/v1/watchfolder")
+	assert.Contains(t, watchfolder.Labels, "test-label-3", "POST /api/v1/watchfolder")
+	assert.NotContains(t, watchfolder.Labels, "test-label-0", "POST /api/v1/watchfolder")
 	assert.NotEmpty(t, watchfolder.Uuid, "POST /api/v1/watchfolder")
 }
 
@@ -111,6 +116,7 @@ func TestWatchfolderUpdate(t *testing.T) {
 	watchfolder, _ := testsuite.ParseJsonBody[dto.Watchfolder](response.Body)
 
 	watchfolder.Name = "Test Updated watchfolder"
+	watchfolder.Labels = append(watchfolder.Labels, "test-label-4")
 	body, _ := json.Marshal(watchfolder)
 	request := httptest.NewRequest(http.MethodPut, "/api/v1/watchfolder/"+watchfolder.Uuid, bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
@@ -118,5 +124,6 @@ func TestWatchfolderUpdate(t *testing.T) {
 	response = server.TestRequest(request)
 	watchfolder, _ = testsuite.ParseJsonBody[dto.Watchfolder](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/watchfolder/{uuid}")
+	assert.Contains(t, watchfolder.Labels, "test-label-4", "GET /api/v1/watchfolder/{uuid}")
 	assert.Equal(t, watchfolder.Name, "Test Updated watchfolder", "GET /api/v1/watchfolder/{uuid}")
 }

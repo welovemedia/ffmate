@@ -21,7 +21,7 @@ func (r *Watchfolder) Setup() *Watchfolder {
 
 func (m *Watchfolder) First(uuid string) (*model.Watchfolder, error) {
 	var watchfolder model.Watchfolder
-	result := m.DB.Where("uuid = ?", uuid).First(&watchfolder)
+	result := m.DB.Preload("Labels").Where("uuid = ?", uuid).First(&watchfolder)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -42,23 +42,25 @@ func (r *Watchfolder) List(page int, perPage int) (*[]model.Watchfolder, int64, 
 	// return all (internal usage)
 	if page == -1 && perPage == -1 {
 		total, _ := r.Count()
-		r.DB.Order("created_at DESC").Find(&watchfolders)
+		r.DB.Preload("Labels").Order("created_at DESC").Find(&watchfolders)
 		return watchfolders, total, r.DB.Error
 	} else {
-		tx := r.DB.Order("created_at DESC")
+		tx := r.DB.Preload("Labels").Order("created_at DESC")
 		d := database.NewPaginator(tx, page+1, perPage, watchfolders)
 		err := d.Find()
 		return d.Records, d.Total, err
 	}
 }
 
-func (r *Watchfolder) Add(newWatchfolder *model.Watchfolder) (*model.Watchfolder, error) {
-	db := r.DB.Create(newWatchfolder)
-	return newWatchfolder, db.Error
-}
+func (r *Watchfolder) Save(watchfolder *model.Watchfolder) (*model.Watchfolder, error) {
+	db := r.DB.Preload("Labels").Save(watchfolder)
 
-func (r *Watchfolder) Update(watchfolder *model.Watchfolder) (*model.Watchfolder, error) {
-	db := r.DB.Save(watchfolder)
+	for i := range watchfolder.Labels {
+		r.DB.FirstOrCreate(&watchfolder.Labels[i], model.Label{Value: watchfolder.Labels[i].Value})
+	}
+
+	r.DB.Model(watchfolder).Association("Labels").Replace(watchfolder.Labels)
+
 	return watchfolder, db.Error
 }
 
@@ -77,6 +79,7 @@ func (m *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error
 	var locked = false
 	err := m.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Preload("Labels").
 			Where("uuid = ?", uuid).
 			First(&watchfolder).Error; err != nil {
 			return err

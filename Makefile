@@ -10,13 +10,13 @@ test:
 	go test -race ./...
 
 dev+sqlite:
-	go run -race main.go server --identifier="sev.moovit.de" --tray=true --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}"
+	go run -race main.go server --identifier="sev.moovit.de" --tray=true --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}" --labels="dev"
 
 dev+postgres:
-	go run -race main.go server --identifier="sev.moovit.de" --tray=false --debug="*" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_POSTGRES}"
+	go run -race main.go server --identifier="sev.moovit.de" --tray=false --debug="*" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_POSTGRES}" --labels="dev"
 
 dev+postgres+2:
-	go run -race main.go server --identifier="sev-2.moovit.de" --tray=false --debug="*" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_POSTGRES}" --port 2999
+	go run -race main.go server --identifier="sev-2.moovit.de" --tray=false --debug="*" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_POSTGRES}" --port 2999 --labels="dev2"
 
 swagger:
 	swag init --outputTypes go -o internal/docs

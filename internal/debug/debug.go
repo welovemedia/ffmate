@@ -50,6 +50,7 @@ var (
 	Telemetry   = newLoggers("telemetry")
 	Webhook     = newLoggers("webhook")
 	HTTP        = newLoggers("http")
+	Test        = newLoggers("test")
 )
 
 // logBroadcaster is used to forward all logs to websocket clients via callback.
