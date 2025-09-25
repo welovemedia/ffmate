@@ -156,6 +156,8 @@ func Init(options goyave.Options) {
 	if cfg.GetBool("ffmate.isTray") {
 		traySvc.Run()
 	} else {
-		server.Start()
+		if err := server.Start(); err != nil {
+			panic(err)
+		}
 	}
 }
