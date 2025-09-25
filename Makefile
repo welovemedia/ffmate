@@ -76,10 +76,5 @@ update: build
 	go-selfupdate -o=_update/ffmate _bin/ $(VERSION)
 	aws s3 sync _update s3://ffmate/_update --profile cloudflare-r2 --delete --checksum-algorithm=CRC32
 
-release: update
-	git tag -a v$(VERSION) -m "v$(VERSION)"
-	GITHUB_TOKEN=$$(cat ~/.config/goreleaser/github_token_ffmate) goreleaser release --clean
-	$(MAKE) docker+release
-
 air:
 	air -c .air.toml
