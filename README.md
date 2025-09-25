@@ -1,5 +1,5 @@
 <p align="center">
-  <img style="text: center" src="cmd/assets/icon.png" />
+  <img style="text: center" src="internal/service/tray/assets/icon.png" />
 </p>
 
 FFmate is an automation layer built on top of [FFmpeg](https://ffmpeg.org/), designed not only to simplify transcoding but also to serve as an **extensible engine for custom media workflows**. It provides developers with the tools to integrate FFmpeg's power into their applications and services through a comprehensive REST API, event-driven webhooks, and scriptable pre/post-processing hooks.
@@ -10,12 +10,12 @@ If you're looking to build custom media processing pipelines, integrate transcod
 
 FFmate is built with extensibility in mind. Here's how you can leverage its core components:
 
-- **REST API** – Submit and manage FFmpeg tasks programmatically  
-- **Web UI** – Monitor and control jobs in real time, no terminal required  
-- **Watchfolders** – Automatically process files dropped into a directory  
-- **Presets** – Ready-made set of pre-configured transcoding presets for common use cases  
-- **Webhooks** – Get real-time notifications for task events  
-- **Dynamic Wildcards** – Automate file naming and folder structures  
+- **REST API** – Submit and manage FFmpeg tasks programmatically
+- **Web UI** – Monitor and control jobs in real time, no terminal required
+- **Watchfolders** – Automatically process files dropped into a directory
+- **Presets** – Ready-made set of pre-configured transcoding presets for common use cases
+- **Webhooks** – Get real-time notifications for task events
+- **Dynamic Wildcards** – Automate file naming and folder structures
 - **Pre/Post Processing** – Run custom scripts before or after each task to automate complex workflow steps
 - **Built-in Queue** – Manage task execution with priority control and smart concurrency handling
 
