@@ -134,19 +134,19 @@ func TestTaskCreateBatch(t *testing.T) {
 		},
 	}
 	b, _ := json.Marshal(batch)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/batch", bytes.NewReader(b))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/batches", bytes.NewReader(b))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
 	body, _ := testsuite.ParseJsonBody[dto.Batch](response.Body)
-	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/batch")
-	assert.NotEmpty(t, body.Uuid, "POST /api/v1/batch")
+	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/batches")
+	assert.NotEmpty(t, body.Uuid, "POST /api/v1/batches")
 
 	// list tasks for batch
-	request = httptest.NewRequest(http.MethodGet, "/api/v1/batch/"+body.Uuid, nil)
+	request = httptest.NewRequest(http.MethodGet, "/api/v1/batches/"+body.Uuid, nil)
 	response = server.TestRequest(request)
 	body2, _ := testsuite.ParseJsonBody[dto.Batch](response.Body)
-	assert.Equal(t, http.StatusOK, response.StatusCode, "Get /api/v1/tasks/{uuid/tasjs}")
-	assert.Equal(t, len(body2.Tasks), 1, "GET /api/v1/tasks/{uuid/tasjs")
-	assert.Equal(t, body2.Tasks[0].Batch, body.Uuid, "GET /api/v1/tasks/{uuid/tasjs")
-	assert.Equal(t, body2.Uuid, body.Uuid, "GET /api/v1/tasks/{uuid/tasjs")
+	assert.Equal(t, http.StatusOK, response.StatusCode, "Get /api/v1/batches/{uuid}")
+	assert.Equal(t, len(body2.Tasks), 1, "GET /api/v1/batches/{uuid}")
+	assert.Equal(t, body2.Tasks[0].Batch, body.Uuid, "GET /api/v1/batches/{uuid}")
+	assert.Equal(t, body2.Uuid, body.Uuid, "GET /api/v1/batches/{uuid}")
 }

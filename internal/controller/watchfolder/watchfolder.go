@@ -33,16 +33,11 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Delete("/watchfolders/{uuid}", c.delete) // deprecated (typo)
-	router.Delete("/watchfolder/{uuid}", c.delete)
-	router.Post("/watchfolders", c.add).ValidateBody(c.NewWatchfolderRequest) // deprecated (typo)
-	router.Post("/watchfolder", c.add).ValidateBody(c.NewWatchfolderRequest)
-	router.Put("/watchfolders/{uuid}", c.update).ValidateBody(c.NewWatchfolderRequest) // deprecated (typo)
-	router.Put("/watchfolder/{uuid}", c.update).ValidateBody(c.NewWatchfolderRequest)
-	router.Get("/watchfolders", c.list).ValidateQuery(validate.PaginationRequest) // deprecated (typo)
-	router.Get("/watchfolder", c.list).ValidateQuery(validate.PaginationRequest)
-	router.Get("/watchfolders/{uuid}", c.get) // deprecated (typo)
-	router.Get("/watchfolder/{uuid}", c.get)
+	router.Delete("/watchfolders/{uuid}", c.delete)
+	router.Post("/watchfolders", c.add).ValidateBody(c.NewWatchfolderRequest)
+	router.Put("/watchfolders/{uuid}", c.update).ValidateBody(c.NewWatchfolderRequest)
+	router.Get("/watchfolders", c.list).ValidateQuery(validate.PaginationRequest)
+	router.Get("/watchfolders/{uuid}", c.get)
 }
 
 // @Summary Delete a watchfolder
@@ -51,7 +46,7 @@ func (c *Controller) RegisterRoutes(router *goyave.Router) {
 // @Param uuid path string true "the watchfolders uuid"
 // @Produce json
 // @Success 204
-// @Router /watchfolder/{uuid} [delete]
+// @Router /watchfolders/{uuid} [delete]
 func (c *Controller) delete(response *goyave.Response, request *goyave.Request) {
 	uuid := request.RouteParams["uuid"]
 	err := c.watchfolderService.Delete(uuid)
@@ -69,7 +64,7 @@ func (c *Controller) delete(response *goyave.Response, request *goyave.Request) 
 // @Tags watchfolder
 // @Produce json
 // @Success 200 {object} []dto.Watchfolder
-// @Router /watchfolder [get]
+// @Router /watchfolders [get]
 func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 	query := typeutil.MustConvert[*dto.Pagination](request.Query)
 
@@ -97,7 +92,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 // @Param request body dto.NewWatchfolder true "new watchfolder"
 // @Produce json
 // @Success 200 {object} dto.Watchfolder
-// @Router /watchfolder [post]
+// @Router /watchfolders [post]
 func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 	newWatchfolder := typeutil.MustConvert[*dto.NewWatchfolder](request.Data)
 
@@ -116,7 +111,7 @@ func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 // @Param uuid path string true "the watchfolders uuid"
 // @Produce json
 // @Success 200 {object} dto.Watchfolder
-// @Router /watchfolder/{uuid} [get]
+// @Router /watchfolders/{uuid} [get]
 func (c *Controller) get(response *goyave.Response, request *goyave.Request) {
 	uuid := request.RouteParams["uuid"]
 
@@ -136,7 +131,7 @@ func (c *Controller) get(response *goyave.Response, request *goyave.Request) {
 // @Param request body dto.NewWatchfolder true "new watchfolder"
 // @Produce json
 // @Success 200 {object} dto.Watchfolder
-// @Router /watchfolder [put]
+// @Router /watchfolders [put]
 func (c *Controller) update(response *goyave.Response, request *goyave.Request) {
 	uuid := request.RouteParams["uuid"]
 	newWebhook := typeutil.MustConvert[*dto.NewWatchfolder](request.Data)
