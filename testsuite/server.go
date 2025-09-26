@@ -1,25 +1,9 @@
 package testsuite
 
 import (
-	"encoding/json"
 	"testing"
 
-	"github.com/google/uuid"
-	"github.com/welovemedia/ffmate/v2/internal/cfg"
-	"github.com/welovemedia/ffmate/v2/internal/controller/client"
-	"github.com/welovemedia/ffmate/v2/internal/controller/debug"
-	"github.com/welovemedia/ffmate/v2/internal/controller/health"
-	"github.com/welovemedia/ffmate/v2/internal/controller/preset"
-	"github.com/welovemedia/ffmate/v2/internal/controller/prometheus"
-	"github.com/welovemedia/ffmate/v2/internal/controller/settings"
-	"github.com/welovemedia/ffmate/v2/internal/controller/swagger"
-	"github.com/welovemedia/ffmate/v2/internal/controller/task"
-	"github.com/welovemedia/ffmate/v2/internal/controller/ui"
-	"github.com/welovemedia/ffmate/v2/internal/controller/umami"
-	"github.com/welovemedia/ffmate/v2/internal/controller/version"
-	"github.com/welovemedia/ffmate/v2/internal/controller/watchfolder"
-	"github.com/welovemedia/ffmate/v2/internal/controller/webhook"
-	"github.com/welovemedia/ffmate/v2/internal/controller/websocket"
+	"github.com/welovemedia/ffmate/v2/internal/controller"
 	"github.com/welovemedia/ffmate/v2/internal/database/repository"
 	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
@@ -32,47 +16,13 @@ import (
 	watchfolderService "github.com/welovemedia/ffmate/v2/internal/service/watchfolder"
 	webhookService "github.com/welovemedia/ffmate/v2/internal/service/webhook"
 	websocketService "github.com/welovemedia/ffmate/v2/internal/service/websocket"
+	"github.com/welovemedia/ffmate/v2/testsuite/testserver"
 	"goyave.dev/goyave/v5"
-	"goyave.dev/goyave/v5/config"
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
-	"goyave.dev/goyave/v5/middleware/parse"
 	"goyave.dev/goyave/v5/util/testutil"
-	ws "goyave.dev/goyave/v5/websocket"
 )
 
-var c = map[string]any{
-	"app": map[string]any{
-		"name":    "ffmate",
-		"version": "test-1.0.0",
-	},
-	"database": map[string]any{
-		"connection": "sqlite3",
-		"name":       ":memory:",
-	},
-}
-
 func InitServer(t *testing.T) *testutil.TestServer {
-	b, _ := json.Marshal(c)
-	conf, _ := config.LoadJSON(string(b))
-
-	if !cfg.Has("ffmate.identifier") {
-		cfg.Set("ffmate.identifier", "test-client")
-	}
-	cfg.Set("ffmate.session", uuid.NewString())
-	cfg.Set("ffmate.maxConcurrentTasks", 3)
-	cfg.Set("ffmate.isTray", false)
-	cfg.Set("ffmate.isCluster", false)
-	cfg.Set("ffmate.isFFmpeg", false)
-	cfg.Set("ffmate.debug", "")
-	cfg.Set("ffmate.isDocker", false)
-	cfg.Set("ffmate.isCluster", false)
-
-	server := testutil.NewTestServerWithOptions(t, goyave.Options{Config: conf})
-
-	// add global parsing
-	server.Router().GlobalMiddleware(&parse.Middleware{
-		MaxUploadSize: 10,
-	})
+	server := testserver.New(t)
 
 	// setup repositories
 	presetRepository := (&repository.Preset{DB: server.DB()}).Setup()
@@ -107,45 +57,8 @@ func InitServer(t *testing.T) *testutil.TestServer {
 		server.RegisterService(svc)
 	}
 
-	server.RegisterRoutes(func(_ *goyave.Server, router *goyave.Router) {
-		router.Middleware(
-			&middleware.CompressMiddleware{},
-			&middleware.DebugoMiddleware{},
-			&middleware.VersionMiddleware{},
-		)
-
-		apiRouter := router.Subrouter("/api/v1")
-		apiRouter.Controller(&preset.Controller{})
-		apiRouter.Controller(&version.Controller{})
-		apiRouter.Controller(&preset.Controller{})
-		apiRouter.Controller(&webhook.Controller{})
-		apiRouter.Controller(&watchfolder.Controller{})
-		apiRouter.Controller(&client.Controller{})
-		apiRouter.Controller(&settings.Controller{})
-		apiRouter.Controller(&task.Controller{})
-		apiRouter.Controller(&debug.Controller{})
-
-		// health
-		router.Controller(&health.Controller{})
-
-		// websocket
-		apiRouter.Subrouter("/ws").Controller(ws.New(&websocket.Controller{}))
-
-		// ui
-		router.Controller(&ui.Controller{})
-
-		// umami
-		router.Controller(&umami.Controller{})
-
-		// swagger
-		router.Controller(&swagger.Controller{})
-
-		// prometheus
-		router.Controller(&prometheus.Controller{})
-
-		// umami
-		router.Controller(&umami.Controller{})
-	})
+	server.RegisterRoutes(controller.Register)
+	server.RegisterRoutes(middleware.Register)
 
 	return server
 }

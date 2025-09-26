@@ -20,7 +20,7 @@ func TestVersionGet(t *testing.T) {
 	defer response.Body.Close() // nolint:errcheck
 	version, _ := testsuite.ParseJSONBody[dto.Version](response.Body)
 
-	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/webhooks")
-	assert.Equal(t, "test-1.0.0", version.Version, "POST /api/v1/webhooks")
-	assert.Equal(t, "ffmate/vtest-1.0.0", response.Header.Get("X-Server"), "POST /api/v1/webhooks")
+	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/version")
+	assert.Equal(t, "test-1.0.0", version.Version, "POST /api/v1/version")
+	assert.Equal(t, "ffmate/vtest-1.0.0", response.Header.Get("X-Server"), "POST /api/v1/version")
 }

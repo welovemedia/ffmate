@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/welovemedia/ffmate/v2/internal/cfg"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
@@ -110,6 +111,11 @@ func TestWatchfolderGet(t *testing.T) {
 	watchfolder, _ = testsuite.ParseJSONBody[dto.Watchfolder](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/watchfolders/{uuid}")
 	assert.Equal(t, "Test watchfolder", watchfolder.Name, "GET /api/v1/watchfolders/{uuid}")
+
+	request = httptest.NewRequest(http.MethodGet, "/api/v1/watchfolders/"+uuid.NewString(), nil)
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
+	assert.Equal(t, 400, response.StatusCode, "GET /api/v1/watchfolders/{uuid}")
 }
 
 func TestWatchfolderUpdate(t *testing.T) {

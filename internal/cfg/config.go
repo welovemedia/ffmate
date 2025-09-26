@@ -48,29 +48,37 @@ func Has(key string) bool {
 }
 
 func GetString(key string) string {
-	if v, ok := Get(key).(string); ok {
-		return v
+	val := Get(key)
+	s, ok := val.(string)
+	if !ok {
+		panic("config key is not a string: " + key)
 	}
-	panic("config key is not string: " + key)
+	return s
 }
 
 func GetBool(key string) bool {
-	if v, ok := Get(key).(bool); ok {
-		return v
+	val := Get(key)
+	b, ok := val.(bool)
+	if !ok {
+		panic("config key is not a boolean: " + key)
 	}
-	panic("config key is not boolean: " + key)
-}
-
-func GetUint(key string) uint {
-	if v, ok := Get(key).(uint); ok {
-		return v
-	}
-	panic("config key is not uint: " + key)
+	return b
 }
 
 func GetInt(key string) int {
-	if v, ok := Get(key).(int); ok {
-		return v
+	val := Get(key)
+	i, ok := val.(int)
+	if !ok {
+		panic("config key is not an int: " + key)
 	}
-	panic("config key is not int: " + key)
+	return i
+}
+
+func GetUint(key string) uint {
+	val := Get(key)
+	u, ok := val.(uint)
+	if !ok {
+		panic("config key is not a uint: " + key)
+	}
+	return u
 }

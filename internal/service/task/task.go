@@ -30,7 +30,7 @@ type Repository interface {
 	Delete(task *model.Task) error
 	Count() (int64, error)
 	CountUnfinishedByBatch(uuid string) (int64, error)
-	CountAllStatus(session string) (int, int, int, int, int, error)
+	CountAllStatus() (int, int, int, int, int, error)
 	NextQueued(amount int) (*[]model.Task, error)
 }
 
@@ -436,11 +436,8 @@ func (s *Service) taskQueueLength() int {
  * CountAllStatus is used in systray
  */
 
-func (s *Service) CountAllStatus(session bool) (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
-	if session {
-		return s.repository.CountAllStatus(cfg.GetString("ffmate.session"))
-	}
-	return s.repository.CountAllStatus("")
+func (s *Service) CountAllStatus() (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
+	return s.repository.CountAllStatus()
 }
 
 func (s *Service) Name() string {

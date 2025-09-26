@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/service"
@@ -42,6 +43,21 @@ func TestWebhookCreate(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/webhooks")
 	assert.Equal(t, dto.TaskCreated, webhook.Event, "POST /api/v1/webhooks")
 	assert.NotEmpty(t, webhook.UUID, "POST /api/v1/webhooks")
+}
+
+func TestWebhookExecution(t *testing.T) {
+	server := testsuite.InitServer(t)
+
+	response := createWebhook(t, server)
+	defer response.Body.Close() // nolint:errcheck
+	svc := server.Service(service.Webhook).(*webhookSvc.Service)
+	svc.FireInRoutine(dto.TaskCreated, "")
+
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/webhooks/executions", nil)
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
+	executions, _ := testsuite.ParseJSONBody[[]dto.WebhookExecution](response.Body)
+	assert.Len(t, executions, 1, "Count executions logs")
 }
 
 func TestWebhookList(t *testing.T) {
@@ -92,6 +108,12 @@ func TestWebhookGet(t *testing.T) {
 	webhook, _ = testsuite.ParseJSONBody[dto.Webhook](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/webhooks/{uuid}")
 	assert.Equal(t, dto.TaskCreated, webhook.Event, "GET /api/v1/webhooks/{uuid}")
+
+	request = httptest.NewRequest(http.MethodGet, "/api/v1/webhooks/"+uuid.NewString(), nil)
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
+	webhook, _ = testsuite.ParseJSONBody[dto.Webhook](response.Body)
+	assert.Equal(t, 400, response.StatusCode, "GET /api/v1/webhooks/{uuid}")
 }
 
 func TestWebhookUpdate(t *testing.T) {
@@ -103,7 +125,7 @@ func TestWebhookUpdate(t *testing.T) {
 
 	webhook.Event = dto.TaskUpdated
 	body, _ := json.Marshal(webhook)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks", bytes.NewReader(body))
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/webhooks/"+webhook.UUID, bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 
 	response = server.TestRequest(request)
@@ -171,6 +193,7 @@ func TestWebhookDirectDelivery(t *testing.T) {
 
 		close(done)
 	}))
+
 	defer webhookServer.Close() // nolint:errcheck
 
 	np := &dto.Preset{

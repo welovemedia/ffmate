@@ -41,9 +41,3 @@ func (r *Client) First() (*model.Client, error) {
 	}
 	return &client, nil
 }
-
-func (r *Client) Count() (int64, error) {
-	var count int64
-	db := r.DB.Model(&model.Client{}).Count(&count)
-	return count, db.Error
-}

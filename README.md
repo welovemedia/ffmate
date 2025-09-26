@@ -2,6 +2,22 @@
   <img style="text: center" src="internal/service/tray/assets/icon.png" />
 </p>
 
+<p align="center">
+    <a href="https://github.com/welovemedia/ffmate/releases"><img src="https://img.shields.io/github/v/release/welovemedia/ffmate?include_prereleases" alt="Version"/></a>
+    <a href="https://github.com/welovemedia/ffmate/actions"><img src="https://github.com/welovemedia/ffmate/workflows/CI/badge.svg?brandh=dev" alt="Build Status"/></a>
+    <a href="https://coveralls.io/github/welovemedia/ffmate?branch=dev"><img src="https://coveralls.io/repos/github/welovemedia/ffmate/badge.svg?branch=dev" alt="Coverage Status"/></a>
+</p>
+
+<p align="center">
+    <a href="https://github.com/welovemedia/ffmate/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--v3-green" alt="License"/></a>
+    <a href="https://pkg.go.dev/badge/github/welovemedia/ffmate/v2"><img src="https://pkg.go.dev/badge/github/welovemedia/ffmate/v2.svg" alt="Go Reference"></a>
+    <a href="https://goreportcard.com/report/github.com/welovemedia/ffmate/v2"><img src="https://goreportcard.com/badge/github.com/welovemedia/ffmate/v2" alt="Go Report"></a>
+    <a href="https://discord.gg/NzfeHn37jT"><img src="https://img.shields.io/discord/1330908876912066650?logo=discord" alt="Discord"/></a>
+</p>
+
+
+## FFmate
+
 FFmate is an automation layer built on top of [FFmpeg](https://ffmpeg.org/), designed not only to simplify transcoding but also to serve as an **extensible engine for custom media workflows**. It provides developers with the tools to integrate FFmpeg's power into their applications and services through a comprehensive REST API, event-driven webhooks, and scriptable pre/post-processing hooks.
 
 If you're looking to build custom media processing pipelines, integrate transcoding into your existing systems, or develop tools that leverage FFmpeg, FFmate provides the foundation.

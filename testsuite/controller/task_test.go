@@ -23,6 +23,9 @@ var newTask = &dto.NewTask{
 	Command:    "-y",
 	Priority:   100,
 	OutputFile: "/dev/null",
+	Metadata: &dto.MetadataMap{
+		"foo": "bar",
+	},
 }
 
 func createTask(t *testing.T, server *testutil.TestServer) *http.Response {
@@ -44,6 +47,7 @@ func TestTaskCreate(t *testing.T) {
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/tasks")
 	assert.Equal(t, "Test task", task.Name, "POST /api/v1/tasks")
 	assert.Equal(t, dto.Queued, task.Status, "POST /api/v1/tasks")
+	assert.NotNil(t, task.Metadata, "POST /api/v1/tasks")
 	assert.NotEmpty(t, task.UUID, "POST /api/v1/tasks")
 }
 
