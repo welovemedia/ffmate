@@ -12,6 +12,7 @@ FFmate is built with extensibility in mind. Here's how you can leverage its core
 
 - **REST API** – Submit and manage FFmpeg tasks programmatically
 - **Web UI** – Monitor and control jobs in real time, no terminal required
+- **Cluster Support** – Run multiple FFmate instances together, sharing the same database for scaling and redundancy
 - **Watchfolders** – Automatically process files dropped into a directory
 - **Presets** – Ready-made set of pre-configured transcoding presets for common use cases
 - **Webhooks** – Get real-time notifications for task events
