@@ -15,10 +15,10 @@ import (
 
 type Service interface {
 	List(page int, perPage int) (*[]model.Preset, int64, error)
-	Add(*dto.NewPreset) (*model.Preset, error)
-	Delete(string) error
-	Get(string) (*model.Preset, error)
-	Update(string, *dto.NewPreset) (*model.Preset, error)
+	Add(preset *dto.NewPreset) (*model.Preset, error)
+	Delete(uuid string) error
+	Get(uuid string) (*model.Preset, error)
+	Update(uuid string, preset *dto.NewPreset) (*model.Preset, error)
 }
 
 type Controller struct {
@@ -52,7 +52,7 @@ func (c *Controller) delete(response *goyave.Response, request *goyave.Request) 
 	err := c.PresetService.Delete(uuid)
 
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/presets#deleting-a-preset"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/presets#deleting-a-preset"))
 		return
 	}
 
@@ -70,7 +70,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 
 	presets, total, err := c.PresetService.List(query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/presets#listing-presets"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/presets#listing-presets"))
 		return
 	}
 
@@ -79,7 +79,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 	// Transform each preset to its DTO
 	var presetDTOs = []dto.Preset{}
 	for _, preset := range *presets {
-		presetDTOs = append(presetDTOs, *preset.ToDto())
+		presetDTOs = append(presetDTOs, *preset.ToDTO())
 	}
 
 	response.JSON(200, presetDTOs)
@@ -98,11 +98,11 @@ func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 
 	preset, err := c.PresetService.Add(newPreset)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/presets#creating-a-preset"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/presets#creating-a-preset"))
 		return
 	}
 
-	response.JSON(200, preset.ToDto())
+	response.JSON(200, preset.ToDTO())
 }
 
 // @Summary Get a preset
@@ -116,11 +116,11 @@ func (c *Controller) get(response *goyave.Response, request *goyave.Request) {
 
 	preset, err := c.PresetService.Get(uuid)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/presets#getting-a-single-preset"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/presets#getting-a-single-preset"))
 		return
 	}
 
-	response.JSON(200, preset.ToDto())
+	response.JSON(200, preset.ToDTO())
 }
 
 // @Summary Update a preset
@@ -137,9 +137,9 @@ func (c *Controller) update(response *goyave.Response, request *goyave.Request) 
 
 	preset, err := c.PresetService.Update(uuid, newPreset)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/presets#updating-a-preset"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/presets#updating-a-preset"))
 		return
 	}
 
-	response.JSON(200, preset.ToDto())
+	response.JSON(200, preset.ToDTO())
 }

@@ -3,39 +3,27 @@ package dto
 import "time"
 
 type NewPreset struct {
-	Command string `json:"command"`
-
-	Priority uint `json:"priority"`
-
-	OutputFile string `json:"outputFile"`
-
-	Webhooks *DirectWebhooks `json:"webhooks"`
-
-	PreProcessing  *NewPrePostProcessing `json:"preProcessing"`
-	PostProcessing *NewPrePostProcessing `json:"postProcessing"`
-
-	Name        string `json:"name"`
-	Description string `json:"description"`
-
-	GlobalPresetName string `json:"globalPresetName"`
+	Webhooks         *DirectWebhooks       `json:"webhooks"`
+	PreProcessing    *NewPrePostProcessing `json:"preProcessing"`
+	PostProcessing   *NewPrePostProcessing `json:"postProcessing"`
+	Command          string                `json:"command"`
+	OutputFile       string                `json:"outputFile"`
+	Name             string                `json:"name"`
+	Description      string                `json:"description"`
+	GlobalPresetName string                `json:"globalPresetName"`
+	Priority         uint                  `json:"priority"`
 }
 
 type Preset struct {
-	Uuid string `json:"uuid"`
-
-	Command     string `json:"command"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-
-	OutputFile string `json:"outputFile"`
-
-	Priority uint `json:"priority"`
-
+	CreatedAt      time.Time             `json:"createdAt"`
+	UpdatedAt      time.Time             `json:"updatedAt"`
 	PreProcessing  *NewPrePostProcessing `json:"preProcessing,omitempty"`
 	PostProcessing *NewPrePostProcessing `json:"postProcessing,omitempty"`
-
-	Webhooks *DirectWebhooks `json:"webhooks,omitempty"`
-
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Webhooks       *DirectWebhooks       `json:"webhooks,omitempty"`
+	UUID           string                `json:"uuid"`
+	Command        string                `json:"command"`
+	Name           string                `json:"name"`
+	Description    string                `json:"description,omitempty"`
+	OutputFile     string                `json:"outputFile"`
+	Priority       uint                  `json:"priority"`
 }

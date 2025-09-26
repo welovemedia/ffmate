@@ -5,7 +5,7 @@ import (
 	v "goyave.dev/goyave/v5/validation"
 )
 
-func (ctrl *Controller) UmamiRequest(_ *goyave.Request) v.RuleSet {
+func (c *Controller) UmamiRequest(_ *goyave.Request) v.RuleSet {
 	return v.RuleSet{
 		{Path: v.CurrentElement, Rules: v.List{v.Object()}},
 		{Path: "hostname", Rules: v.List{v.String(), v.Required()}},

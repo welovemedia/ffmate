@@ -15,10 +15,10 @@ import (
 
 type Repository interface {
 	List(page int, perPage int) (*[]model.Preset, int64, error)
-	Add(*model.Preset) (*model.Preset, error)
-	Update(*model.Preset) (*model.Preset, error)
-	First(string) (*model.Preset, error)
-	Delete(*model.Preset) error
+	Add(preset *model.Preset) (*model.Preset, error)
+	Update(preset *model.Preset) (*model.Preset, error)
+	First(uuid string) (*model.Preset, error)
+	Delete(preset *model.Preset) error
 	Count() (int64, error)
 }
 
@@ -55,7 +55,7 @@ func (s *Service) List(page int, perPage int) (*[]model.Preset, int64, error) {
 
 func (s *Service) Add(newPreset *dto.NewPreset) (*model.Preset, error) {
 	preset := &model.Preset{
-		Uuid:           uuid.NewString(),
+		UUID:           uuid.NewString(),
 		Command:        newPreset.Command,
 		Name:           newPreset.Name,
 		Description:    newPreset.Description,
@@ -66,16 +66,16 @@ func (s *Service) Add(newPreset *dto.NewPreset) (*model.Preset, error) {
 		PostProcessing: newPreset.PostProcessing,
 	}
 	w, err := s.repository.Add(preset)
-	debug.Log.Info("created preset (uuid: %s)", w.Uuid)
+	debug.Log.Info("created preset (uuid: %s)", w.UUID)
 
 	if newPreset.GlobalPresetName != "" {
 		metrics.GaugeVec("preset.global").WithLabelValues(newPreset.GlobalPresetName).Inc()
 	}
 
 	metrics.Gauge("preset.created").Inc()
-	s.webhookService.Fire(dto.PRESET_CREATED, w.ToDto())
-	s.webhookService.FireDirect(w.Webhooks, dto.PRESET_CREATED, w.ToDto())
-	s.websocketService.Broadcast(websocket.PRESET_CREATED, w.ToDto())
+	s.webhookService.Fire(dto.PresetCreated, w.ToDTO())
+	s.webhookService.FireDirect(w.Webhooks, dto.PresetCreated, w.ToDTO())
+	s.websocketService.Broadcast(websocket.PresetCreated, w.ToDTO())
 
 	return w, err
 }
@@ -101,20 +101,20 @@ func (s *Service) Update(uuid string, newPreset *dto.NewPreset) (*model.Preset, 
 
 	w, err = s.repository.Update(w)
 	if err != nil {
-		debug.Log.Error("failed to update preset (uuid: %s): %v", w.Uuid, err)
+		debug.Log.Error("failed to update preset (uuid: %s): %v", w.UUID, err)
 		return nil, err
 	}
 
-	debug.Log.Error("updated preset (uuid: %s)", w.Uuid)
+	debug.Log.Error("updated preset (uuid: %s)", w.UUID)
 
 	if newPreset.GlobalPresetName != "" {
 		metrics.GaugeVec("preset.global").WithLabelValues(newPreset.GlobalPresetName).Inc()
 	}
 
 	metrics.Gauge("preset.updated").Inc()
-	s.webhookService.Fire(dto.PRESET_UPDATED, w.ToDto())
-	s.webhookService.FireDirect(w.Webhooks, dto.PRESET_UPDATED, w.ToDto())
-	s.websocketService.Broadcast(websocket.PRESET_UPDATED, w.ToDto())
+	s.webhookService.Fire(dto.PresetUpdated, w.ToDTO())
+	s.webhookService.FireDirect(w.Webhooks, dto.PresetUpdated, w.ToDTO())
+	s.websocketService.Broadcast(websocket.PresetUpdated, w.ToDTO())
 
 	return w, err
 }
@@ -138,9 +138,9 @@ func (s *Service) Delete(uuid string) error {
 	debug.Log.Info("deleted preset (uuid: %s)", uuid)
 
 	metrics.Gauge("preset.deleted").Inc()
-	s.webhookService.Fire(dto.PRESET_DELETED, w.ToDto())
-	s.webhookService.FireDirect(w.Webhooks, dto.PRESET_DELETED, w.ToDto())
-	s.websocketService.Broadcast(websocket.PRESET_DELETED, w.ToDto())
+	s.webhookService.Fire(dto.PresetDeleted, w.ToDTO())
+	s.webhookService.FireDirect(w.Webhooks, dto.PresetDeleted, w.ToDTO())
+	s.websocketService.Broadcast(websocket.PresetDeleted, w.ToDTO())
 
 	return nil
 }

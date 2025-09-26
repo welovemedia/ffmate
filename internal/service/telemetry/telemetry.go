@@ -49,10 +49,11 @@ func (s *Service) SendTelemetry(runtimeDuration time.Time, isShuttingDown bool, 
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("User-Agent", s.config.GetString("app.name")+"/"+s.config.GetString("app.version"))
 
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		debug.Telemetry.Error("failed to send telemetry data: %+v", err)
 	}
+	defer resp.Body.Close() // nolint:errcheck
 }
 
 func (s *Service) collectTelemetry(runtimeDuration time.Time, isShuttingDown bool, isStartUp bool) map[string]any {
@@ -89,14 +90,14 @@ func (s *Service) collectStats() map[string]any {
 	countSourceWatchfolder, _ := taskRepo.CountAllBySource("watchfolder")
 	countSourceAPI, _ := taskRepo.CountAllBySource("api")
 	countDeleted, _ := taskRepo.CountDeleted()
-	countQueued, _ := taskRepo.CountByStatus(dto.QUEUED)
-	countRunning, _ := taskRepo.CountByStatus(dto.RUNNING)
-	countDoneSuccessful, _ := taskRepo.CountByStatus(dto.DONE_SUCCESSFUL)
-	countDoneFailed, _ := taskRepo.CountByStatus(dto.DONE_ERROR)
-	countDoneCanceled, _ := taskRepo.CountByStatus(dto.DONE_CANCELED)
-	countDeletedSuccessful, _ := taskRepo.CountDeletedByStatus(dto.DONE_SUCCESSFUL)
-	countDeletedFailed, _ := taskRepo.CountDeletedByStatus(dto.DONE_ERROR)
-	countDeletedCanceled, _ := taskRepo.CountDeletedByStatus(dto.DONE_CANCELED)
+	countQueued, _ := taskRepo.CountByStatus(dto.Queued)
+	countRunning, _ := taskRepo.CountByStatus(dto.Running)
+	countDoneSuccessful, _ := taskRepo.CountByStatus(dto.DoneSuccessful)
+	countDoneFailed, _ := taskRepo.CountByStatus(dto.DoneError)
+	countDoneCanceled, _ := taskRepo.CountByStatus(dto.DoneCanceled)
+	countDeletedSuccessful, _ := taskRepo.CountDeletedByStatus(dto.DoneSuccessful)
+	countDeletedFailed, _ := taskRepo.CountDeletedByStatus(dto.DoneError)
+	countDeletedCanceled, _ := taskRepo.CountDeletedByStatus(dto.DoneCanceled)
 
 	countWebhooks, _ := webhookRepo.Count()
 	countWebhooksDeleted, _ := webhookRepo.CountDeleted()
@@ -133,7 +134,7 @@ func (s *Service) getMetrics() map[string]float64 {
 	var metricMap = make(map[string]float64)
 	for name, gauge := range metrics.Gauges() {
 		g := &promDto.Metric{}
-		gauge.Write(g)
+		_ = gauge.Write(g)
 		metricMap[name] = g.Gauge.GetValue()
 	}
 	for name, gaugeVec := range metrics.GaugesVec() {

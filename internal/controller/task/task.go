@@ -17,7 +17,7 @@ type Service interface {
 	List(page int, perPage int) (*[]model.Task, int64, error)
 	GetBatch(uuid string, page int, perPage int) (*dto.Batch, int64, error)
 	Add(task *dto.NewTask, source dto.TaskSource, batch string) (*model.Task, error)
-	AddBatch(btach *dto.NewBatch, source dto.TaskSource) (*dto.Batch, error)
+	AddBatch(btach *dto.NewBatch) (*dto.Batch, error)
 	Delete(uuid string) error
 	Get(uuid string) (*model.Task, error)
 	Cancel(uuid string) (*model.Task, error)
@@ -59,7 +59,7 @@ func (c *Controller) delete(response *goyave.Response, request *goyave.Request) 
 	err := c.taskService.Delete(uuid)
 
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/tasks#deleting-a-task"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#deleting-a-task"))
 		return
 	}
 
@@ -79,7 +79,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 
 	tasks, total, err := c.taskService.List(query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/tasks#monitoring-a-task"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#monitoring-a-task"))
 		return
 	}
 
@@ -88,7 +88,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 	// Transform each preset to its DTO
 	var taskDTOs = []dto.Task{}
 	for _, task := range *tasks {
-		taskDTOs = append(taskDTOs, *task.ToDto())
+		taskDTOs = append(taskDTOs, *task.ToDTO())
 	}
 
 	response.JSON(200, taskDTOs)
@@ -107,7 +107,7 @@ func (c *Controller) getBatch(response *goyave.Response, request *goyave.Request
 
 	batch, total, err := c.taskService.GetBatch(uuid, query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/tasks#monitoring-all-tasks"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#monitoring-all-tasks"))
 		return
 	}
 
@@ -129,11 +129,11 @@ func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 
 	preset, err := c.taskService.Add(newTask, dto.API, "")
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/tasks#creating-a-task"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#creating-a-task"))
 		return
 	}
 
-	response.JSON(200, preset.ToDto())
+	response.JSON(200, preset.ToDTO())
 }
 
 // @Summary Add a batch of tasks
@@ -147,9 +147,9 @@ func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 func (c *Controller) addBatch(response *goyave.Response, request *goyave.Request) {
 	newBatch := typeutil.MustConvert[*dto.NewBatch](request.Data)
 
-	batch, err := c.taskService.AddBatch(newBatch, dto.API)
+	batch, err := c.taskService.AddBatch(newBatch)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/tasks#submitting-multiple-tasks-as-a-batch"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#submitting-multiple-tasks-as-a-batch"))
 		return
 	}
 
@@ -168,11 +168,11 @@ func (c *Controller) get(response *goyave.Response, request *goyave.Request) {
 
 	task, err := c.taskService.Get(uuid)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/tasks#monitoring-a-task"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#monitoring-a-task"))
 		return
 	}
 
-	response.JSON(200, task.ToDto())
+	response.JSON(200, task.ToDTO())
 }
 
 // @Summary Cancel a task
@@ -187,11 +187,11 @@ func (c *Controller) cancel(response *goyave.Response, request *goyave.Request) 
 
 	task, err := c.taskService.Cancel(uuid)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/tasks#canceling-a-task"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#canceling-a-task"))
 		return
 	}
 
-	response.JSON(200, task.ToDto())
+	response.JSON(200, task.ToDTO())
 }
 
 // @Summary Restart a task
@@ -206,9 +206,9 @@ func (c *Controller) restart(response *goyave.Response, request *goyave.Request)
 
 	task, err := c.taskService.Restart(uuid)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/tasks#restarting-a-task"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#restarting-a-task"))
 		return
 	}
 
-	response.JSON(200, task.ToDto())
+	response.JSON(200, task.ToDTO())
 }

@@ -1,24 +1,14 @@
 package task
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
-	"regexp"
-	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mattn/go-shellwords"
-	"github.com/tidwall/gjson"
 	"github.com/welovemedia/ffmate/v2/internal/cfg"
 	"github.com/welovemedia/ffmate/v2/internal/database/model"
 	"github.com/welovemedia/ffmate/v2/internal/debug"
@@ -41,7 +31,7 @@ type Repository interface {
 	Count() (int64, error)
 	CountUnfinishedByBatch(uuid string) (int64, error)
 	CountAllStatus(session string) (int, int, int, int, int, error)
-	NextQueued(int) (*[]model.Task, error)
+	NextQueued(amount int) (*[]model.Task, error)
 }
 
 type Service struct {
@@ -82,17 +72,17 @@ func (s *Service) Update(task *model.Task) (*model.Task, error) {
 		return nil, err
 	}
 
-	s.webhookService.Fire(dto.TASK_UPDATED, task.ToDto())
-	s.webhookService.FireDirect(task.Webhooks, dto.TASK_UPDATED, task.ToDto())
-	s.websocketService.Broadcast(websocket.TASK_UPDATED, task.ToDto())
+	s.webhookService.Fire(dto.TaskUpdated, task.ToDTO())
+	s.webhookService.FireDirect(task.Webhooks, dto.TaskUpdated, task.ToDTO())
+	s.websocketService.Broadcast(websocket.TaskUpdated, task.ToDTO())
 
 	if task.Batch != "" {
 		switch task.Status {
-		case dto.DONE_SUCCESSFUL, dto.DONE_ERROR, dto.DONE_CANCELED:
+		case dto.DoneSuccessful, dto.DoneError, dto.DoneCanceled:
 			c, _ := s.repository.CountUnfinishedByBatch(task.Batch)
 			if c == 0 {
 				metrics.Gauge("batch.finished").Inc()
-				s.webhookService.Fire(dto.BATCH_FINISHED, task.ToDto())
+				s.webhookService.Fire(dto.BatchFinished, task.ToDTO())
 			}
 		}
 	}
@@ -110,7 +100,7 @@ func (s *Service) Cancel(uuid string) (*model.Task, error) {
 		return nil, errors.New("task for given uuid not found")
 	}
 
-	w.Status = dto.DONE_CANCELED
+	w.Status = dto.DoneCanceled
 	w.Remaining = -1
 	w.Progress = 100
 	w.FinishedAt = time.Now().UnixMilli()
@@ -131,7 +121,7 @@ func (s *Service) Restart(uuid string) (*model.Task, error) {
 		return nil, errors.New("task for given uuid not found")
 	}
 
-	w.Status = dto.QUEUED
+	w.Status = dto.Queued
 	w.Progress = 0
 	w.StartedAt = 0
 	w.FinishedAt = 0
@@ -155,11 +145,11 @@ func (s *Service) GetBatch(uuid string, page int, perPage int) (*dto.Batch, int6
 
 	var taskDTOs = []*dto.Task{}
 	for _, task := range *tasks {
-		taskDTOs = append(taskDTOs, task.ToDto())
+		taskDTOs = append(taskDTOs, task.ToDTO())
 	}
 
 	return &dto.Batch{
-		Uuid:  uuid,
+		UUID:  uuid,
 		Tasks: taskDTOs,
 	}, count, err
 }
@@ -224,7 +214,7 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 	}
 
 	task := &model.Task{
-		Uuid:             uuid.NewString(),
+		UUID:             uuid.NewString(),
 		Command:          &dto.RawResolved{Raw: newTask.Command},
 		InputFile:        &dto.RawResolved{Raw: newTask.InputFile},
 		OutputFile:       &dto.RawResolved{Raw: newTask.OutputFile},
@@ -233,27 +223,27 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 		Priority:         newTask.Priority,
 		Progress:         0,
 		Source:           source,
-		Status:           dto.QUEUED,
+		Status:           dto.Queued,
 		Batch:            batch,
 		Webhooks:         newTask.Webhooks,
 		ClientIdentifier: cfg.GetString("ffmate.identifier"),
 	}
 	w, err := s.repository.Add(task)
-	debug.Task.Info("created task (uuid: %s)", w.Uuid)
+	debug.Task.Info("created task (uuid: %s)", w.UUID)
 
 	metrics.Gauge("task.created").Inc()
-	s.webhookService.Fire(dto.TASK_CREATED, w.ToDto())
-	s.webhookService.FireDirect(w.Webhooks, dto.TASK_CREATED, w.ToDto())
-	s.websocketService.Broadcast(websocket.TASK_CREATED, w.ToDto())
+	s.webhookService.Fire(dto.TaskCreated, w.ToDTO())
+	s.webhookService.FireDirect(w.Webhooks, dto.TaskCreated, w.ToDTO())
+	s.websocketService.Broadcast(websocket.TaskCreated, w.ToDTO())
 
 	return w, err
 }
 
-func (s *Service) AddBatch(newBatch *dto.NewBatch, source dto.TaskSource) (*dto.Batch, error) {
-	batchUuid := uuid.NewString()
+func (s *Service) AddBatch(newBatch *dto.NewBatch) (*dto.Batch, error) {
+	batchUUID := uuid.NewString()
 	tasks := []model.Task{}
 	for _, task := range newBatch.Tasks {
-		t, err := s.Add(task, "api", batchUuid)
+		t, err := s.Add(task, "api", batchUUID)
 		if err != nil {
 			return nil, err
 		}
@@ -261,19 +251,19 @@ func (s *Service) AddBatch(newBatch *dto.NewBatch, source dto.TaskSource) (*dto.
 	}
 
 	// clear preset cache
-	presetCache.Delete(batchUuid)
+	presetCache.Delete(batchUUID)
 
 	// transform each task to its DTO
 	var taskDTOs = []*dto.Task{}
 	for _, task := range tasks {
-		taskDTOs = append(taskDTOs, task.ToDto())
+		taskDTOs = append(taskDTOs, task.ToDTO())
 	}
 
 	metrics.Gauge("batch.created").Inc()
-	s.webhookService.Fire(dto.BATCH_CREATED, taskDTOs)
+	s.webhookService.Fire(dto.BatCreated, taskDTOs)
 
 	batch := &dto.Batch{
-		Uuid:  batchUuid,
+		UUID:  batchUUID,
 		Tasks: taskDTOs,
 	}
 
@@ -299,9 +289,9 @@ func (s *Service) Delete(uuid string) error {
 	debug.Log.Info("deleted task (uuid: %s)", uuid)
 
 	metrics.Gauge("task.deleted").Inc()
-	s.webhookService.Fire(dto.TASK_DELETED, w.ToDto())
-	s.webhookService.FireDirect(w.Webhooks, dto.TASK_DELETED, w.ToDto())
-	s.websocketService.Broadcast(websocket.TASK_DELETED, w.ToDto())
+	s.webhookService.Fire(dto.TaskDeleted, w.ToDTO())
+	s.webhookService.FireDirect(w.Webhooks, dto.TaskDeleted, w.ToDTO())
+	s.websocketService.Broadcast(websocket.TaskDeleted, w.ToDTO())
 
 	return nil
 }
@@ -355,8 +345,7 @@ func (s *Service) processQueue() {
 		}
 
 		taskQueueLength := s.taskQueueLength()
-		var maxConcurrentTasks int
-		maxConcurrentTasks = cfg.GetInt("ffmate.maxConcurrentTasks")
+		var maxConcurrentTasks = cfg.GetInt("ffmate.maxConcurrentTasks")
 		if maxConcurrentTasks == 0 || maxConcurrentTasks <= taskQueueLength {
 			debug.Task.Debug("maximum concurrent tasks reached (tasks: %d/%d)", taskQueueLength, maxConcurrentTasks)
 			continue
@@ -374,263 +363,69 @@ func (s *Service) processQueue() {
 
 		for _, t := range *task {
 			ctx := context.Background()
-			taskQueue.Store(t.Uuid, ctx)
+			taskQueue.Store(t.UUID, ctx)
 			go s.processNewTask(&t)
 		}
 	}
 }
 
 func (s *Service) processNewTask(task *model.Task) {
-	debug.Task.Info("processing task (uuid: %s)", task.Uuid)
-	defer taskQueue.Delete(task.Uuid)
+	debug.Task.Info("processing task (uuid: %s)", task.UUID)
+	defer taskQueue.Delete(task.UUID)
 
 	task.StartedAt = time.Now().UnixMilli()
 
-	// preProcessing
-	err := s.prePostProcessTask(task, task.PreProcessing, "pre")
-	if err != nil {
-		s.failTask(task, fmt.Errorf("PreProcessing failed: %v", err))
-		return
-	}
-
-	// resolve wildcards
-	inFile := s.wildcardReplacer(task.InputFile.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
-	outFile := s.wildcardReplacer(task.OutputFile.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
-	task.InputFile.Resolved = inFile
-	task.OutputFile.Resolved = outFile
-	task.Command.Resolved = s.wildcardReplacer(task.Command.Raw, inFile, outFile, task.Source, task.Metadata)
-	task.Status = dto.RUNNING
-	s.Update(task)
-
-	// create output directory if it does not exist (recursive)
-	err = os.MkdirAll(filepath.Dir(task.OutputFile.Resolved), 0755)
-	if err != nil {
-		s.failTask(task, fmt.Errorf("failed to create non-existing output directory: %v", err))
-		return
-	}
-
-	// process with ffmpeg
-	debug.Task.Debug("starting ffmpeg process (uuid: %s)", task.Uuid)
-	ctxAny, _ := taskQueue.Load(task.Uuid)
-	ctx := ctxAny.(context.Context)
-	err = s.ffmpegService.Execute(
-		&ffmpeg.ExecutionRequest{
-			Task:    task,
-			Command: task.Command.Resolved,
-			Ctx:     ctx,
-			UpdateFunc: func(progress float64, remaining float64) {
-				task.Progress = progress
-				task.Remaining = remaining
-				s.Update(task)
-			},
-		},
-	)
-
-	// task is done (successful or not)
-	task.Progress = 100
-	task.Remaining = -1
-	if err != nil {
-		debug.Task.Debug("finished processing with error (uuid: %s): %v", task.Uuid, err)
-		if context.Cause(ctx) != nil {
-			s.cancelTask(task, context.Cause(ctx))
-			return
-		}
+	if err := s.runPreProcessing(task); err != nil {
 		s.failTask(task, err)
 		return
 	}
 
-	debug.Task.Debug("finished processing (uuid: %s)", task.Uuid)
+	s.prepareTaskFiles(task)
 
-	err = s.prePostProcessTask(task, task.PostProcessing, "post")
-	if err != nil {
-		s.failTask(task, fmt.Errorf("PostProcessing failed: %v", err))
+	if err := s.createOutputDirectory(task); err != nil {
+		s.failTask(task, err)
 		return
 	}
 
-	task.FinishedAt = time.Now().UnixMilli()
-	task.Status = dto.DONE_SUCCESSFUL
-	s.Update(task)
-	debug.Task.Info("task successful (uuid: %s)", task.Uuid)
-}
-
-func (s *Service) prePostProcessTask(task *model.Task, processor *dto.PrePostProcessing, processorType string) error {
-	if processor != nil && (processor.SidecarPath != nil || processor.ScriptPath != nil) {
-		if processorType == "pre" {
-			metrics.GaugeVec("task.preProcessing").WithLabelValues(strconv.FormatBool(processor.SidecarPath != nil && processor.SidecarPath.Raw == ""), strconv.FormatBool(processor.ScriptPath != nil && processor.ScriptPath.Raw == "")).Inc()
-		} else {
-			metrics.GaugeVec("task.postProcessing").WithLabelValues(strconv.FormatBool(processor.SidecarPath != nil && processor.SidecarPath.Raw == ""), strconv.FormatBool(processor.ScriptPath != nil && processor.ScriptPath.Raw == "")).Inc()
-		}
-		debug.Task.Debug("starting %sProcessing (uuid: %s)", processorType, task.Uuid)
-		processor.StartedAt = time.Now().UnixMilli()
-		if processorType == "pre" {
-			task.Status = dto.PRE_PROCESSING
-		} else {
-			task.Status = dto.POST_PROCESSING
-		}
-		s.Update(task)
-		if processor.SidecarPath != nil && processor.SidecarPath.Raw != "" {
-			b, err := json.Marshal(task.ToDto())
-			if err != nil {
-				debug.Log.Error("failed to marshal task to write sidecar file: %v", err)
-			} else {
-				if processorType == "pre" {
-					processor.SidecarPath.Resolved = s.wildcardReplacer(processor.SidecarPath.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
-				} else {
-					processor.SidecarPath.Resolved = s.wildcardReplacer(processor.SidecarPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
-				}
-				s.Update(task)
-
-				// create sidebar-output directory if it does not exist (recursive)
-				err := os.MkdirAll(filepath.Dir(processor.SidecarPath.Resolved), 0755)
-				if err != nil {
-					return err
-				}
-
-				err = os.WriteFile(processor.SidecarPath.Resolved, b, 0644)
-				if err != nil {
-					processor.Error = fmt.Errorf("failed to write sidecar: %v", err).Error()
-					debug.Log.Error("failed to write sidecar file: %v", err)
-				} else {
-					debug.Task.Debug("wrote sidecar file (uuid: %s)", task.Uuid)
-				}
-			}
-		}
-
-		if processor.Error == "" && processor.ScriptPath != nil && processor.ScriptPath.Raw != "" {
-			if processorType == "pre" {
-				processor.ScriptPath.Resolved = s.wildcardReplacer(processor.ScriptPath.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
-			} else {
-				processor.ScriptPath.Resolved = s.wildcardReplacer(processor.ScriptPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
-			}
-			s.Update(task)
-			args, err := shellwords.NewParser().Parse(processor.ScriptPath.Resolved)
-			if err != nil {
-				processor.Error = err.Error()
-				debug.Task.Debug("failed to parse %sProcessing script (uuid: %s): %v", processorType, task.Uuid, err)
-			} else {
-				cmd := exec.Command(args[0], args[1:]...)
-				debug.Task.Debug("triggered %sProcessing script (uuid: %s)", processorType, task.Uuid)
-
-				var stderr bytes.Buffer
-				cmd.Stderr = &stderr
-
-				if err := cmd.Start(); err != nil {
-					processor.Error = fmt.Sprintf("%s (exit code: %d)", stderr.String(), cmd.ProcessState.ExitCode())
-					debug.Task.Debug("failed to start %sProcessing script with exit code %d (uuid: %s): stderr: %s", processorType, cmd.ProcessState.ExitCode(), task.Uuid, stderr.String())
-				} else {
-					if err := cmd.Wait(); err != nil {
-						processor.Error = fmt.Sprintf("%s (exit code: %d)", stderr.String(), cmd.ProcessState.ExitCode())
-						debug.Task.Debug("failed %sProcessing script with exit code %d (uuid: %s): stderr: %s", processorType, cmd.ProcessState.ExitCode(), task.Uuid, stderr.String())
-					}
-				}
-			}
-		}
-
-		// re-import the sidecar file and unmarshal into task
-		// enabled modifying the task from within a preProcess script by modifying the sideCar file before re-importing it
-		if processorType == "pre" && processor.SidecarPath != nil && processor.SidecarPath.Raw != "" && processor.ImportSidecar {
-			b, err := os.ReadFile(processor.SidecarPath.Resolved)
-			if err != nil {
-				return err
-			}
-			err = json.Unmarshal(b, task)
-			if err != nil {
-				return err
-			}
-			debug.Task.Debug("re-imported sidecar file (uuid: %s)", task.Uuid)
-		}
-
-		processor.FinishedAt = time.Now().UnixMilli()
-		if processor.Error != "" {
-			debug.Task.Info("finished %sProcessing with error (uuid: %s)", processorType, task.Uuid)
-			return errors.New(processor.Error)
-		}
-		debug.Task.Info("finished %sProcessing (uuid: %s)", processorType, task.Uuid)
-	}
-	return nil
-}
-
-func (s *Service) wildcardReplacer(input string, inputFile string, outputFile string, source dto.TaskSource, metadata *dto.MetadataMap) string {
-	input = strings.ReplaceAll(input, "${INPUT_FILE}", fmt.Sprintf("\"%s\"", inputFile))
-	input = strings.ReplaceAll(input, "${OUTPUT_FILE}", fmt.Sprintf("\"%s\"", outputFile))
-
-	input = strings.ReplaceAll(input, "${INPUT_FILE_BASE}", filepath.Base(inputFile))
-	input = strings.ReplaceAll(input, "${OUTPUT_FILE_BASE}", filepath.Base(inputFile))
-	input = strings.ReplaceAll(input, "${INPUT_FILE_EXTENSION}", filepath.Ext(filepath.Base(inputFile)))
-	input = strings.ReplaceAll(input, "${OUTPUT_FILE_EXTENSION", filepath.Ext(filepath.Base(outputFile)))
-	input = strings.ReplaceAll(input, "${INPUT_FILE_BASENAME}", strings.TrimSuffix(filepath.Base(inputFile), filepath.Ext(filepath.Base(inputFile))))
-	input = strings.ReplaceAll(input, "${OUTPUT_FILE_BASENAME}", strings.TrimSuffix(filepath.Base(outputFile), filepath.Ext(filepath.Base(outputFile))))
-	input = strings.ReplaceAll(input, "${INPUT_FILE_DIR}", filepath.Dir(inputFile))
-	input = strings.ReplaceAll(input, "${OUTPUT_FILE_DIR}", filepath.Dir(inputFile))
-
-	input = strings.ReplaceAll(input, "${DATE_YEAR}", time.Now().Format("2006"))
-	input = strings.ReplaceAll(input, "${DATE_SHORTYEAR}", time.Now().Format("06"))
-	input = strings.ReplaceAll(input, "${DATE_MONTH}", time.Now().Format("01"))
-	input = strings.ReplaceAll(input, "${DATE_DAY}", time.Now().Format("02"))
-
-	_, week := time.Now().ISOWeek()
-	input = strings.ReplaceAll(input, "${DATE_WEEK}", strconv.Itoa(week))
-
-	input = strings.ReplaceAll(input, "${TIME_HOUR}", time.Now().Format("15"))
-	input = strings.ReplaceAll(input, "${TIME_MINUTE}", time.Now().Format("04"))
-	input = strings.ReplaceAll(input, "${TIME_SECOND}", time.Now().Format("05"))
-
-	input = strings.ReplaceAll(input, "${TIMESTAMP_SECONDS}", strconv.FormatInt(time.Now().Unix(), 10))
-	input = strings.ReplaceAll(input, "${TIMESTAMP_MILLISECONDS}", strconv.FormatInt(time.Now().UnixMilli(), 10))
-	input = strings.ReplaceAll(input, "${TIMESTAMP_MICROSECONDS}", strconv.FormatInt(time.Now().UnixMicro(), 10))
-	input = strings.ReplaceAll(input, "${TIMESTAMP_NANOSECONDS}", strconv.FormatInt(time.Now().UnixNano(), 10))
-
-	input = strings.ReplaceAll(input, "${OS_NAME}", runtime.GOOS)
-	input = strings.ReplaceAll(input, "${OS_ARCH}", runtime.GOARCH)
-
-	input = strings.ReplaceAll(input, "${SOURCE}", string(source))
-
-	input = strings.ReplaceAll(input, "${UUID}", uuid.NewString())
-
-	input = strings.ReplaceAll(input, "${FFMPEG}", cfg.GetString("ffmate.ffmpeg"))
-
-	// handle metadata wildcard
-	if metadata != nil {
-		metadataJSON, err := json.Marshal(metadata)
-
-		if err == nil {
-			jsonStr := string(metadataJSON)
-			re := regexp.MustCompile(`\$\{METADATA_([^}]+)\}`)
-			input = re.ReplaceAllStringFunc(input, func(match string) string {
-				path := re.FindStringSubmatch(match)[1]
-				val := gjson.Get(jsonStr, path)
-				if val.Exists() {
-					return val.String()
-				}
-				return ""
-			})
-		}
+	if err := s.executeFFmpeg(task); err != nil {
+		return // failure already handled inside executeFFmpeg
 	}
 
-	return input
+	if err := s.runPostProcessing(task); err != nil {
+		s.failTask(task, err)
+		return
+	}
+
+	s.finalizeTask(task)
 }
 
 func (s *Service) cancelTask(task *model.Task, err error) {
 	task.FinishedAt = time.Now().UnixMilli()
 	task.Progress = 100
-	task.Status = dto.DONE_CANCELED
+	task.Status = dto.DoneCanceled
 	task.Error = err.Error()
-	s.Update(task)
-	debug.Task.Info("task canceled (uuid: %s): %v", task.Uuid, err)
+	_, err = s.Update(task)
+	if err != nil {
+		debug.Task.Error("failed to update task after cancel (uuid: %s)", task.UUID)
+	}
+	debug.Task.Info("task canceled (uuid: %s): %v", task.UUID, err)
 }
 
 func (s *Service) failTask(task *model.Task, err error) {
 	task.FinishedAt = time.Now().UnixMilli()
 	task.Progress = 100
-	task.Status = dto.DONE_ERROR
+	task.Status = dto.DoneError
 	task.Error = err.Error()
-	s.Update(task)
-	debug.Task.Warn("task failed (uuid: %s)", task.Uuid)
+	_, err = s.Update(task)
+	if err != nil {
+		debug.Task.Error("failed to update task after fail (uuid: %s)", task.UUID)
+	}
+	debug.Task.Warn("task failed (uuid: %s)", task.UUID)
 }
 
 func (s *Service) taskQueueLength() int {
 	length := 0
-	taskQueue.Range(func(key, value any) bool {
+	taskQueue.Range(func(_, _ any) bool {
 		length++
 		return true
 	})

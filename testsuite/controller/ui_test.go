@@ -15,15 +15,18 @@ func TestUI(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodGet, "/", nil)
 	response := server.TestRequest(request)
-	assert.Equal(t, response.Header.Get("Location"), "/ui", "GET /ui")
+	defer response.Body.Close() // nolint:errcheck
+	assert.Equal(t, "/ui", response.Header.Get("Location"), "GET /ui")
 	assert.Equal(t, http.StatusPermanentRedirect, response.StatusCode, "GET /ui")
 
 	request = httptest.NewRequest(http.MethodGet, "/ui", nil)
 	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /ui")
 
 	request = httptest.NewRequest(http.MethodGet, "/ui/index.html", nil)
 	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 	body, _ := testsuite.ParseBody(response.Body)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /ui/index.html")

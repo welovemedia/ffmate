@@ -19,7 +19,7 @@ type Client struct {
 	LastSeen int64
 }
 
-func (c *Client) ToDto() *dto.Client {
+func (c *Client) ToDTO() *dto.Client {
 	client := &dto.Client{
 		Identifier: c.Identifier,
 		Session:    c.Session,

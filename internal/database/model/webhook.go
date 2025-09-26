@@ -8,24 +8,21 @@ import (
 )
 
 type Webhook struct {
-	ID uint `gorm:"primarykey"`
-
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
-
-	Uuid string
-
-	Event dto.WebhookEvent
-	Url   string
+	UUID      string
+	Event     dto.WebhookEvent
+	URL       string
+	ID        uint `gorm:"primarykey"`
 }
 
-func (m *Webhook) ToDto() *dto.Webhook {
+func (m *Webhook) ToDTO() *dto.Webhook {
 	return &dto.Webhook{
 		Event: m.Event,
-		Url:   m.Url,
+		URL:   m.URL,
 
-		Uuid: m.Uuid,
+		UUID: m.UUID,
 
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,

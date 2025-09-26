@@ -17,6 +17,6 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 }
 
-func version(cmd *cobra.Command, args []string) {
+func version(_ *cobra.Command, _ []string) {
 	fmt.Printf("version: %s\n", viper.GetString("app.version"))
 }

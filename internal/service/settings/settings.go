@@ -9,7 +9,7 @@ import (
 
 type Repository interface {
 	Load() (*model.Settings, error)
-	Store(*model.Settings) (*model.Settings, error)
+	Store(settings *model.Settings) (*model.Settings, error)
 }
 
 type Service struct {
@@ -26,7 +26,7 @@ func (s *Service) Load() (*model.Settings, error) {
 	return s.repository.Load()
 }
 
-func (s *Service) Store(newSetting *dto.Settings) (*model.Settings, error) {
+func (s *Service) Store(_ *dto.Settings) (*model.Settings, error) {
 	return s.repository.Store(&model.Settings{})
 }
 

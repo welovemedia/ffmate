@@ -13,7 +13,7 @@ type Client struct {
 }
 
 func (r *Client) Setup() *Client {
-	r.DB.AutoMigrate(&model.Client{})
+	_ = r.DB.AutoMigrate(&model.Client{})
 	return r
 }
 
@@ -30,9 +30,9 @@ func (r *Client) Add(newClient *model.Client) (*model.Client, error) {
 	return newClient, db.Error
 }
 
-func (m *Client) First() (*model.Client, error) {
+func (r *Client) First() (*model.Client, error) {
 	var client model.Client
-	result := m.DB.First(&client)
+	result := r.DB.First(&client)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil

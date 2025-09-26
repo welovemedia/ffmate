@@ -16,6 +16,7 @@ func TestDebugSet(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodPatch, "/api/v1/debug/moo", nil)
 	response := server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 
 	assert.Equal(t, http.StatusNoContent, response.StatusCode, "POST /api/v1/debug/{namespace}")
 }
@@ -25,6 +26,7 @@ func TestDebugDelete(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodDelete, "/api/v1/debug", nil)
 	response := server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 
 	assert.Equal(t, http.StatusNoContent, response.StatusCode, "POST /api/v1/debug")
 }

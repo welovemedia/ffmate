@@ -10,7 +10,7 @@ type Settings struct {
 }
 
 func (r *Settings) Setup() *Settings {
-	r.DB.AutoMigrate(&model.Settings{})
+	_ = r.DB.AutoMigrate(&model.Settings{})
 	return r
 }
 

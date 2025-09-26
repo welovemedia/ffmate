@@ -19,6 +19,6 @@ func (c *Controller) RegisterRoutes(router *goyave.Router) {
 	router.Get("/version", c.get)
 }
 
-func (c *Controller) get(response *goyave.Response, request *goyave.Request) {
+func (c *Controller) get(response *goyave.Response, _ *goyave.Request) {
 	response.JSON(200, &dto.Version{Version: c.Config().GetString("app.version")})
 }

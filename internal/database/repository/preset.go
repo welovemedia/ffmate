@@ -13,13 +13,13 @@ type Preset struct {
 }
 
 func (r *Preset) Setup() *Preset {
-	r.DB.AutoMigrate(&model.Preset{})
+	_ = r.DB.AutoMigrate(&model.Preset{})
 	return r
 }
 
-func (m *Preset) First(uuid string) (*model.Preset, error) {
+func (r *Preset) First(uuid string) (*model.Preset, error) {
 	var preset model.Preset
-	result := m.DB.Where("uuid = ?", uuid).First(&preset)
+	result := r.DB.Where("uuid = ?", uuid).First(&preset)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -29,9 +29,9 @@ func (m *Preset) First(uuid string) (*model.Preset, error) {
 	return &preset, nil
 }
 
-func (m *Preset) Delete(w *model.Preset) error {
-	m.DB.Delete(w)
-	return m.DB.Error
+func (r *Preset) Delete(w *model.Preset) error {
+	r.DB.Delete(w)
+	return r.DB.Error
 }
 
 func (r *Preset) List(page int, perPage int) (*[]model.Preset, int64, error) {

@@ -47,7 +47,6 @@ func Has(key string) bool {
 	return ok
 }
 
-// Typed helpers (like viper)
 func GetString(key string) string {
 	if v, ok := Get(key).(string); ok {
 		return v

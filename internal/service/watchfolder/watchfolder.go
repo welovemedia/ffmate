@@ -22,13 +22,13 @@ import (
 
 type Repository interface {
 	List(page int, perPage int) (*[]model.Watchfolder, int64, error)
-	Add(*model.Watchfolder) (*model.Watchfolder, error)
-	Update(*model.Watchfolder) (*model.Watchfolder, error)
-	First(string) (*model.Watchfolder, error)
-	Delete(*model.Watchfolder) error
+	Add(watchfolder *model.Watchfolder) (*model.Watchfolder, error)
+	Update(watchfolder *model.Watchfolder) (*model.Watchfolder, error)
+	First(uuid string) (*model.Watchfolder, error)
+	Delete(watchfolder *model.Watchfolder) error
 	Count() (int64, error)
 
-	FirstAndLock(string) (*model.Watchfolder, bool, error)
+	FirstAndLock(uuid string) (*model.Watchfolder, bool, error)
 }
 
 type Service struct {
@@ -66,7 +66,7 @@ func (s *Service) List(page int, perPage int) (*[]model.Watchfolder, int64, erro
 
 func (s *Service) Add(newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, error) {
 	w, err := s.repository.Add(&model.Watchfolder{
-		Uuid: uuid.NewString(),
+		UUID: uuid.NewString(),
 
 		Name:        newWatchfolder.Name,
 		Description: newWatchfolder.Description,
@@ -81,13 +81,13 @@ func (s *Service) Add(newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, e
 
 		Suspended: newWatchfolder.Suspended,
 	})
-	debug.Watchfolder.Info("created watchfolder (uuid: %s)", w.Uuid)
+	debug.Watchfolder.Info("created watchfolder (uuid: %s)", w.UUID)
 
 	go s.processWatchfolder(w)
 
 	metrics.Gauge("watchfolder.created").Inc()
-	s.webhookService.Fire(dto.WATCHFOLDER_CREATED, w.ToDto())
-	s.websocketService.Broadcast(websocket.WATCHFOLDER_CREATED, w.ToDto())
+	s.webhookService.Fire(dto.WatchfolderCreated, w.ToDTO())
+	s.websocketService.Broadcast(websocket.WatchfolderCreated, w.ToDTO())
 
 	return w, err
 }
@@ -113,24 +113,24 @@ func (s *Service) Update(uuid string, newWatchfolder *dto.NewWatchfolder) (*mode
 
 	w, err = s.repository.Update(w)
 	if err != nil {
-		debug.Log.Error("failed to update watchfolder (uuid: %s): %v", w.Uuid, err)
+		debug.Log.Error("failed to update watchfolder (uuid: %s): %v", w.UUID, err)
 		return nil, err
 	}
 
-	debug.Watchfolder.Info("updated watchfolder (uuid: %s)", w.Uuid)
+	debug.Watchfolder.Info("updated watchfolder (uuid: %s)", w.UUID)
 
 	metrics.Gauge("watchfolder.updated").Inc()
-	s.webhookService.Fire(dto.WATCHFOLDER_UPDATED, w.ToDto())
-	s.websocketService.Broadcast(websocket.WATCHFOLDER_UPDATED, w.ToDto())
+	s.webhookService.Fire(dto.WatchfolderUpdated, w.ToDTO())
+	s.websocketService.Broadcast(websocket.WatchfolderUpdated, w.ToDTO())
 
 	return w, err
 }
 
-// updates the whole watchfolder without previous validation (internal usage)
+// UpdateInternal updates the whole watchfolder without previous validation (internal usage)
 func (s *Service) UpdateInternal(watchfolder *model.Watchfolder) (*model.Watchfolder, error) {
 	w, err := s.repository.Update(watchfolder)
 	if err == nil {
-		s.websocketService.Broadcast(websocket.WATCHFOLDER_UPDATED, w.ToDto())
+		s.websocketService.Broadcast(websocket.WatchfolderUpdated, w.ToDTO())
 	}
 	return w, err
 }
@@ -154,8 +154,8 @@ func (s *Service) Delete(uuid string) error {
 	debug.Watchfolder.Info("deleted watchfolder (uuid: %s)", uuid)
 
 	metrics.Gauge("watchfolder.deleted").Inc()
-	s.webhookService.Fire(dto.WATCHFOLDER_DELETED, w.ToDto())
-	s.websocketService.Broadcast(websocket.WATCHFOLDER_DELETED, w.ToDto())
+	s.webhookService.Fire(dto.WatchfolderDeleted, w.ToDTO())
+	s.websocketService.Broadcast(websocket.WatchfolderDeleted, w.ToDTO())
 
 	return nil
 }
@@ -192,28 +192,28 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 		var locked = false
 		var err error
 		if isCluster {
-			wf, locked, err = s.repository.FirstAndLock(watchfolder.Uuid)
+			wf, locked, err = s.repository.FirstAndLock(watchfolder.UUID)
 		} else {
-			wf, err = s.repository.First(watchfolder.Uuid)
+			wf, err = s.repository.First(watchfolder.UUID)
 		}
 		if err != nil {
 			debug.Log.Error("watchfolder requesting failed for processing: %v", err)
 			continue
 		}
 		if wf == nil {
-			debug.Watchfolder.Debug("watchfolder no longer exists - processing stopped (uuid: %s)", watchfolder.Uuid)
+			debug.Watchfolder.Debug("watchfolder no longer exists - processing stopped (uuid: %s)", watchfolder.UUID)
 			return
 		}
 		if wf.Suspended {
-			debug.Watchfolder.Debug("watchfolder skipped as it is suspended (uuid: %s)", wf.Uuid)
+			debug.Watchfolder.Debug("watchfolder skipped as it is suspended (uuid: %s)", wf.UUID)
 			continue
 		}
 		if locked {
-			debug.Watchfolder.Debug("watchfolder skipped as it is locked (uuid: %s)", wf.Uuid)
+			debug.Watchfolder.Debug("watchfolder skipped as it is locked (uuid: %s)", wf.UUID)
 			continue
 		}
 
-		debug.Watchfolder.Debug("watchfolder processing (uuid: %s)", watchfolder.Uuid)
+		debug.Watchfolder.Debug("watchfolder processing (uuid: %s)", watchfolder.UUID)
 
 		// walk the directory resursively
 		err = filepath.Walk(wf.Path, func(path string, info os.FileInfo, err error) error {
@@ -249,7 +249,10 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 			// determine if the file is ready for processing
 			if s.shouldProcessFile(path, info, &fileStates, wf.GrowthChecks) {
 				fileStates.Delete(path) // Remove from tracking
-				os.WriteFile(path+".lock", []byte(""), 0777)
+				err := os.WriteFile(path+".lock", []byte(""), 0777)
+				if err != nil {
+					debug.Log.Error("failed to write .lock file (uuid: %s)", watchfolder.UUID)
+				}
 				s.createTask(path, wf)
 			}
 
@@ -258,12 +261,15 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 
 		if err != nil {
 			watchfolder.Error = err.Error()
-			debug.Log.Error("walking watchfolder directory failed (uuid: %s): %v", watchfolder.Uuid, err)
+			debug.Log.Error("walking watchfolder directory failed (uuid: %s): %v", watchfolder.UUID, err)
 		}
 
 		metrics.Gauge("watchfolder.executed").Inc()
 		wf.LastCheck = time.Now().UnixMilli()
-		s.UpdateInternal(wf)
+		_, err = s.UpdateInternal(wf)
+		if err != nil {
+			debug.Log.Error("failed to update watchfolder internally (uuid: %s): %v", watchfolder.UUID, err)
+		}
 	}
 }
 
@@ -297,7 +303,7 @@ func (s *Service) shouldProcessFile(path string, info os.FileInfo, fileStates *s
 func (s *Service) filterOutExtension(watchfolder *model.Watchfolder, path string) bool {
 	if watchfolder.Filter != nil && watchfolder.Filter.Extensions != nil {
 		if len(watchfolder.Filter.Extensions.Exclude) > 0 {
-			var exclude bool = false
+			var exclude = false
 			for _, ext := range watchfolder.Filter.Extensions.Exclude {
 				if strings.HasSuffix(path, "."+ext) {
 					exclude = true
@@ -308,7 +314,7 @@ func (s *Service) filterOutExtension(watchfolder *model.Watchfolder, path string
 		}
 
 		if len(watchfolder.Filter.Extensions.Include) > 0 {
-			var include bool = true
+			var include = true
 			for _, ext := range watchfolder.Filter.Extensions.Include {
 				if strings.HasSuffix(path, ext) {
 					include = false
@@ -325,7 +331,7 @@ func (s *Service) createTask(path string, watchfolder *model.Watchfolder) {
 	// create ffmate metadata map
 	ffmate := map[string]map[string]string{
 		"watchfolder": {
-			"uuid": watchfolder.Uuid,
+			"uuid": watchfolder.UUID,
 			"path": watchfolder.Path,
 		},
 	}
@@ -351,10 +357,10 @@ func (s *Service) createTask(path string, watchfolder *model.Watchfolder) {
 	// add new Task
 	_, err = s.taskService.Add(task, "watchfolder", "")
 	if err != nil {
-		debug.Log.Error("failed to create task for watchfolder (uuid: %s) file: %s: %v", watchfolder.Uuid, path, err)
+		debug.Log.Error("failed to create task for watchfolder (uuid: %s) file: %s: %v", watchfolder.UUID, path, err)
 		return
 	}
-	debug.Watchfolder.Debug("created new task for watchfolder (uuid: %s), file: '%s'", watchfolder.Uuid, path)
+	debug.Watchfolder.Debug("created new task for watchfolder (uuid: %s), file: '%s'", watchfolder.UUID, path)
 }
 
 func (s *Service) Name() string {

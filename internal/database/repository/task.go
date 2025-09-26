@@ -15,13 +15,13 @@ type Task struct {
 }
 
 func (r *Task) Setup() *Task {
-	r.DB.AutoMigrate(&model.Task{})
+	_ = r.DB.AutoMigrate(&model.Task{})
 	return r
 }
 
-func (m *Task) First(uuid string) (*model.Task, error) {
+func (r *Task) First(uuid string) (*model.Task, error) {
 	var task model.Task
-	result := m.DB.Preload("Client").Where("uuid = ?", uuid).First(&task)
+	result := r.DB.Preload("Client").Where("uuid = ?", uuid).First(&task)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -31,9 +31,9 @@ func (m *Task) First(uuid string) (*model.Task, error) {
 	return &task, nil
 }
 
-func (m *Task) Delete(w *model.Task) error {
-	m.DB.Delete(w)
-	return m.DB.Error
+func (r *Task) Delete(w *model.Task) error {
+	r.DB.Delete(w)
+	return r.DB.Error
 }
 
 func (r *Task) List(page int, perPage int) (*[]model.Task, int64, error) {
@@ -57,7 +57,7 @@ func (r *Task) Add(newTask *model.Task) (*model.Task, error) {
 	if db.Error != nil {
 		return newTask, db.Error
 	}
-	return r.First(newTask.Uuid)
+	return r.First(newTask.UUID)
 }
 
 func (r *Task) Update(task *model.Task) (*model.Task, error) {
@@ -66,7 +66,7 @@ func (r *Task) Update(task *model.Task) (*model.Task, error) {
 	if db.Error != nil {
 		return task, db.Error
 	}
-	return r.First(task.Uuid)
+	return r.First(task.UUID)
 }
 
 func (r *Task) Count() (int64, error) {
@@ -90,22 +90,22 @@ type statusCount struct {
 	Count  int
 }
 
-func (m *Task) CountAllStatus(session string) (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
+func (r *Task) CountAllStatus(session string) (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
 	var counts []statusCount
 
 	if session != "" {
-		m.DB.Model(&model.Task{}).
+		r.DB.Model(&model.Task{}).
 			Select("status, COUNT(*) as count").
 			Group("status").
 			Where("session = ?", session).
 			Find(&counts)
 	} else {
-		m.DB.Model(&model.Task{}).
+		r.DB.Model(&model.Task{}).
 			Select("status, COUNT(*) as count").
 			Group("status").
 			Find(&counts)
 	}
-	err = m.DB.Error
+	err = r.DB.Error
 
 	for _, r := range counts {
 		switch r.Status {
@@ -129,15 +129,15 @@ func (m *Task) CountAllStatus(session string) (queued, running, doneSuccessful, 
  * Processing related methods
  */
 
-func (m *Task) NextQueued(amount int) (*[]model.Task, error) {
+func (r *Task) NextQueued(amount int) (*[]model.Task, error) {
 	var tasks []model.Task
 
-	err := m.DB.Transaction(func(tx *gorm.DB) error {
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		// Select tasks with FOR UPDATE
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Preload("Client").
 			Order("priority DESC, created_at ASC").
-			Where("status = ?", dto.QUEUED).
+			Where("status = ?", dto.Queued).
 			Limit(amount).
 			Find(&tasks).Error; err != nil {
 			return err
@@ -155,7 +155,7 @@ func (m *Task) NextQueued(amount int) (*[]model.Task, error) {
 
 		if err := tx.Model(&model.Task{}).
 			Where("id IN ?", ids).
-			Update("status", dto.RUNNING).Error; err != nil {
+			Update("status", dto.Running).Error; err != nil {
 			return err
 		}
 

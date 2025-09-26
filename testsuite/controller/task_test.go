@@ -32,48 +32,53 @@ func createTask(t *testing.T, server *testutil.TestServer) *http.Response {
 	response := server.TestRequest(request)
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/tasks")
 	return response
-
 }
 
 func TestTaskCreate(t *testing.T) {
 	server := testsuite.InitServer(t)
 
 	response := createTask(t, server)
-	task, _ := testsuite.ParseJsonBody[dto.Task](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	task, _ := testsuite.ParseJSONBody[dto.Task](response.Body)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/tasks")
-	assert.Equal(t, task.Name, "Test task", "POST /api/v1/tasks")
-	assert.Equal(t, task.Status, dto.QUEUED, "POST /api/v1/tasks")
-	assert.NotEmpty(t, task.Uuid, "POST /api/v1/tasks")
+	assert.Equal(t, "Test task", task.Name, "POST /api/v1/tasks")
+	assert.Equal(t, dto.Queued, task.Status, "POST /api/v1/tasks")
+	assert.NotEmpty(t, task.UUID, "POST /api/v1/tasks")
 }
 
 func TestTaskList(t *testing.T) {
 	server := testsuite.InitServer(t)
 
-	createTask(t, server)
+	response := createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/tasks", nil)
-	response := server.TestRequest(request)
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 
-	tasks, _ := testsuite.ParseJsonBody[[]dto.Task](response.Body)
+	tasks, _ := testsuite.ParseJSONBody[[]dto.Task](response.Body)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /api/v1/tasks")
-	assert.Equal(t, 1, len(tasks), "GET /api/v1/tasks")
-	assert.Equal(t, response.Header.Get("X-Total"), "1", "GET /api/v1/tasks")
+	assert.Len(t, tasks, 1, "GET /api/v1/tasks")
+	assert.Equal(t, "1", response.Header.Get("X-Total"), "GET /api/v1/tasks")
 }
 
 func TestTaskDelete(t *testing.T) {
 	server := testsuite.InitServer(t)
 
 	response := createTask(t, server)
-	task, _ := testsuite.ParseJsonBody[dto.Task](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	task, _ := testsuite.ParseJSONBody[dto.Task](response.Body)
 
-	request := httptest.NewRequest(http.MethodDelete, "/api/v1/tasks/"+task.Uuid, nil)
+	request := httptest.NewRequest(http.MethodDelete, "/api/v1/tasks/"+task.UUID, nil)
 	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, 204, response.StatusCode, "DELETE /api/v1/tasks")
 
-	request = httptest.NewRequest(http.MethodDelete, "/api/v1/tasks/"+task.Uuid, nil)
+	request = httptest.NewRequest(http.MethodDelete, "/api/v1/tasks/"+task.UUID, nil)
 	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, 400, response.StatusCode, "DELETE /api/v1/tasks")
 }
 
@@ -81,13 +86,15 @@ func TestTaskGet(t *testing.T) {
 	server := testsuite.InitServer(t)
 
 	response := createTask(t, server)
-	task, _ := testsuite.ParseJsonBody[dto.Task](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	task, _ := testsuite.ParseJSONBody[dto.Task](response.Body)
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/"+task.Uuid, nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/tasks/"+task.UUID, nil)
 	response = server.TestRequest(request)
-	task, _ = testsuite.ParseJsonBody[dto.Task](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	task, _ = testsuite.ParseJSONBody[dto.Task](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/tasks/{uuid}")
-	assert.Equal(t, task.Name, "Test task", "GET /api/v1/tasks/{uuid}")
+	assert.Equal(t, "Test task", task.Name, "GET /api/v1/tasks/{uuid}")
 }
 
 func TestTaskUpdate(t *testing.T) {
@@ -98,27 +105,30 @@ func TestTaskUpdate(t *testing.T) {
 	server := testsuite.InitServer(t)
 
 	response := createTask(t, server)
-	task, _ := testsuite.ParseJsonBody[dto.Task](response.Body)
-	assert.Equal(t, task.Client.Identifier, "test-client", "GET /api/v1/tasks/{uuid}")
+	defer response.Body.Close() // nolint:errcheck
+	task, _ := testsuite.ParseJSONBody[dto.Task](response.Body)
+	assert.Equal(t, "test-client", task.Client.Identifier, "GET /api/v1/tasks/{uuid}")
 
 	// change client identifier
 	svc, _ := server.Service(service.Client).(*client.Service)
 	cfg.Set("ffmate.identifier", "test-client-changed")
 	svc.UpdateClientInfo()
 
-	request := httptest.NewRequest(http.MethodPatch, "/api/v1/tasks/"+task.Uuid+"/cancel", nil)
+	request := httptest.NewRequest(http.MethodPatch, "/api/v1/tasks/"+task.UUID+"/cancel", nil)
 	response = server.TestRequest(request)
-	task, _ = testsuite.ParseJsonBody[dto.Task](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	task, _ = testsuite.ParseJSONBody[dto.Task](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/tasks/{uuid}")
-	assert.Equal(t, task.Status, dto.DONE_CANCELED, "GET /api/v1/tasks/{uuid}")
-	assert.Equal(t, task.Client.Identifier, "test-client-changed", "GET /api/v1/tasks/{uuid}")
+	assert.Equal(t, dto.DoneCanceled, task.Status, "GET /api/v1/tasks/{uuid}")
+	assert.Equal(t, "test-client-changed", task.Client.Identifier, "GET /api/v1/tasks/{uuid}")
 
-	request = httptest.NewRequest(http.MethodPatch, "/api/v1/tasks/"+task.Uuid+"/restart", nil)
+	request = httptest.NewRequest(http.MethodPatch, "/api/v1/tasks/"+task.UUID+"/restart", nil)
 	response = server.TestRequest(request)
-	task, _ = testsuite.ParseJsonBody[dto.Task](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	task, _ = testsuite.ParseJSONBody[dto.Task](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/tasks/{uuid}")
-	assert.Equal(t, task.Status, dto.QUEUED, "GET /api/v1/tasks/{uuid}")
-	assert.Equal(t, task.Client.Identifier, "test-client-changed", "GET /api/v1/tasks/{uuid}")
+	assert.Equal(t, dto.Queued, task.Status, "GET /api/v1/tasks/{uuid}")
+	assert.Equal(t, "test-client-changed", task.Client.Identifier, "GET /api/v1/tasks/{uuid}")
 }
 
 func TestTaskCreateBatch(t *testing.T) {
@@ -137,16 +147,18 @@ func TestTaskCreateBatch(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/batches", bytes.NewReader(b))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
-	body, _ := testsuite.ParseJsonBody[dto.Batch](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	body, _ := testsuite.ParseJSONBody[dto.Batch](response.Body)
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/batches")
-	assert.NotEmpty(t, body.Uuid, "POST /api/v1/batches")
+	assert.NotEmpty(t, body.UUID, "POST /api/v1/batches")
 
 	// list tasks for batch
-	request = httptest.NewRequest(http.MethodGet, "/api/v1/batches/"+body.Uuid, nil)
+	request = httptest.NewRequest(http.MethodGet, "/api/v1/batches/"+body.UUID, nil)
 	response = server.TestRequest(request)
-	body2, _ := testsuite.ParseJsonBody[dto.Batch](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	body2, _ := testsuite.ParseJSONBody[dto.Batch](response.Body)
 	assert.Equal(t, http.StatusOK, response.StatusCode, "Get /api/v1/batches/{uuid}")
-	assert.Equal(t, len(body2.Tasks), 1, "GET /api/v1/batches/{uuid}")
-	assert.Equal(t, body2.Tasks[0].Batch, body.Uuid, "GET /api/v1/batches/{uuid}")
-	assert.Equal(t, body2.Uuid, body.Uuid, "GET /api/v1/batches/{uuid}")
+	assert.Len(t, body2.Tasks, 1, "GET /api/v1/batches/{uuid}")
+	assert.Equal(t, body2.Tasks[0].Batch, body.UUID, "GET /api/v1/batches/{uuid}")
+	assert.Equal(t, body2.UUID, body.UUID, "GET /api/v1/batches/{uuid}")
 }

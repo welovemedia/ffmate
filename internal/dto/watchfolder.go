@@ -7,41 +7,30 @@ import (
 )
 
 type NewWatchfolder struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-
-	Path         string `json:"path"`
-	Interval     int    `json:"interval"`
-	GrowthChecks int    `json:"growthChecks"`
-
-	Filter *WatchfolderFilter `json:"filter"`
-
-	Suspended bool `json:"suspended"`
-
-	Preset string `json:"preset"`
+	Filter       *WatchfolderFilter `json:"filter"`
+	Name         string             `json:"name"`
+	Description  string             `json:"description"`
+	Path         string             `json:"path"`
+	Preset       string             `json:"preset"`
+	Interval     int                `json:"interval"`
+	GrowthChecks int                `json:"growthChecks"`
+	Suspended    bool               `json:"suspended"`
 }
 
 type Watchfolder struct {
-	Uuid string `json:"uuid"`
-
-	Name        string `json:"name"`
-	Description string `json:"description"`
-
-	Path         string `json:"path"`
-	Interval     int    `json:"interval"`
-	GrowthChecks int    `json:"growthChecks"`
-
-	Suspended bool `json:"suspended"`
-
-	Filter *WatchfolderFilter `json:"filter"`
-
-	Preset string `json:"preset"`
-
-	CreatedAt int64 `json:"createdAt"`
-	UpdatedAt int64 `json:"updatedAt"`
-
-	Error     string `json:"error,omitempty"`
-	LastCheck int64  `json:"lastCheck"`
+	Filter       *WatchfolderFilter `json:"filter"`
+	Name         string             `json:"name"`
+	Description  string             `json:"description"`
+	Path         string             `json:"path"`
+	Error        string             `json:"error,omitempty"`
+	UUID         string             `json:"uuid"`
+	Preset       string             `json:"preset"`
+	CreatedAt    int64              `json:"createdAt"`
+	GrowthChecks int                `json:"growthChecks"`
+	UpdatedAt    int64              `json:"updatedAt"`
+	Interval     int                `json:"interval"`
+	LastCheck    int64              `json:"lastCheck"`
+	Suspended    bool               `json:"suspended"`
 }
 
 type WatchfolderFilter struct {
@@ -57,7 +46,7 @@ func (n WatchfolderFilter) Value() (driver.Value, error) {
 	return json.Marshal(n)
 }
 
-func (n *WatchfolderFilter) Scan(value interface{}) error {
+func (n *WatchfolderFilter) Scan(value any) error {
 	if value == nil {
 		return nil
 	}

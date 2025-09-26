@@ -31,17 +31,17 @@ func (c *Controller) OnUpgradeError(response *goyave.Response, _ *goyave.Request
 	response.JSON(status, message)
 }
 
-func (ctrl *Controller) CheckOrigin(request *goyave.Request) bool {
+func (c *Controller) CheckOrigin(_ *goyave.Request) bool {
 	return true
 }
 
-func (w *Controller) Serve(c *websocket.Conn, request *goyave.Request) error {
+func (c *Controller) Serve(w *websocket.Conn, request *goyave.Request) error {
 	uuid := uuid.NewString()
-	w.websocketService.Add(uuid, c)
+	c.websocketService.Add(uuid, w)
 	debug.Websocket.Debug("new connection from '%s' (uuid: %s)", request.RemoteAddress(), uuid)
 
 	for {
-		_, _, err := c.ReadMessage()
+		_, _, err := w.ReadMessage()
 		if err != nil {
 			debug.Websocket.Debug("disconnect from '%s' (uuid: %s): %v", request.RemoteAddress(), uuid, err)
 			break

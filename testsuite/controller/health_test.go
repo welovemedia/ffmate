@@ -19,20 +19,21 @@ func TestHealth(t *testing.T) {
 	// expect error
 	request := httptest.NewRequest(http.MethodGet, "/health", nil)
 	response := server.TestRequest(request)
-	body, _ := testsuite.ParseJsonBody[dto.Health](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	body, _ := testsuite.ParseJSONBody[dto.Health](response.Body)
 	assert.Equal(t, http.StatusInternalServerError, response.StatusCode, "GET /health")
-	assert.Equal(t, dto.HEALTH_ERROR, body.Status, "GET /health")
+	assert.Equal(t, dto.HealthError, body.Status, "GET /health")
 
 	server.RegisterStartupHook(func(*goyave.Server) {
 		// expect ok
 		request = httptest.NewRequest(http.MethodGet, "/health", nil)
-		response = server.TestRequest(request)
-		body, _ = testsuite.ParseJsonBody[dto.Health](response.Body)
-		assert.Equal(t, http.StatusOK, response.StatusCode, "GET /health")
-		assert.Equal(t, dto.HEALTH_OK, body.Status, "GET /health")
+		resp := server.TestRequest(request)
+		defer resp.Body.Close() // nolint:errcheck
+		body, _ = testsuite.ParseJSONBody[dto.Health](resp.Body)
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "GET /health")
+		assert.Equal(t, dto.HealthOk, body.Status, "GET /health")
 		server.Stop()
 	})
 
-	server.Start()
-
+	_ = server.Start()
 }

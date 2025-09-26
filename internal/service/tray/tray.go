@@ -40,7 +40,7 @@ func NewService(server *goyave.Server, taskService *task.Service, updateService 
 }
 
 func (s *Service) Run() {
-	s.server.RegisterShutdownHook(func(s *goyave.Server) {
+	s.server.RegisterShutdownHook(func(_ *goyave.Server) {
 		systray.Quit()
 	})
 
@@ -59,7 +59,7 @@ func (s *Service) Run() {
 
 		systray.AddSeparator()
 
-		mUi := systray.AddMenuItem("Open UI", "Open the ffmate ui")
+		mUI := systray.AddMenuItem("Open UI", "Open the ffmate ui")
 
 		systray.AddSeparator()
 
@@ -112,15 +112,15 @@ func (s *Service) Run() {
 		go func() {
 			for {
 				select {
-				case <-mUi.ClickedCh:
+				case <-mUI.ClickedCh:
 					url := fmt.Sprintf("http://localhost:%d/ui", s.server.Config().GetInt("server.port"))
 					switch runtime.GOOS {
 					case "linux":
-						exec.Command("xdg-open", url).Start()
+						_ = exec.Command("xdg-open", url).Start()
 					case "darwin":
-						exec.Command("open", url).Start()
+						_ = exec.Command("open", url).Start()
 					case "windows":
-						exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+						_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 					}
 				case <-mDebug.ClickedCh:
 					if mDebug.Checked() {
@@ -145,7 +145,6 @@ func (s *Service) Run() {
 					s.server.Stop()
 				}
 			}
-
 		}()
 		if err := s.server.Start(); err != nil {
 			debug.Log.Error("failed to start ffmate server: %v", err)

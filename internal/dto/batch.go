@@ -5,6 +5,6 @@ type NewBatch struct {
 }
 
 type Batch struct {
-	Uuid  string  `json:"uuid"`
+	UUID  string  `json:"uuid"`
 	Tasks []*Task `json:"tasks"`
 }

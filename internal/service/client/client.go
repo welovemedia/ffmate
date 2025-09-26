@@ -15,15 +15,15 @@ import (
 )
 
 type Repository interface {
-	List(int, int) (*[]model.Client, int64, error)
-	Add(*model.Client) (*model.Client, error)
+	List(page int, perPage int) (*[]model.Client, int64, error)
+	Add(client *model.Client) (*model.Client, error)
 	First() (*model.Client, error)
 }
 
 type Service struct {
 	repository       Repository
-	version          string
 	websocketService *websocket.Service
+	version          string
 }
 
 func NewService(repository *repository.Client, version string, websocketService *websocket.Service) *Service {
@@ -61,7 +61,7 @@ func (s *Service) save(newClient *dto.NewClient) (*model.Client, error) {
 	}
 
 	nc, err := s.repository.Add(c)
-	s.websocketService.Broadcast(websocket.CLIENT_UPDATED, nc.ToDto())
+	s.websocketService.Broadcast(websocket.ClientUpdated, nc.ToDTO())
 
 	return nc, err
 }
@@ -93,7 +93,6 @@ func (s *Service) UpdateClientInfo() {
 		for {
 			time.Sleep(15 * time.Second)
 			s.saveClient(localClient)
-
 		}
 	}()
 }

@@ -43,17 +43,17 @@ func init() {
 	serverCmd.Flags().Bool("no-ui", false, "do not open the ui in the browser")
 	serverCmd.Flags().String("identifier", "", "a unique client identifier (default to hostname)")
 
-	viper.BindPFlag("ffmpeg", serverCmd.Flags().Lookup("ffmpeg"))
-	viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
-	viper.BindPFlag("database", serverCmd.Flags().Lookup("database"))
-	viper.BindPFlag("maxConcurrentTasks", serverCmd.Flags().Lookup("max-concurrent-tasks"))
-	viper.BindPFlag("tray", serverCmd.Flags().Lookup("tray"))
-	viper.BindPFlag("sendTelemetry", serverCmd.Flags().Lookup("send-telemetry"))
-	viper.BindPFlag("noUI", serverCmd.Flags().Lookup("no-ui"))
-	viper.BindPFlag("identifier", serverCmd.Flags().Lookup("identifier"))
+	_ = viper.BindPFlag("ffmpeg", serverCmd.Flags().Lookup("ffmpeg"))
+	_ = viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
+	_ = viper.BindPFlag("database", serverCmd.Flags().Lookup("database"))
+	_ = viper.BindPFlag("maxConcurrentTasks", serverCmd.Flags().Lookup("max-concurrent-tasks"))
+	_ = viper.BindPFlag("tray", serverCmd.Flags().Lookup("tray"))
+	_ = viper.BindPFlag("sendTelemetry", serverCmd.Flags().Lookup("send-telemetry"))
+	_ = viper.BindPFlag("noUI", serverCmd.Flags().Lookup("no-ui"))
+	_ = viper.BindPFlag("identifier", serverCmd.Flags().Lookup("identifier"))
 }
 
-func server(cmd *cobra.Command, args []string) {
+func server(_ *cobra.Command, _ []string) {
 	setupConfig()
 
 	// init goyave with config

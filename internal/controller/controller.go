@@ -19,7 +19,7 @@ import (
 	ws "goyave.dev/goyave/v5/websocket"
 )
 
-func Register(server *goyave.Server, router *goyave.Router) {
+func Register(_ *goyave.Server, router *goyave.Router) {
 	// service the UI
 	router.Controller(&ui.Controller{})
 

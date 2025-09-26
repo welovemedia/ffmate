@@ -9,6 +9,9 @@ prepare:
 test:
 	go test -race ./...
 
+lint:
+	golangci-lint run --timeout=5m ./...
+
 dev+sqlite:
 	go run -race main.go server --identifier="sev.moovit.de" --tray=true --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}"
 

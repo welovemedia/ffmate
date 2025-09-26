@@ -15,10 +15,10 @@ import (
 
 type Service interface {
 	List(page int, perPage int) (*[]model.Watchfolder, int64, error)
-	Add(*dto.NewWatchfolder) (*model.Watchfolder, error)
-	Delete(string) error
-	Get(string) (*model.Watchfolder, error)
-	Update(string, *dto.NewWatchfolder) (*model.Watchfolder, error)
+	Add(watchfolder *dto.NewWatchfolder) (*model.Watchfolder, error)
+	Delete(uuid string) error
+	Get(uuid string) (*model.Watchfolder, error)
+	Update(uuid string, watchfolder *dto.NewWatchfolder) (*model.Watchfolder, error)
 }
 
 type Controller struct {
@@ -52,7 +52,7 @@ func (c *Controller) delete(response *goyave.Response, request *goyave.Request) 
 	err := c.watchfolderService.Delete(uuid)
 
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#deleting-a-watchfolder"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#deleting-a-watchfolder"))
 		return
 	}
 
@@ -70,7 +70,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 
 	watchfolder, total, err := c.watchfolderService.List(query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#listing-watchfolders"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#listing-watchfolders"))
 		return
 	}
 
@@ -79,7 +79,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 	// Transform each watchfolder to its DTO
 	var watchfolderDTOs = []dto.Watchfolder{}
 	for _, watchfolder := range *watchfolder {
-		watchfolderDTOs = append(watchfolderDTOs, *watchfolder.ToDto())
+		watchfolderDTOs = append(watchfolderDTOs, *watchfolder.ToDTO())
 	}
 
 	response.JSON(200, watchfolderDTOs)
@@ -98,11 +98,11 @@ func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 
 	watchfolder, err := c.watchfolderService.Add(newWatchfolder)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#creating-a-watchfolder"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#creating-a-watchfolder"))
 		return
 	}
 
-	response.JSON(200, watchfolder.ToDto())
+	response.JSON(200, watchfolder.ToDTO())
 }
 
 // @Summary Get single watchfolder
@@ -117,11 +117,11 @@ func (c *Controller) get(response *goyave.Response, request *goyave.Request) {
 
 	watchfolder, err := c.watchfolderService.Get(uuid)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#getting-a-single-watchfolder"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#getting-a-single-watchfolder"))
 		return
 	}
 
-	response.JSON(200, watchfolder.ToDto())
+	response.JSON(200, watchfolder.ToDTO())
 }
 
 // @Summary Update a watchfolder
@@ -138,9 +138,9 @@ func (c *Controller) update(response *goyave.Response, request *goyave.Request) 
 
 	watchfolder, err := c.watchfolderService.Update(uuid, newWebhook)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#updating-a-watchfolder"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/watchfolder#updating-a-watchfolder"))
 		return
 	}
 
-	response.JSON(200, watchfolder.ToDto())
+	response.JSON(200, watchfolder.ToDTO())
 }

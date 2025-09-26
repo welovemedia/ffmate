@@ -11,7 +11,7 @@ type WebhookExecution struct {
 }
 
 func (r *WebhookExecution) Setup() *WebhookExecution {
-	r.DB.AutoMigrate(&model.WebhookExecution{})
+	_ = r.DB.AutoMigrate(&model.WebhookExecution{})
 	return r
 }
 

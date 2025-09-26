@@ -15,6 +15,7 @@ func TestPrometheus(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	response := server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 	body, _ := testsuite.ParseBody(response.Body)
 	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /metrics")
 	assert.Containsf(t, string(body), "ffmate_", "GET /metrics")

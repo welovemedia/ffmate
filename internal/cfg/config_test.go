@@ -14,7 +14,7 @@ func TestConfig(t *testing.T) {
 
 	// bool
 	Set("test.key", true)
-	assert.Equal(t, true, GetBool("test.key"), "Config GetBool")
+	assert.True(t, GetBool("test.key"), "Config GetBool")
 
 	// int
 	i := int(time.Now().UnixMilli())
@@ -32,8 +32,8 @@ func TestConfig(t *testing.T) {
 
 	// Has
 	Set("test.key", "test-value")
-	assert.Equal(t, true, Has("test.key"), "Config Has")
-	assert.Equal(t, false, Has("test.key.no"), "Config Has")
+	assert.True(t, Has("test.key"), "Config Has")
+	assert.False(t, Has("test.key.no"), "Config Has")
 
 	// typed
 	Set("test.key", "test-value")
@@ -44,6 +44,6 @@ func TestConfig(t *testing.T) {
 	assert.Equal(t, "test-value", GetOrDefault("unknown.key", "test-value"), "Config GetOrDefault")
 	assert.Equal(t, 123, GetOrDefault[int]("unknown.key", 123), "Config GetOrDefault")
 	assert.Equal(t, 123, GetOrDefault("unknown.key", 123), "Config GetOrDefault")
-	assert.Equal(t, true, GetOrDefault[bool]("unknown.key", true), "Config GetOrDefault")
-	assert.Equal(t, true, GetOrDefault("unknown.key", true), "Config GetOrDefault")
+	assert.True(t, GetOrDefault[bool]("unknown.key", true), "Config GetOrDefault")
+	assert.True(t, GetOrDefault("unknown.key", true), "Config GetOrDefault")
 }

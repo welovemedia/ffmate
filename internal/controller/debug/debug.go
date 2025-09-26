@@ -38,7 +38,7 @@ func (c *Controller) set(response *goyave.Response, request *goyave.Request) {
 // @Tags debug
 // @Success 204
 // @Router /debug [delete]
-func (c *Controller) delete(response *goyave.Response, request *goyave.Request) {
+func (c *Controller) delete(response *goyave.Response, _ *goyave.Request) {
 	debug.Log.Info("disabled debug namespace")
 	debugo.SetNamespace("")
 	response.Status(204)
