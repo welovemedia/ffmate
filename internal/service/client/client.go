@@ -85,6 +85,9 @@ func (s *Service) UpdateClientInfo() {
 		localClient.Cluster = first.Cluster
 	}
 
+	// save for telemetry
+	cfg.Set("ffmate.cluster", localClient.Cluster)
+
 	// save client directly
 	s.saveClient(localClient)
 

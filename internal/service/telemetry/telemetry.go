@@ -65,6 +65,7 @@ func (s *Service) collectTelemetry(runtimeDuration time.Time, isShuttingDown boo
 		"runtimeDuration": time.Since(runtimeDuration).Milliseconds(),
 		"os":              runtime.GOOS,
 		"arch":            runtime.GOARCH,
+		"session":         cfg.GetString("ffmate.session"),
 		"config": map[string]any{
 			"isTray":             cfg.GetBool("ffmate.isTray"),
 			"maxConcurrentTasks": cfg.GetInt("ffmate.maxConcurrentTasks"),
@@ -75,6 +76,10 @@ func (s *Service) collectTelemetry(runtimeDuration time.Time, isShuttingDown boo
 		},
 		"stats":   s.collectStats(),
 		"metrics": s.getMetrics(),
+	}
+
+	if cfg.Has("ffmate.cluster") {
+		m["cluster"] = cfg.GetString("ffmate.cluster")
 	}
 
 	return m
