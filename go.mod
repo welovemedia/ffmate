@@ -1,4 +1,4 @@
-module github.com/welovemedia/ffmate
+module github.com/welovemedia/ffmate/v2
 
 go 1.25.0
 
