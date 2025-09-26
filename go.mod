@@ -1,6 +1,6 @@
 module github.com/welovemedia/ffmate/v2
 
-go 1.25.0
+go 1.25.1
 
 require (
 	fyne.io/systray v1.11.0
