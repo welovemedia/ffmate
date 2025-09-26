@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
@@ -157,7 +158,8 @@ func Init(options goyave.Options) {
 		traySvc.Run()
 	} else {
 		if err := server.Start(); err != nil {
-			panic(err)
+			debug.Log.Error("failed to start ffmate server: %v", err)
+			os.Exit(1)
 		}
 	}
 }
