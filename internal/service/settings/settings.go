@@ -1,10 +1,10 @@
 package settings
 
 import (
-	"github.com/welovemedia/ffmate/internal/database/model"
-	"github.com/welovemedia/ffmate/internal/database/repository"
-	"github.com/welovemedia/ffmate/internal/dto"
-	"github.com/welovemedia/ffmate/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/database/model"
+	"github.com/welovemedia/ffmate/v2/internal/database/repository"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/service"
 )
 
 type Repository interface {

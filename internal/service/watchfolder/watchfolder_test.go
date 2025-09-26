@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/welovemedia/ffmate/internal/database/model"
+	"github.com/welovemedia/ffmate/v2/internal/database/model"
 )
 
 func TestHasLabelOverlap(t *testing.T) {

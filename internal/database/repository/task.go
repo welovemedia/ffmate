@@ -3,8 +3,8 @@ package repository
 import (
 	"errors"
 
-	"github.com/welovemedia/ffmate/internal/database/model"
-	"github.com/welovemedia/ffmate/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/database/model"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"gorm.io/gorm"
 	"goyave.dev/goyave/v5/database"
 )

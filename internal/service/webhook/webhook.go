@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/welovemedia/ffmate/internal/database/model"
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/dto"
-	"github.com/welovemedia/ffmate/internal/metrics"
-	"github.com/welovemedia/ffmate/internal/service"
-	"github.com/welovemedia/ffmate/internal/service/websocket"
+	"github.com/welovemedia/ffmate/v2/internal/database/model"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/metrics"
+	"github.com/welovemedia/ffmate/v2/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/service/websocket"
 	"goyave.dev/goyave/v5/config"
 )
 

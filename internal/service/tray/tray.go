@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"fyne.io/systray"
-	"github.com/welovemedia/ffmate/internal/cfg"
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/service"
-	"github.com/welovemedia/ffmate/internal/service/task"
-	"github.com/welovemedia/ffmate/internal/service/update"
+	"github.com/welovemedia/ffmate/v2/internal/cfg"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/service/task"
+	"github.com/welovemedia/ffmate/v2/internal/service/update"
 	"github.com/yosev/debugo"
 	"goyave.dev/goyave/v5"
 

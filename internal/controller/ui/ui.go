@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"net/http"
 
-	"github.com/welovemedia/ffmate/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/util/fsutil"
 )
