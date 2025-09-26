@@ -5,7 +5,7 @@ import (
 )
 
 func TestGauge(t *testing.T) {
-	for name, _ := range Gauges() {
+	for name := range Gauges() {
 		Gauge(name).Inc()
 	}
 }
