@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/welovemedia/ffmate/v2/testsuite"
 	"github.com/welovemedia/ffmate/v2/internal/cfg"
 	"github.com/welovemedia/ffmate/v2/internal/service"
 	"github.com/welovemedia/ffmate/v2/internal/service/telemetry"
+	"github.com/welovemedia/ffmate/v2/testsuite"
 )
 
 func TestTelemetry(t *testing.T) {
