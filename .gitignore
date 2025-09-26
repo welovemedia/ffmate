@@ -10,3 +10,4 @@ _app
 .vscode
 **/ui-build/*
 !**/ui-build/index.html
+coverage.txt

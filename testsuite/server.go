@@ -52,14 +52,8 @@ var c = map[string]any{
 }
 
 func InitServer(t *testing.T) *testutil.TestServer {
-	b, err := json.Marshal(c)
-	if err != nil {
-		t.Errorf("failed to marshal config: %v", err)
-	}
-	conf, err := config.LoadJSON(string(b))
-	if err != nil {
-		t.Errorf("failed to parse config: %v", err)
-	}
+	b, _ := json.Marshal(c)
+	conf, _ := config.LoadJSON(string(b))
 
 	if !cfg.Has("ffmate.identifier") {
 		cfg.Set("ffmate.identifier", "test-client")

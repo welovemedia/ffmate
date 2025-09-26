@@ -22,7 +22,12 @@ jobs:
           go-version: ${{ matrix.go }}
       - name: Run tests
         run: |
-          make test
+          make test+coverage
+      - if: ${{ matrix.go == '1.25.1' }}
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: coverage.txt
+
 
   spellcheck:
     name: Spellcheck

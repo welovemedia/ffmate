@@ -9,6 +9,14 @@ prepare:
 test:
 	go test -race ./...
 
+test+coverage:
+	go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
+
+test+coverage+func:
+	go test -race -coverprofile=coverage.txt -covermode=atomic -coverpkg=./... ./...
+	go tool cover -func=coverage.txt
+	rm coverage.txt
+
 lint:
 	golangci-lint run --timeout=5m ./...
 
