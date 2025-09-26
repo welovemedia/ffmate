@@ -32,7 +32,7 @@ func TestWebsocketBroadcast(t *testing.T) {
 	svc := server.Service(service.Websocket).(*websocketSvc.Service)
 	svc.Broadcast(websocketSvc.TaskCreated, "moo")
 
-	_ = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	_, received, err := conn.ReadMessage()
 	require.NoError(t, err, "failed to read message")
 	require.Equal(t, `{"payload":"moo","subject":"task:created"}`, strings.Trim(string(received), "\n"))

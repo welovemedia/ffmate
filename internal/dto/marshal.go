@@ -6,6 +6,9 @@ import (
 	"fmt"
 )
 
+func (n WatchfolderFilter) Value() (driver.Value, error) { return valueJSON(n) }
+func (n *WatchfolderFilter) Scan(value any) error        { return scanJSON(n, value) }
+
 func (n Settings) Value() (driver.Value, error) { return valueJSON(n) }
 func (n *Settings) Scan(value any) error        { return scanJSON(n, value) }
 

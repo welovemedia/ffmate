@@ -18,7 +18,7 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Post("/umami", c.add)
+	router.Post("/umami", c.add).ValidateBody(c.UmamiRequest)
 }
 
 func (c *Controller) add(response *goyave.Response, request *goyave.Request) {

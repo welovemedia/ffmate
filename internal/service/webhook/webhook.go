@@ -31,7 +31,6 @@ type Repository interface {
 type ExecutionRepository interface {
 	List(page int, perPage int) (*[]model.WebhookExecution, int64, error)
 	Add(webhookExecution *model.WebhookExecution) (*model.WebhookExecution, error)
-	Count() (int64, error)
 }
 
 type Service struct {
@@ -139,6 +138,15 @@ func (s *Service) Fire(event dto.WebhookEvent, data any) {
 	webhooks, _ := s.repository.ListAllByEvent(event)
 	for _, webhook := range *webhooks {
 		go s.fireWebhook(&webhook, data, s.handleWebhookExecution)
+		metrics.Gauge("webhook.executed").Inc()
+	}
+}
+
+// FireInRoutine will execute in the same routine as the caller (mainly used for testing)
+func (s *Service) FireInRoutine(event dto.WebhookEvent, data any) {
+	webhooks, _ := s.repository.ListAllByEvent(event)
+	for _, webhook := range *webhooks {
+		s.fireWebhook(&webhook, data, s.handleWebhookExecution)
 		metrics.Gauge("webhook.executed").Inc()
 	}
 }

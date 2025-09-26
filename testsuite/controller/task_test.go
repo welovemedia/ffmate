@@ -25,6 +25,9 @@ var newTask = &dto.NewTask{
 	Priority:   100,
 	Labels:     []string{"test-label-1", "test-label-2", "test-label-3"},
 	OutputFile: "/dev/null",
+	Metadata: &dto.MetadataMap{
+		"foo": "bar",
+	},
 }
 
 func createTask(t *testing.T, server *testutil.TestServer) *http.Response {
@@ -50,6 +53,9 @@ func TestTaskCreate(t *testing.T) {
 	assert.Contains(t, task.Labels, "test-label-3", "POST /api/v1/tasks")
 	assert.NotContains(t, task.Labels, "test-label-0", "POST /api/v1/tasks")
 	assert.Equal(t, task.Status, dto.Queued, "POST /api/v1/tasks")
+	assert.Equal(t, "Test task", task.Name, "POST /api/v1/tasks")
+	assert.Equal(t, dto.Queued, task.Status, "POST /api/v1/tasks")
+	assert.NotNil(t, task.Metadata, "POST /api/v1/tasks")
 	assert.NotEmpty(t, task.UUID, "POST /api/v1/tasks")
 }
 

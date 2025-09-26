@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/testsuite"
@@ -110,11 +111,21 @@ func TestPresetUpdate(t *testing.T) {
 	body, _ := json.Marshal(preset)
 	request := httptest.NewRequest(http.MethodPut, "/api/v1/presets/"+preset.UUID, bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
-
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	preset, _ = testsuite.ParseJSONBody[dto.Preset](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/presets/{uuid}")
 	assert.Contains(t, preset.Labels, "test-label-4", "POST /api/v1/presets")
 	assert.Equal(t, preset.Name, "Test Updated preset", "GET /api/v1/preset/{uuid}")
+	assert.Equal(t, "Test Updated preset", preset.Name, "GET /api/v1/preset/{uuid}")
+
+	// update with invalid UUID
+	preset.Name = "Test Updated preset fail"
+	body, _ = json.Marshal(preset)
+	request = httptest.NewRequest(http.MethodPut, "/api/v1/presets/"+uuid.NewString(), bytes.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
+	preset, _ = testsuite.ParseJSONBody[dto.Preset](response.Body)
+	assert.Equal(t, 400, response.StatusCode, "GET /api/v1/presets/{uuid}")
 }

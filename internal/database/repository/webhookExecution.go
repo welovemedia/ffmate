@@ -27,9 +27,3 @@ func (r *WebhookExecution) List(page int, perPage int) (*[]model.WebhookExecutio
 	err := d.Find()
 	return d.Records, d.Total, err
 }
-
-func (r *WebhookExecution) Count() (int64, error) {
-	var count int64
-	db := r.DB.Model(&model.WebhookExecution{}).Count(&count)
-	return count, db.Error
-}

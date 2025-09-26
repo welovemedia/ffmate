@@ -96,21 +96,14 @@ type statusCount struct {
 	Count  int
 }
 
-func (r *Task) CountAllStatus(session string) (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
+func (r *Task) CountAllStatus() (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
 	var counts []statusCount
 
-	if session != "" {
-		r.DB.Model(&model.Task{}).
-			Select("status, COUNT(*) as count").
-			Group("status").
-			Where("session = ?", session).
-			Find(&counts)
-	} else {
-		r.DB.Model(&model.Task{}).
-			Select("status, COUNT(*) as count").
-			Group("status").
-			Find(&counts)
-	}
+	r.DB.Model(&model.Task{}).
+		Select("status, COUNT(*) as count").
+		Group("status").
+		Find(&counts)
+
 	err = r.DB.Error
 
 	for _, r := range counts {

@@ -1,11 +1,5 @@
 package dto
 
-import (
-	"database/sql/driver"
-	"encoding/json"
-	"errors"
-)
-
 type NewWatchfolder struct {
 	Filter       *WatchfolderFilter `json:"filter"`
 	Name         string             `json:"name"`
@@ -42,19 +36,4 @@ type WatchfolderFilter struct {
 type WatchfolderFilterExtensions struct {
 	Exclude []string `json:"exclude"`
 	Include []string `json:"include"`
-}
-
-func (n WatchfolderFilter) Value() (driver.Value, error) {
-	return json.Marshal(n)
-}
-
-func (n *WatchfolderFilter) Scan(value any) error {
-	if value == nil {
-		return nil
-	}
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
-	}
-	return json.Unmarshal(bytes, n)
 }
