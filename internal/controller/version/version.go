@@ -1,8 +1,8 @@
 package version
 
 import (
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"goyave.dev/goyave/v5"
 )
 

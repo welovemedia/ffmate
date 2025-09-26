@@ -7,7 +7,7 @@ import (
 	"github.com/sanbornm/go-selfupdate/selfupdate"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	updateSvc "github.com/welovemedia/ffmate/internal/service/update"
+	updateSvc "github.com/welovemedia/ffmate/v2/internal/service/update"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/config"
 )

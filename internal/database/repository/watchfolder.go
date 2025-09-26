@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/welovemedia/ffmate/internal/database/model"
+	"github.com/welovemedia/ffmate/v2/internal/database/model"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"goyave.dev/goyave/v5/database"

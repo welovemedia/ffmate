@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/welovemedia/ffmate/internal/database/model"
+	"github.com/welovemedia/ffmate/v2/internal/database/model"
 	"gorm.io/gorm"
 )
 

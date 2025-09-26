@@ -15,10 +15,10 @@ import (
 	"unicode"
 
 	"github.com/mattn/go-shellwords"
-	"github.com/welovemedia/ffmate/internal/cfg"
-	"github.com/welovemedia/ffmate/internal/database/model"
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/cfg"
+	"github.com/welovemedia/ffmate/v2/internal/database/model"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/service"
 )
 
 type Service struct {

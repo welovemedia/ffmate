@@ -2,8 +2,8 @@ package prometheus
 
 import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/metrics"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/metrics"
 	"goyave.dev/goyave/v5"
 )
 

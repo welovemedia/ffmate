@@ -2,8 +2,8 @@ package websocket
 
 import (
 	"github.com/google/uuid"
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/service"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/websocket"
 )

@@ -7,7 +7,7 @@ import (
 
 	"github.com/sanbornm/go-selfupdate/selfupdate"
 	"github.com/spf13/viper"
-	"github.com/welovemedia/ffmate/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/service"
 )
 
 var updater = &selfupdate.Updater{
