@@ -16,6 +16,10 @@ func ParseJSONBody[T any](b io.ReadCloser) (T, error) {
 	}
 	defer b.Close() // nolint:errcheck
 
+	if len(bodyBytes) == 0 {
+		return zero, nil
+	}
+
 	var generic any
 	if err := json.Unmarshal(bodyBytes, &generic); err != nil {
 		return zero, err
