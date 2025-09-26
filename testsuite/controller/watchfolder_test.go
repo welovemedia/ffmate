@@ -43,10 +43,10 @@ func init() {
 
 func createWatchfolder(t *testing.T, server *testutil.TestServer) *http.Response {
 	body, _ := json.Marshal(newWatchfolder)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/watchfolder", bytes.NewReader(body))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/watchfolders", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
-	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/watchfolder")
+	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/watchfolders")
 	return response
 
 }
@@ -71,14 +71,14 @@ func TestWatchfolderList(t *testing.T) {
 
 	createWatchfolder(t, server)
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/watchfolder", nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/watchfolders", nil)
 	response := server.TestRequest(request)
 
 	watchfolder, _ := testsuite.ParseJsonBody[[]dto.Watchfolder](response.Body)
 
-	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /api/v1/watchfolder")
-	assert.Equal(t, 1, len(watchfolder), "GET /api/v1/watchfolder")
-	assert.Equal(t, response.Header.Get("X-Total"), "1", "GET /api/v1/watchfolder")
+	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /api/v1/watchfolders")
+	assert.Equal(t, 1, len(watchfolder), "GET /api/v1/watchfolders")
+	assert.Equal(t, response.Header.Get("X-Total"), "1", "GET /api/v1/watchfolders")
 }
 
 func TestWatchfolderDelete(t *testing.T) {
@@ -87,13 +87,13 @@ func TestWatchfolderDelete(t *testing.T) {
 	response := createWatchfolder(t, server)
 	watchfolder, _ := testsuite.ParseJsonBody[dto.Watchfolder](response.Body)
 
-	request := httptest.NewRequest(http.MethodDelete, "/api/v1/watchfolder/"+watchfolder.Uuid, nil)
+	request := httptest.NewRequest(http.MethodDelete, "/api/v1/watchfolders/"+watchfolder.Uuid, nil)
 	response = server.TestRequest(request)
-	assert.Equal(t, 204, response.StatusCode, "DELETE /api/v1/watchfolder")
+	assert.Equal(t, 204, response.StatusCode, "DELETE /api/v1/watchfolders")
 
-	request = httptest.NewRequest(http.MethodDelete, "/api/v1/watchfolder/"+watchfolder.Uuid, nil)
+	request = httptest.NewRequest(http.MethodDelete, "/api/v1/watchfolders/"+watchfolder.Uuid, nil)
 	response = server.TestRequest(request)
-	assert.Equal(t, 400, response.StatusCode, "DELETE /api/v1/watchfolder")
+	assert.Equal(t, 400, response.StatusCode, "DELETE /api/v1/watchfolders")
 }
 
 func TestWatchfolderGet(t *testing.T) {
@@ -102,11 +102,11 @@ func TestWatchfolderGet(t *testing.T) {
 	response := createWatchfolder(t, server)
 	watchfolder, _ := testsuite.ParseJsonBody[dto.Watchfolder](response.Body)
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/watchfolder/"+watchfolder.Uuid, nil)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/watchfolders/"+watchfolder.Uuid, nil)
 	response = server.TestRequest(request)
 	watchfolder, _ = testsuite.ParseJsonBody[dto.Watchfolder](response.Body)
-	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/watchfolder/{uuid}")
-	assert.Equal(t, watchfolder.Name, "Test watchfolder", "GET /api/v1/watchfolder/{uuid}")
+	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/watchfolders/{uuid}")
+	assert.Equal(t, watchfolder.Name, "Test watchfolder", "GET /api/v1/watchfolders/{uuid}")
 }
 
 func TestWatchfolderUpdate(t *testing.T) {
@@ -118,7 +118,7 @@ func TestWatchfolderUpdate(t *testing.T) {
 	watchfolder.Name = "Test Updated watchfolder"
 	watchfolder.Labels = append(watchfolder.Labels, "test-label-4")
 	body, _ := json.Marshal(watchfolder)
-	request := httptest.NewRequest(http.MethodPut, "/api/v1/watchfolder/"+watchfolder.Uuid, bytes.NewReader(body))
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/watchfolders/"+watchfolder.Uuid, bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 
 	response = server.TestRequest(request)
