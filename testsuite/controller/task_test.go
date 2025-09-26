@@ -127,7 +127,7 @@ func TestTaskCreateBatch(t *testing.T) {
 	// create batch
 	batch := dto.NewBatch{
 		Tasks: []*dto.NewTask{
-			&dto.NewTask{
+			{
 				Name:    "Test task 1",
 				Command: "",
 			},
