@@ -88,7 +88,6 @@ func (s *Service) Run() {
 
 		go func() {
 			for {
-				var r = 0
 				q, r, ds, de, dc, _ := s.taskService.CountAllStatus(false)
 				mQueued.SetTitle(fmt.Sprintf("Queued tasks: %d", q))
 				mRunning.SetTitle(fmt.Sprintf("Running tasks: %d", r))
