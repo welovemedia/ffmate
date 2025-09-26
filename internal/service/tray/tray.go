@@ -148,7 +148,10 @@ func (s *Service) Run() {
 			}
 
 		}()
-		s.server.Start()
+		if err := s.server.Start(); err != nil {
+			debug.Log.Error("failed to start ffmate server: %v", err)
+			os.Exit(1)
+		}
 	}, func() {
 	})
 }
