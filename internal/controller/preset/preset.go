@@ -3,12 +3,12 @@ package preset
 import (
 	"fmt"
 
-	"github.com/welovemedia/ffmate/internal/database/model"
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/dto"
-	"github.com/welovemedia/ffmate/internal/exception"
-	"github.com/welovemedia/ffmate/internal/service"
-	"github.com/welovemedia/ffmate/internal/validate"
+	"github.com/welovemedia/ffmate/v2/internal/database/model"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/exception"
+	"github.com/welovemedia/ffmate/v2/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/util/typeutil"
 )

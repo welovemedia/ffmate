@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/welovemedia/ffmate/internal/dto"
-	"github.com/welovemedia/ffmate/testsuite"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
+	"github.com/welovemedia/ffmate/v2/testsuite"
 
 	"goyave.dev/goyave/v5"
 	_ "goyave.dev/goyave/v5/database/dialect/sqlite"

@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/welovemedia/ffmate/internal/dto"
-	"github.com/welovemedia/ffmate/internal/service"
-	webhookSvc "github.com/welovemedia/ffmate/internal/service/webhook"
-	"github.com/welovemedia/ffmate/testsuite"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/service"
+	webhookSvc "github.com/welovemedia/ffmate/v2/internal/service/webhook"
+	"github.com/welovemedia/ffmate/v2/testsuite"
 
 	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
 	"goyave.dev/goyave/v5/util/testutil"

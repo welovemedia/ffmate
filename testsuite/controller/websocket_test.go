@@ -9,9 +9,9 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
-	"github.com/welovemedia/ffmate/internal/service"
-	websocketSvc "github.com/welovemedia/ffmate/internal/service/websocket"
-	"github.com/welovemedia/ffmate/testsuite"
+	"github.com/welovemedia/ffmate/v2/internal/service"
+	websocketSvc "github.com/welovemedia/ffmate/v2/internal/service/websocket"
+	"github.com/welovemedia/ffmate/v2/testsuite"
 )
 
 func TestWebsocketBroadcast(t *testing.T) {

@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/welovemedia/ffmate/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"gorm.io/gorm"
 )
 

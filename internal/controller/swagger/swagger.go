@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	httpSwagger "github.com/swaggo/http-swagger"
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/docs"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/docs"
 	"goyave.dev/goyave/v5"
 )
 

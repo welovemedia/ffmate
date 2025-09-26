@@ -1,8 +1,8 @@
 package model
 
 import (
-	"github.com/welovemedia/ffmate/internal/cfg"
-	"github.com/welovemedia/ffmate/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/cfg"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
 )
 
 type Client struct {

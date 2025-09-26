@@ -11,12 +11,12 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	promDto "github.com/prometheus/client_model/go"
-	"github.com/welovemedia/ffmate/internal/cfg"
-	"github.com/welovemedia/ffmate/internal/database/repository"
-	"github.com/welovemedia/ffmate/internal/debug"
-	"github.com/welovemedia/ffmate/internal/dto"
-	"github.com/welovemedia/ffmate/internal/metrics"
-	"github.com/welovemedia/ffmate/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/cfg"
+	"github.com/welovemedia/ffmate/v2/internal/database/repository"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/dto"
+	"github.com/welovemedia/ffmate/v2/internal/metrics"
+	"github.com/welovemedia/ffmate/v2/internal/service"
 	"gorm.io/gorm"
 	"goyave.dev/goyave/v5/config"
 )

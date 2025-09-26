@@ -1,7 +1,7 @@
 package task
 
 import (
-	"github.com/welovemedia/ffmate/internal/validate"
+	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
 	v "goyave.dev/goyave/v5/validation"
 )
