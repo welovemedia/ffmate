@@ -22,7 +22,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/batch": {
+        "/batches": {
             "post": {
                 "description": "Add a batch of new tasks to the queue",
                 "consumes": [
@@ -62,7 +62,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/batch/{uuid}": {
+        "/batches/{uuid}": {
             "get": {
                 "description": "Get a batch by uuid",
                 "produces": [
@@ -519,7 +519,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/watchfolder": {
+        "/watchfolders": {
             "get": {
                 "description": "List all existing watchfolders",
                 "produces": [
@@ -606,7 +606,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/watchfolder/{uuid}": {
+        "/watchfolders/{uuid}": {
             "get": {
                 "description": "Get a single watchfolder by its uuid",
                 "produces": [

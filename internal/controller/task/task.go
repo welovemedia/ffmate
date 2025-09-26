@@ -43,8 +43,8 @@ func (c *Controller) RegisterRoutes(router *goyave.Router) {
 	router.Patch("/tasks/{uuid}/cancel", c.cancel)
 	router.Patch("/tasks/{uuid}/restart", c.restart)
 
-	router.Post("/batch", c.addBatch)
-	router.Get("/batch/{uuid}", c.getBatch).ValidateQuery(validate.PaginationRequest)
+	router.Post("/batches", c.addBatch)
+	router.Get("/batches/{uuid}", c.getBatch).ValidateQuery(validate.PaginationRequest)
 }
 
 // @Summary Delete a task
@@ -100,7 +100,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 // @Param uuid path string true "the batch uuid"
 // @Produce json
 // @Success 200 {object} dto.Batch
-// @Router /batch/{uuid} [get]
+// @Router /batches/{uuid} [get]
 func (c *Controller) getBatch(response *goyave.Response, request *goyave.Request) {
 	query := typeutil.MustConvert[*dto.Pagination](request.Query)
 	uuid := request.RouteParams["uuid"]
@@ -143,7 +143,7 @@ func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 // @Param request body []dto.NewBatch true "new batch"
 // @Produce json
 // @Success 200 {object} []dto.Batch
-// @Router /batch [post]
+// @Router /batches [post]
 func (c *Controller) addBatch(response *goyave.Response, request *goyave.Request) {
 	newBatch := typeutil.MustConvert[*dto.NewBatch](request.Data)
 
