@@ -1,0 +1,70 @@
+version: "2"
+linters:
+  enable:
+    - bodyclose
+    - copyloopvar
+    - gocyclo
+    - inamedparam
+    - misspell
+    - revive
+    - testifylint
+    - whitespace
+    - unused
+    - staticcheck
+    - ineffassign
+    - govet
+    - sqlclosecheck
+    - errcheck
+  settings:
+    gocyclo:
+      min-complexity: 18
+    govet:
+      disable:
+        - shadow
+      enable-all: true
+    misspell:
+      locale: US
+    revive:
+      rules:
+        - name: var-naming
+          disabled: false
+          arguments:
+            - [] # AllowList
+            - ["DTO"] # DenyList
+        - name: unused-parameter
+          disabled: false
+        - name: use-any
+          disabled: false
+    testifylint:
+      disable:
+        - require-error
+        - error-nil
+        - formatter
+        - encoded-compare
+    staticcheck:
+      checks: ["all", "-QF1001"]
+  exclusions:
+    generated: strict
+    rules:
+      - linters:
+          - gocyclo
+        path: _test\.go
+      - path: (.+)\.go$
+        text: should have a package comment
+    paths:
+      - .github
+      - resources
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gofmt
+  settings:
+    gofmt:
+      simplify: true
+  exclusions:
+    generated: strict
+    paths:
+      - .github
+      - resources

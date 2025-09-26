@@ -12,7 +12,7 @@ import (
 
 type Service interface {
 	Load() (*model.Settings, error)
-	Store(*dto.Settings) (*model.Settings, error)
+	Store(settings *dto.Settings) (*model.Settings, error)
 }
 
 type Controller struct {
@@ -37,14 +37,14 @@ func (c *Controller) RegisterRoutes(router *goyave.Router) {
 // @Produce json
 // @Success 200 {object} dto.Settings
 // @Router /settings [get]
-func (c *Controller) load(response *goyave.Response, request *goyave.Request) {
+func (c *Controller) load(response *goyave.Response, _ *goyave.Request) {
 	settings, err := c.settingsService.Load()
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/settings#load-settings"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/settings#load-settings"))
 		return
 	}
 
-	response.JSON(200, settings.ToDto())
+	response.JSON(200, settings.ToDTO())
 }
 
 // @Summary Save all settings
@@ -60,9 +60,9 @@ func (c *Controller) save(response *goyave.Response, request *goyave.Request) {
 
 	settings, err := c.settingsService.Store(newSettings)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/settings#save-settings"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/settings#save-settings"))
 		return
 	}
 
-	response.JSON(200, settings.ToDto())
+	response.JSON(200, settings.ToDTO())
 }

@@ -7,14 +7,14 @@ import (
 	"goyave.dev/goyave/v5/util/typeutil"
 )
 
-func ParseJsonBody[T any](b io.ReadCloser) (T, error) {
+func ParseJSONBody[T any](b io.ReadCloser) (T, error) {
 	var zero T
 
 	bodyBytes, err := io.ReadAll(b)
 	if err != nil {
 		return zero, err
 	}
-	defer b.Close()
+	defer b.Close() // nolint:errcheck
 
 	var generic any
 	if err := json.Unmarshal(bodyBytes, &generic); err != nil {
@@ -30,7 +30,7 @@ func ParseBody(b io.ReadCloser) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer b.Close()
+	defer b.Close() // nolint:errcheck
 
 	return bodyBytes, nil
 }

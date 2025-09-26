@@ -20,7 +20,7 @@ var umami = &dto.Umami{
 		Hostname:  "localhost",
 		Langugage: "en-US",
 		Screen:    "3840x1600",
-		Url:       "/ui/test",
+		URL:       "/ui/test",
 		Referrer:  "",
 		Title:     "ffmate",
 		Website:   "ffmate",
@@ -33,6 +33,7 @@ func TestUmami(t *testing.T) {
 	body, _ := json.Marshal(umami)
 	request := httptest.NewRequest(http.MethodPost, "/umami", bytes.NewReader(body))
 	response := server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 
 	assert.Equal(t, http.StatusNoContent, response.StatusCode, "POST /umami")
 }

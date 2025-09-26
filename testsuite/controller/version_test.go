@@ -17,9 +17,10 @@ func TestVersionGet(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
 	response := server.TestRequest(request)
-	version, _ := testsuite.ParseJsonBody[dto.Version](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	version, _ := testsuite.ParseJSONBody[dto.Version](response.Body)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/webhooks")
-	assert.Equal(t, version.Version, "test-1.0.0", "POST /api/v1/webhooks")
-	assert.Equal(t, response.Header.Get("X-Server"), "ffmate/vtest-1.0.0", "POST /api/v1/webhooks")
+	assert.Equal(t, "test-1.0.0", version.Version, "POST /api/v1/webhooks")
+	assert.Equal(t, "ffmate/vtest-1.0.0", response.Header.Get("X-Server"), "POST /api/v1/webhooks")
 }

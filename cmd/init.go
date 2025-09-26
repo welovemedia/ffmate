@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringP("debug", "d", "info:?,warn:?,error:?", "set debugo namespace (eg. '*')")
-	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	_ = viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 
 	// setup debugo timestamp format
 	debugo.SetTimestamp(&debugo.Timestamp{

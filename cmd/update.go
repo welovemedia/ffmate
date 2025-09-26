@@ -4,15 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sanbornm/go-selfupdate/selfupdate"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	updateSvc "github.com/welovemedia/ffmate/v2/internal/service/update"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/config"
 )
-
-var updater *selfupdate.Updater
 
 var updateCmd = &cobra.Command{
 	Use:   "update",
@@ -26,18 +23,10 @@ func init() {
 	rootCmd.AddCommand(updateCmd)
 
 	updateCmd.Flags().BoolVar(&dry, "dry", false, "run in dry mode (no real update)")
-	viper.BindPFlag("dry", updateCmd.Flags().Lookup("dry"))
-
-	updater = &selfupdate.Updater{
-		CurrentVersion: viper.GetString("app.version"),
-		ApiURL:         "https://earth.ffmate.io/_update/",
-		BinURL:         "https://earth.ffmate.io/_update/",
-		ForceCheck:     true,
-		CmdName:        "ffmate",
-	}
+	_ = viper.BindPFlag("dry", updateCmd.Flags().Lookup("dry"))
 }
 
-func update(cmd *cobra.Command, args []string) {
+func update(_ *cobra.Command, _ []string) {
 	server, err := goyave.New(goyave.Options{
 		Config: config.LoadDefault(),
 	})

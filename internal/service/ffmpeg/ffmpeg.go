@@ -29,24 +29,21 @@ func NewService() *Service {
 }
 
 type FFmpegProgress struct {
+	Bitrate string
+	Speed   string
 	Frame   int
 	FPS     float64
-	Bitrate string
 	Time    float64
-	Speed   string
 }
 
 type ExecutionRequest struct {
-	Task *model.Task
-
-	Command string
-
+	Ctx        context.Context
+	Task       *model.Task
 	UpdateFunc func(progress float64, remaining float64)
-
-	Ctx context.Context
+	Command    string
 }
 
-// ExecuteFFmpeg runs the ffmpeg command, provides progress updates, and checks the result
+// Execute runs the ffmpeg command, provides progress updates, and checks the result
 func (s *Service) Execute(request *ExecutionRequest) error {
 	commands := strings.Split(request.Command, "&&")
 	for index, cmdStr := range commands {
@@ -96,7 +93,7 @@ func (s *Service) Execute(request *ExecutionRequest) error {
 			}
 			if progress := s.parseFFmpegOutput(line, duration); progress != nil {
 				p := math.Min(100, math.Round((progress.Time/duration*100)*100)/100)
-				debug.FFmpeg.Debug("progress: %f %+v (uuid: %s)", p, progress, request.Task.Uuid)
+				debug.FFmpeg.Debug("progress: %f %+v (uuid: %s)", p, progress, request.Task.UUID)
 				remainingTime, err := progress.EstimateRemainingTime(duration)
 				if err != nil {
 					debug.FFmpeg.Debug("failed to estimate remaining time: %v", err)
@@ -169,9 +166,9 @@ func (s *Service) parseFFmpegOutput(line string, duration float64) *FFmpegProgre
 
 		switch key {
 		case "frame":
-			fmt.Sscanf(value, "%d", &progress.Frame)
+			_, _ = fmt.Sscanf(value, "%d", &progress.Frame)
 		case "fps":
-			fmt.Sscanf(value, "%f", &progress.FPS)
+			_, _ = fmt.Sscanf(value, "%f", &progress.FPS)
 		case "bitrate":
 			progress.Bitrate = value
 		case "time":

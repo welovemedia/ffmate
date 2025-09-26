@@ -23,23 +23,16 @@ type NewPreset struct {
 }
 
 type Preset struct {
-	Uuid string `json:"uuid"`
-
-	Command     string `json:"command"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-
-	OutputFile string `json:"outputFile"`
-
-	Priority uint `json:"priority"`
-
+	CreatedAt      time.Time             `json:"createdAt"`
+	UpdatedAt      time.Time             `json:"updatedAt"`
 	PreProcessing  *NewPrePostProcessing `json:"preProcessing,omitempty"`
 	PostProcessing *NewPrePostProcessing `json:"postProcessing,omitempty"`
-
-	Labels Labels `json:"labels,omitempty"`
-
-	Webhooks *DirectWebhooks `json:"webhooks,omitempty"`
-
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Webhooks       *DirectWebhooks       `json:"webhooks,omitempty"`
+	UUID           string                `json:"uuid"`
+	Command        string                `json:"command"`
+	Name           string                `json:"name"`
+	Description    string                `json:"description,omitempty"`
+	OutputFile     string                `json:"outputFile"`
+	Priority       uint                  `json:"priority"`
+	Labels         Labels                `json:"labels,omitempty"`
 }

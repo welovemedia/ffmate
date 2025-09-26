@@ -13,7 +13,7 @@ import (
 )
 
 type Service interface {
-	List(int, int) (*[]model.Client, int64, error)
+	List(page int, perPage int) (*[]model.Client, int64, error)
 }
 
 type Controller struct {
@@ -44,7 +44,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 
 	clients, total, err := c.clientService.List(query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/settings#load-settings"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/settings#load-settings"))
 		return
 	}
 
@@ -53,7 +53,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 	// Transform each client to its DTO
 	var clientDTOs = []dto.Client{}
 	for _, client := range *clients {
-		clientDTOs = append(clientDTOs, *client.ToDto())
+		clientDTOs = append(clientDTOs, *client.ToDTO())
 	}
 
 	response.JSON(200, clientDTOs)

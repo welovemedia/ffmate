@@ -23,6 +23,6 @@ func (c *Controller) RegisterRoutes(router *goyave.Router) {
 
 func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 	a := typeutil.MustConvert[dto.Umami](request.Data)
-	metrics.GaugeVec("umami").WithLabelValues(a.Payload.Url, a.Payload.Screen, a.Payload.Langugage).Inc()
+	metrics.GaugeVec("umami").WithLabelValues(a.Payload.URL, a.Payload.Screen, a.Payload.Langugage).Inc()
 	response.Status(204)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/sanbornm/go-selfupdate/selfupdate"
 	"github.com/spf13/viper"
@@ -77,7 +78,7 @@ func (s *Service) isHomebrew() bool {
 	}
 
 	exePath, _ = filepath.EvalSymlinks(exePath)
-	return filepath.HasPrefix(exePath, "/opt/homebrew/")
+	return strings.HasPrefix(exePath, "/opt/homebrew/")
 }
 
 func (s *Service) Name() string {

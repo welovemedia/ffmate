@@ -20,7 +20,7 @@ type Client struct {
 	LastSeen int64
 }
 
-func (c *Client) ToDto() *dto.Client {
+func (c *Client) ToDTO() *dto.Client {
 	var labels = make([]string, len(c.Labels))
 	for i, label := range c.Labels {
 		labels[i] = label.Value

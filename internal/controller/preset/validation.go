@@ -6,7 +6,7 @@ import (
 	v "goyave.dev/goyave/v5/validation"
 )
 
-func (ctrl *Controller) NewPresetRequest(_ *goyave.Request) v.RuleSet {
+func (c *Controller) NewPresetRequest(_ *goyave.Request) v.RuleSet {
 	return v.RuleSet{
 		{Path: v.CurrentElement, Rules: v.List{v.Object()}},
 		{Path: "name", Rules: v.List{v.String(), v.Required()}},

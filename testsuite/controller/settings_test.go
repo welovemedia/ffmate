@@ -19,6 +19,7 @@ func TestSettingsLoad(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/settings", nil)
 	response := server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/settings")
 }
@@ -30,6 +31,7 @@ func TestSettingsStore(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/settings", bytes.NewReader(b))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/settings")
 }

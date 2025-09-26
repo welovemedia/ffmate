@@ -22,8 +22,8 @@ type Repository interface {
 
 type Service struct {
 	repository       Repository
-	version          string
 	websocketService *websocket.Service
+	version          string
 }
 
 var identifier string
@@ -63,7 +63,7 @@ func (s *Service) save(newClient *model.Client) (*model.Client, error) {
 	}
 
 	nc, err := s.repository.Save(c)
-	s.websocketService.Broadcast(websocket.CLIENT_UPDATED, nc.ToDto())
+	s.websocketService.Broadcast(websocket.ClientUpdated, nc.ToDTO())
 
 	return c, err
 }

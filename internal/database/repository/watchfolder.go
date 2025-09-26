@@ -15,13 +15,13 @@ type Watchfolder struct {
 }
 
 func (r *Watchfolder) Setup() *Watchfolder {
-	r.DB.AutoMigrate(&model.Watchfolder{})
+	_ = r.DB.AutoMigrate(&model.Watchfolder{})
 	return r
 }
 
-func (m *Watchfolder) First(uuid string) (*model.Watchfolder, error) {
+func (r *Watchfolder) First(uuid string) (*model.Watchfolder, error) {
 	var watchfolder model.Watchfolder
-	result := m.DB.Preload("Labels").Where("uuid = ?", uuid).First(&watchfolder)
+	result := r.DB.Preload("Labels").Where("uuid = ?", uuid).First(&watchfolder)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -31,9 +31,9 @@ func (m *Watchfolder) First(uuid string) (*model.Watchfolder, error) {
 	return &watchfolder, nil
 }
 
-func (m *Watchfolder) Delete(w *model.Watchfolder) error {
-	m.DB.Delete(w)
-	return m.DB.Error
+func (r *Watchfolder) Delete(w *model.Watchfolder) error {
+	r.DB.Delete(w)
+	return r.DB.Error
 }
 
 func (r *Watchfolder) List(page int, perPage int) (*[]model.Watchfolder, int64, error) {
@@ -74,10 +74,10 @@ func (r *Watchfolder) Count() (int64, error) {
  * Processing related methods
  */
 
-func (m *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error) {
+func (r *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error) {
 	var watchfolder model.Watchfolder
 	var locked = false
-	err := m.DB.Transaction(func(tx *gorm.DB) error {
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Preload("Labels").
 			Where("uuid = ?", uuid).

@@ -3,8 +3,8 @@ package dto
 type HealthStatus string
 
 const (
-	HEALTH_OK    HealthStatus = "ok"
-	HEALTH_ERROR HealthStatus = "error"
+	HealthOk    HealthStatus = "ok"
+	HealthError HealthStatus = "error"
 )
 
 type Health struct {

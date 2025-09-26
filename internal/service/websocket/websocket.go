@@ -22,29 +22,29 @@ import (
 type WebsocketSubject = string
 
 const (
-	TASK_CREATED WebsocketSubject = "task:created"
-	TASK_UPDATED WebsocketSubject = "task:updated"
-	TASK_DELETED WebsocketSubject = "task:deleted"
+	TaskCreated WebsocketSubject = "task:created"
+	TaskUpdated WebsocketSubject = "task:updated"
+	TaskDeleted WebsocketSubject = "task:deleted"
 
-	PRESET_CREATED WebsocketSubject = "preset:created"
-	PRESET_UPDATED WebsocketSubject = "preset:updated"
-	PRESET_DELETED WebsocketSubject = "preset:deleted"
+	PresetCreated WebsocketSubject = "preset:created"
+	PresetUpdated WebsocketSubject = "preset:updated"
+	PresetDeleted WebsocketSubject = "preset:deleted"
 
-	WATCHFOLDER_CREATED WebsocketSubject = "watchfolder:created"
-	WATCHFOLDER_UPDATED WebsocketSubject = "watchfolder:updated"
-	WATCHFOLDER_DELETED WebsocketSubject = "watchfolder:deleted"
+	WatchfolderCreated WebsocketSubject = "watchfolder:created"
+	WatchfolderUpdated WebsocketSubject = "watchfolder:updated"
+	WatchfolderDeleted WebsocketSubject = "watchfolder:deleted"
 
-	WEBHOOK_CREATED WebsocketSubject = "webhook:created"
-	WEBHOOK_UPDATED WebsocketSubject = "webhook:updated"
-	WEBHOOK_DELETED WebsocketSubject = "webhook:deleted"
+	WebhookCreated WebsocketSubject = "webhook:created"
+	WebhookUpdated WebsocketSubject = "webhook:updated"
+	WebhookDeleted WebsocketSubject = "webhook:deleted"
 
-	WEBHOOK_EXECUTION_CREATED WebsocketSubject = "webhookExecution:created"
+	WebhookExecutionCreated WebsocketSubject = "webhookExecution:created"
 
-	SETTINGS_UPDATED WebsocketSubject = "settings:updated"
+	SettingsUpdated WebsocketSubject = "settings:updated"
 
-	CLIENT_UPDATED WebsocketSubject = "client:updated"
+	ClientUpdated WebsocketSubject = "client:updated"
 
-	LOG WebsocketSubject = "log:created"
+	Log WebsocketSubject = "log:created"
 )
 
 var (
@@ -86,20 +86,20 @@ func (s *Service) Remove(uuid string) {
  */
 
 type broadcastMessage struct {
-	subject WebsocketSubject
 	msg     any
+	subject WebsocketSubject
 }
 
 var broadcastQueue = make(chan broadcastMessage, 1000)
 
 func (s *Service) Broadcast(subject WebsocketSubject, msg any) {
 	select {
-	case broadcastQueue <- broadcastMessage{subject, msg}:
+	case broadcastQueue <- broadcastMessage{msg, subject}:
 	default:
 		debug.Websocket.Debug("dropped local broadcast due to blocked channel (full)")
 	}
 
-	if subject != LOG && isCluster {
+	if subject != Log && isCluster {
 		select {
 		case notifyQueue <- &ClusterUpdate{Subject: subject, Payload: msg, Client: session}:
 		default:
@@ -118,7 +118,7 @@ func (s *Service) broadcastLocal(subject WebsocketSubject, msg any) {
 	mu.Lock()
 	defer mu.Unlock()
 	for _, c := range connections {
-		c.WriteJSON(map[string]any{"subject": subject, "payload": msg})
+		_ = c.WriteJSON(map[string]any{"subject": subject, "payload": msg})
 		metrics.Gauge("websocket.broadcast").Inc()
 	}
 }
@@ -145,7 +145,7 @@ func (s *Service) InitCluster() {
 }
 
 func (s *Service) listenCluster() {
-	listener := pq.NewListener(cfg.GetString("ffmate.database"), 10*time.Second, time.Minute, func(ev pq.ListenerEventType, err error) {
+	listener := pq.NewListener(cfg.GetString("ffmate.database"), 10*time.Second, time.Minute, func(_ pq.ListenerEventType, err error) {
 		if err != nil {
 			debug.Websocket.Error("listener error:", err)
 		}
@@ -186,19 +186,19 @@ func (s *Service) listenCluster() {
 				debug.Websocket.Debug("> %s from %s (size: %db)", payload.Subject, payload.Client, len(n.Extra))
 
 				// remove self from external clients
-				if payload.Subject == string(CLIENT_UPDATED) {
-					delete(payload.Payload.(map[string]interface{}), "self")
+				if payload.Subject == string(ClientUpdated) {
+					delete(payload.Payload.(map[string]any), "self")
 				}
 
 				select {
-				case broadcastQueue <- broadcastMessage{payload.Subject, payload.Payload}:
+				case broadcastQueue <- broadcastMessage{payload.Payload, payload.Subject}:
 				default:
 					debug.Websocket.Warn("dropped local broadcast due to blocked channel (full)")
 				}
 			}
 
 		case <-time.After(90 * time.Second):
-			go listener.Ping()
+			go listener.Ping() // nolint:errcheck
 		}
 	}
 }
@@ -238,7 +238,7 @@ func (s *Service) compressPayload(data []byte) ([]byte, error) {
 	if _, err := w.Write(data); err != nil {
 		return nil, err
 	}
-	w.Close()
+	_ = w.Close()
 	return buf.Bytes(), nil
 }
 

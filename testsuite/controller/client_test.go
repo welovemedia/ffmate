@@ -16,9 +16,11 @@ func TestClient(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/clients", nil)
 	response := server.TestRequest(request)
-	body, _ := testsuite.ParseJsonBody[[]dto.Client](response.Body)
+	defer response.Body.Close() // nolint:errcheck
+	body, _ := testsuite.ParseJSONBody[[]dto.Client](response.Body)
+
 	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /api/v1/clients")
-	assert.Equal(t, len(body), 1, "GET /api/v1/clients")
+	assert.Len(t, body, 1, "GET /api/v1/clients")
 	assert.Equal(t, body[0].Session, cfg.GetString("ffmate.session"), "GET /api/v1/clients")
 	assert.Contains(t, body[0].Labels, "test-label-1", "GET /api/v1/clients")
 	assert.Contains(t, body[0].Labels, "test-label-2", "GET /api/v1/clients")

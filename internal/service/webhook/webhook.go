@@ -21,16 +21,16 @@ import (
 type Repository interface {
 	List(page int, perPage int) (*[]model.Webhook, int64, error)
 	ListAllByEvent(event dto.WebhookEvent) (*[]model.Webhook, error)
-	Add(*model.Webhook) (*model.Webhook, error)
-	Update(*model.Webhook) (*model.Webhook, error)
-	First(string) (*model.Webhook, error)
-	Delete(*model.Webhook) error
+	Add(webhook *model.Webhook) (*model.Webhook, error)
+	Update(webhook *model.Webhook) (*model.Webhook, error)
+	First(uuid string) (*model.Webhook, error)
+	Delete(webhook *model.Webhook) error
 	Count() (int64, error)
 }
 
 type ExecutionRepository interface {
 	List(page int, perPage int) (*[]model.WebhookExecution, int64, error)
-	Add(*model.WebhookExecution) (*model.WebhookExecution, error)
+	Add(webhookExecution *model.WebhookExecution) (*model.WebhookExecution, error)
 	Count() (int64, error)
 }
 
@@ -72,12 +72,12 @@ func (s *Service) ListExecutions(page int, perPage int) (*[]model.WebhookExecuti
 }
 
 func (s *Service) Add(newWebhook *dto.NewWebhook) (*model.Webhook, error) {
-	w, err := s.repository.Add(&model.Webhook{Uuid: uuid.NewString(), Event: newWebhook.Event, Url: newWebhook.Url})
-	debug.Log.Info("created webhook (uuid: %s)", w.Uuid)
+	w, err := s.repository.Add(&model.Webhook{UUID: uuid.NewString(), Event: newWebhook.Event, URL: newWebhook.URL})
+	debug.Log.Info("created webhook (uuid: %s)", w.UUID)
 
 	metrics.Gauge("webhook.created").Inc()
-	s.Fire(dto.WEBHOOK_CREATED, w.ToDto())
-	s.websocketService.Broadcast(websocket.WEBHOOK_CREATED, w.ToDto())
+	s.Fire(dto.WebhookCreated, w.ToDTO())
+	s.websocketService.Broadcast(websocket.WebhookCreated, w.ToDTO())
 
 	return w, err
 }
@@ -93,19 +93,19 @@ func (s *Service) Update(uuid string, newWebhook *dto.NewWebhook) (*model.Webhoo
 	}
 
 	w.Event = newWebhook.Event
-	w.Url = newWebhook.Url
+	w.URL = newWebhook.URL
 
 	w, err = s.repository.Update(w)
 	if err != nil {
-		debug.Log.Error("failed to update webhook (uuid: %s): %v", w.Uuid, err)
+		debug.Log.Error("failed to update webhook (uuid: %s): %v", w.UUID, err)
 		return nil, err
 	}
 
-	debug.Log.Info("updated webhook (uuid: %s)", w.Uuid)
+	debug.Log.Info("updated webhook (uuid: %s)", w.UUID)
 
 	metrics.Gauge("webhook.updated").Inc()
-	s.Fire(dto.WEBHOOK_UPDATED, w.ToDto())
-	s.websocketService.Broadcast(websocket.WEBHOOK_UPDATED, w.ToDto())
+	s.Fire(dto.WebhookUpdated, w.ToDTO())
+	s.websocketService.Broadcast(websocket.WebhookUpdated, w.ToDTO())
 
 	return w, err
 }
@@ -129,19 +129,18 @@ func (s *Service) Delete(uuid string) error {
 	debug.Log.Info("deleted webhook (uuid: %s)", uuid)
 
 	metrics.Gauge("webhook.deleted").Inc()
-	s.Fire(dto.WEBHOOK_DELETED, w.ToDto())
-	s.websocketService.Broadcast(websocket.WEBHOOK_DELETED, w.ToDto())
+	s.Fire(dto.WebhookDeleted, w.ToDTO())
+	s.websocketService.Broadcast(websocket.WebhookDeleted, w.ToDTO())
 
 	return nil
 }
 
-func (s *Service) Fire(event dto.WebhookEvent, data any) error {
-	webhooks, err := s.repository.ListAllByEvent(event)
+func (s *Service) Fire(event dto.WebhookEvent, data any) {
+	webhooks, _ := s.repository.ListAllByEvent(event)
 	for _, webhook := range *webhooks {
 		go s.fireWebhook(&webhook, data, s.handleWebhookExecution)
 		metrics.Gauge("webhook.executed").Inc()
 	}
-	return err
 }
 
 func (s *Service) FireDirect(webhooks *dto.DirectWebhooks, event dto.WebhookEvent, data any) {
@@ -150,7 +149,7 @@ func (s *Service) FireDirect(webhooks *dto.DirectWebhooks, event dto.WebhookEven
 	}
 	for _, webhook := range *webhooks {
 		if webhook.Event == event {
-			go s.fireWebhook(&model.Webhook{Uuid: uuid.NewString(), Event: webhook.Event, Url: webhook.Url}, data, s.handleWebhookExecution)
+			go s.fireWebhook(&model.Webhook{UUID: uuid.NewString(), Event: webhook.Event, URL: webhook.URL}, data, s.handleWebhookExecution)
 			metrics.Gauge("webhook.executed.direct").Inc()
 		}
 	}
@@ -185,9 +184,9 @@ func (s *Service) handleWebhookExecution(event dto.WebhookEvent, url string, req
 	}
 
 	w, err := s.executionRepository.Add(&model.WebhookExecution{
-		Uuid:     uuid.NewString(),
+		UUID:     uuid.NewString(),
 		Event:    event,
-		Url:      url,
+		URL:      url,
 		Request:  request,
 		Response: response,
 	})
@@ -195,23 +194,23 @@ func (s *Service) handleWebhookExecution(event dto.WebhookEvent, url string, req
 		debug.Log.Error("failed to create webhook execution for event '%s': %v", event, err)
 	} else {
 		debug.Webhook.Debug("created new webhook execution for event '%s'", event)
-		s.websocketService.Broadcast(websocket.WEBHOOK_EXECUTION_CREATED, w.ToDto())
+		s.websocketService.Broadcast(websocket.WebhookExecutionCreated, w.ToDTO())
 	}
 }
 
 func (s *Service) fireWebhook(webhook *model.Webhook, data any, callback func(event dto.WebhookEvent, url string, req *http.Request, resp *http.Response)) {
-	msg := map[string]interface{}{
+	msg := map[string]any{
 		"event": webhook.Event,
 		"data":  data,
 	}
 	b, err := json.Marshal(&msg)
 	if err != nil {
-		debug.Log.Error("failed to fire webhook due to marshalling for event '%s' (uuid: %s): %v", webhook.Event, webhook.Uuid, err)
+		debug.Log.Error("failed to fire webhook due to marshaling for event '%s' (uuid: %s): %v", webhook.Event, webhook.UUID, err)
 		return
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("POST", webhook.Url, bytes.NewBuffer(b))
+	req, err := http.NewRequest("POST", webhook.URL, bytes.NewBuffer(b))
 	if err != nil {
 		debug.Log.Error("failed to create http request", err)
 		return
@@ -229,21 +228,22 @@ func (s *Service) fireWebhook(webhook *model.Webhook, data any, callback func(ev
 	for try := 0; try <= len(retryDelays); try++ {
 		resp, err = client.Do(req)
 		if err == nil {
-			debug.Webhook.Debug("fired webhook for event '%s' (uuid: %s)", webhook.Event, webhook.Uuid)
+			debug.Webhook.Debug("fired webhook for event '%s' (uuid: %s)", webhook.Event, webhook.UUID)
 			break
 		}
+		defer resp.Body.Close() // nolint:errcheck
 
 		if try < len(retryDelays) {
 			time.Sleep(retryDelays[try])
 			continue
 		}
 
-		debug.Log.Error("failed to fire webhook for event '%s' (uuid: %s) after %d tries", webhook.Event, webhook.Uuid, try+1)
+		debug.Log.Error("failed to fire webhook for event '%s' (uuid: %s) after %d tries", webhook.Event, webhook.UUID, try+1)
 	}
 
 	// Save a copy of body for the callback
 	req.Body = io.NopCloser(bytes.NewBuffer(b))
-	callback(webhook.Event, webhook.Url, req, resp)
+	callback(webhook.Event, webhook.URL, req, resp)
 }
 
 func (s *Service) Name() string {

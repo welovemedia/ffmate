@@ -8,7 +8,7 @@ type Settings struct {
 	ID uint `gorm:"primaryKey;unique"`
 }
 
-func (r *Settings) ToDto() *dto.Settings {
+func (r *Settings) ToDTO() *dto.Settings {
 	return &dto.Settings{}
 }
 

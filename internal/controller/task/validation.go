@@ -6,7 +6,7 @@ import (
 	v "goyave.dev/goyave/v5/validation"
 )
 
-func (ctrl *Controller) NewTaskRequest(_ *goyave.Request) v.RuleSet {
+func (c *Controller) NewTaskRequest(_ *goyave.Request) v.RuleSet {
 	return v.RuleSet{
 		{Path: v.CurrentElement, Rules: v.List{v.Object()}},
 		{Path: "name", Rules: v.List{v.String(), v.Required()}},
@@ -14,7 +14,7 @@ func (ctrl *Controller) NewTaskRequest(_ *goyave.Request) v.RuleSet {
 		{Path: "command", Rules: v.List{
 			v.String(),
 			v.WithMessage(v.RequiredIf(func(ctx *v.Context) bool {
-				data, ok := ctx.Data.(map[string]interface{})
+				data, ok := ctx.Data.(map[string]any)
 				if !ok {
 					return false
 				}
@@ -28,7 +28,7 @@ func (ctrl *Controller) NewTaskRequest(_ *goyave.Request) v.RuleSet {
 		{Path: "preset", Rules: v.List{
 			v.String(),
 			v.WithMessage(v.RequiredIf(func(ctx *v.Context) bool {
-				data, ok := ctx.Data.(map[string]interface{})
+				data, ok := ctx.Data.(map[string]any)
 				if !ok {
 					return false
 				}

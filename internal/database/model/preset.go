@@ -8,39 +8,30 @@ import (
 )
 
 type Preset struct {
-	ID uint `gorm:"primarykey"`
-
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-
-	Uuid string
-
-	Command string
-	Name    string
-
-	OutputFile string
-
-	Priority uint
-
-	Labels []Label `gorm:"many2many:preset_labels;"`
-
-	Webhooks *dto.DirectWebhooks `gorm:"type:jsonb"`
-
-	PreProcessing  *dto.NewPrePostProcessing `gorm:"type:jsonb"`
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	Webhooks       *dto.DirectWebhooks       `gorm:"type:jsonb"`
 	PostProcessing *dto.NewPrePostProcessing `gorm:"type:jsonb"`
-
-	Description string
+	PreProcessing  *dto.NewPrePostProcessing `gorm:"type:jsonb"`
+	DeletedAt      gorm.DeletedAt            `gorm:"index"`
+	Name           string
+	OutputFile     string
+	Command        string
+	Labels         []Label `gorm:"many2many:preset_labels;"`
+	UUID           string
+	Description    string
+	Priority       uint
+	ID             uint `gorm:"primarykey"`
 }
 
-func (m *Preset) ToDto() *dto.Preset {
+func (m *Preset) ToDTO() *dto.Preset {
 	var labels = make([]string, len(m.Labels))
 	for i, label := range m.Labels {
 		labels[i] = label.Value
 	}
 
 	return &dto.Preset{
-		Uuid: m.Uuid,
+		UUID: m.UUID,
 
 		Command:     m.Command,
 		Name:        m.Name,

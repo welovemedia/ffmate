@@ -16,10 +16,10 @@ import (
 type Service interface {
 	List(page int, perPage int) (*[]model.Webhook, int64, error)
 	ListExecutions(page int, perPage int) (*[]model.WebhookExecution, int64, error)
-	Add(*dto.NewWebhook) (*model.Webhook, error)
-	Delete(string) error
-	Get(string) (*model.Webhook, error)
-	Update(string, *dto.NewWebhook) (*model.Webhook, error)
+	Add(newWebhook *dto.NewWebhook) (*model.Webhook, error)
+	Delete(uuid string) error
+	Get(uuid string) (*model.Webhook, error)
+	Update(uuid string, newWebhook *dto.NewWebhook) (*model.Webhook, error)
 }
 
 type Controller struct {
@@ -40,7 +40,6 @@ func (c *Controller) RegisterRoutes(router *goyave.Router) {
 	router.Get("/webhooks", c.list).ValidateQuery(validate.PaginationRequest)
 	router.Get("/webhooks/executions", c.listExecutions).ValidateQuery(validate.PaginationRequest)
 	router.Get("/webhooks/{uuid}", c.get)
-
 }
 
 // @Summary Delete a webhook
@@ -55,7 +54,7 @@ func (c *Controller) delete(response *goyave.Response, request *goyave.Request) 
 	err := c.webhookService.Delete(uuid)
 
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/webhooks#deleting-a-webhook"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/webhooks#deleting-a-webhook"))
 		return
 	}
 
@@ -73,7 +72,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 
 	webhooks, total, err := c.webhookService.List(query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/webhooks#listing-all-webhooks"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/webhooks#listing-all-webhooks"))
 		return
 	}
 
@@ -82,7 +81,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 	// Transform each webhook to its DTO
 	var webhookDTOs = []dto.Webhook{}
 	for _, webhook := range *webhooks {
-		webhookDTOs = append(webhookDTOs, *webhook.ToDto())
+		webhookDTOs = append(webhookDTOs, *webhook.ToDTO())
 	}
 
 	response.JSON(200, webhookDTOs)
@@ -98,7 +97,7 @@ func (c *Controller) listExecutions(response *goyave.Response, request *goyave.R
 	query := typeutil.MustConvert[*dto.Pagination](request.Query)
 	webhookExecutions, total, err := c.webhookService.ListExecutions(query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, ""))
+		response.JSON(400, exception.HTTPBadRequest(err, ""))
 		return
 	}
 
@@ -107,7 +106,7 @@ func (c *Controller) listExecutions(response *goyave.Response, request *goyave.R
 	// Transform each webhook to its DTO
 	var webhooksExecutionDTOs = []dto.WebhookExecution{}
 	for _, webhookExecution := range *webhookExecutions {
-		webhooksExecutionDTOs = append(webhooksExecutionDTOs, *webhookExecution.ToDto())
+		webhooksExecutionDTOs = append(webhooksExecutionDTOs, *webhookExecution.ToDTO())
 	}
 
 	response.JSON(200, webhooksExecutionDTOs)
@@ -126,11 +125,11 @@ func (c *Controller) add(response *goyave.Response, request *goyave.Request) {
 
 	webhook, err := c.webhookService.Add(newWebhook)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/webhooks#creating-a-webhook"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/webhooks#creating-a-webhook"))
 		return
 	}
 
-	response.JSON(200, webhook.ToDto())
+	response.JSON(200, webhook.ToDTO())
 }
 
 // @Summary Get single webhook
@@ -145,11 +144,11 @@ func (c *Controller) get(response *goyave.Response, request *goyave.Request) {
 
 	webhook, err := c.webhookService.Get(uuid)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/webhooks#getting-a-single-webhook"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/webhooks#getting-a-single-webhook"))
 		return
 	}
 
-	response.JSON(200, webhook.ToDto())
+	response.JSON(200, webhook.ToDTO())
 }
 
 // @Summary Update a webhook
@@ -166,9 +165,9 @@ func (c *Controller) update(response *goyave.Response, request *goyave.Request) 
 
 	webhook, err := c.webhookService.Update(uuid, newWebhook)
 	if err != nil {
-		response.JSON(400, exception.HttpBadRequest(err, "https://docs.ffmate.io/docs/webhooks#updating-a-webhook"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/webhooks#updating-a-webhook"))
 		return
 	}
 
-	response.JSON(200, webhook.ToDto())
+	response.JSON(200, webhook.ToDTO())
 }

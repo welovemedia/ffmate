@@ -64,11 +64,11 @@ func Init(options goyave.Options) {
 			url := fmt.Sprintf("http://localhost:%d/ui", server.Config().GetInt("server.port"))
 			switch runtime.GOOS {
 			case "linux":
-				exec.Command("xdg-open", url).Start()
+				_ = exec.Command("xdg-open", url).Start()
 			case "darwin":
-				exec.Command("open", url).Start()
+				_ = exec.Command("open", url).Start()
 			case "windows":
-				exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+				_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 			}
 		}
 	})
@@ -120,7 +120,7 @@ func Init(options goyave.Options) {
 	// setup debug logger to broadcast to websocket clients
 	debug.RegisterBroadcastLogger(func(p []byte) {
 		re := regexp.MustCompile(`\x1b\[[0-9;]*m`)
-		websocketSvc.Broadcast(websocket.LOG, re.ReplaceAllString(string(p), ""))
+		websocketSvc.Broadcast(websocket.Log, re.ReplaceAllString(string(p), ""))
 	})
 
 	// init cluster if enabled

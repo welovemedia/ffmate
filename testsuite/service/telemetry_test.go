@@ -17,14 +17,12 @@ func TestTelemetry(t *testing.T) {
 	server := testsuite.InitServer(t)
 	done := make(chan struct{})
 
-	var webhookServer *httptest.Server
-
-	webhookServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		payload, _ := testsuite.ParseJsonBody[map[string]any](r.Body)
-		assert.Equal(t, payload["runtimeDuration"], float64(1000), "RECV Telemetry")
-		assert.Equal(t, payload["appVersion"], "test-1.0.0", "RECV Telemetry")
-		assert.Equal(t, payload["isShuttingDown"], true, "RECV Telemetry")
-		assert.Equal(t, payload["isStartUp"], true, "RECV Telemetry")
+	var webhookServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		payload, _ := testsuite.ParseJSONBody[map[string]any](r.Body)
+		assert.InDelta(t, float64(1000), payload["runtimeDuration"], 0, "RECV Telemetry")
+		assert.Equal(t, "test-1.0.0", payload["appVersion"], "RECV Telemetry")
+		assert.True(t, payload["isShuttingDown"].(bool), "RECV Telemetry")
+		assert.True(t, payload["isStartUp"].(bool), "RECV Telemetry")
 		w.WriteHeader(http.StatusNoContent)
 
 		close(done)

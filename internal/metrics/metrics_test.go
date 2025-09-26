@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestGauge(t *testing.T) {
+func TestGauge(_ *testing.T) {
 	for name := range Gauges() {
 		Gauge(name).Inc()
 	}

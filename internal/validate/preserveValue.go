@@ -5,8 +5,8 @@ import (
 )
 
 type preserveValueValidator struct {
-	validation.BaseValidator
 	inner validation.Validator
+	validation.BaseValidator
 }
 
 func PreserveValue(inner validation.Validator) validation.Validator {

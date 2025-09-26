@@ -6,54 +6,41 @@ import (
 )
 
 type Task struct {
-	ID uint `gorm:"primarykey"`
-
-	CreatedAt int64          `gorm:"autoCreateTime:milli"`
-	UpdatedAt int64          `gorm:"autoUpdateTime:milli"`
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-
-	Uuid  string
-	Batch string
-
-	Name string
-
-	Labels []Label `gorm:"many2many:task_labels;"`
-
-	Command    *dto.RawResolved `gorm:"type:jsonb"`
-	InputFile  *dto.RawResolved `gorm:"type:jsonb"`
-	OutputFile *dto.RawResolved `gorm:"type:jsonb"`
-
-	Metadata *dto.MetadataMap `gorm:"serializer:json"` // Additional metadata for the task
-
-	Status    dto.TaskStatus `gorm:"index"`
-	Error     string
-	Progress  float64
-	Remaining float64
-
-	Priority uint
-
-	Webhooks *dto.DirectWebhooks `gorm:"type:jsonb"`
-
-	PreProcessing  *dto.PrePostProcessing `gorm:"type:jsonb"`
-	PostProcessing *dto.PrePostProcessing `gorm:"type:jsonb"`
-
-	Source dto.TaskSource
-
-	ClientIdentifier string  `gorm:"index"`
-	Client           *Client `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;foreignKey:ClientIdentifier;references:Identifier"`
-
-	StartedAt  int64
-	FinishedAt int64
+	OutputFile       *dto.RawResolved       `gorm:"type:jsonb"`
+	Client           *Client                `gorm:"constraint:OnUpdate:CASCADE,OnDelete:CASCADE;foreignKey:ClientIdentifier;references:Identifier"`
+	PostProcessing   *dto.PrePostProcessing `gorm:"type:jsonb"`
+	PreProcessing    *dto.PrePostProcessing `gorm:"type:jsonb"`
+	Webhooks         *dto.DirectWebhooks    `gorm:"type:jsonb"`
+	Metadata         *dto.MetadataMap       `gorm:"serializer:json"`
+	Command          *dto.RawResolved       `gorm:"type:jsonb"`
+	InputFile        *dto.RawResolved       `gorm:"type:jsonb"`
+	DeletedAt        gorm.DeletedAt         `gorm:"index"`
+	Name             string
+	Source           dto.TaskSource
+	Status           dto.TaskStatus `gorm:"index"`
+	Error            string
+	ClientIdentifier string `gorm:"index"`
+	UUID             string
+	Batch            string
+	Labels           []Label `gorm:"many2many:task_labels;"`
+	Priority         uint
+	Remaining        float64
+	UpdatedAt        int64 `gorm:"autoUpdateTime:milli"`
+	ID               uint  `gorm:"primarykey"`
+	Progress         float64
+	CreatedAt        int64 `gorm:"autoCreateTime:milli"`
+	StartedAt        int64
+	FinishedAt       int64
 }
 
-func (m *Task) ToDto() *dto.Task {
+func (m *Task) ToDTO() *dto.Task {
 	var labels = make([]string, len(m.Labels))
 	for i, label := range m.Labels {
 		labels[i] = label.Value
 	}
 
 	d := &dto.Task{
-		Uuid: m.Uuid,
+		UUID: m.UUID,
 
 		Name:  m.Name,
 		Batch: m.Batch,

@@ -13,7 +13,7 @@ type Client struct {
 }
 
 func (r *Client) Setup() *Client {
-	r.DB.AutoMigrate(&model.Client{})
+	_ = r.DB.AutoMigrate(&model.Client{})
 	return r
 }
 
@@ -39,9 +39,9 @@ func (r *Client) Save(newClient *model.Client) (*model.Client, error) {
 	return newClient, nil
 }
 
-func (m *Client) Self(identifier string) (*model.Client, error) {
+func (r *Client) Self(identifier string) (*model.Client, error) {
 	var client model.Client
-	result := m.DB.Preload("Labels").Where("identifier = ?", identifier).First(&client)
+	result := r.DB.Preload("Labels").Where("identifier = ?", identifier).First(&client)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -51,9 +51,9 @@ func (m *Client) Self(identifier string) (*model.Client, error) {
 	return &client, nil
 }
 
-func (m *Client) First() (*model.Client, error) {
+func (r *Client) First() (*model.Client, error) {
 	var client model.Client
-	result := m.DB.Preload("Labels").First(&client)
+	result := r.DB.Preload("Labels").First(&client)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
