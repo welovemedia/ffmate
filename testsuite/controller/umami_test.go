@@ -32,6 +32,7 @@ func TestUmami(t *testing.T) {
 
 	body, _ := json.Marshal(umami)
 	request := httptest.NewRequest(http.MethodPost, "/umami", bytes.NewReader(body))
+	request.Header.Add("Content-Type", "application/json")
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 
