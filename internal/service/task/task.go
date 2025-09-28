@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 	"sync"
@@ -315,8 +316,6 @@ func (s *Service) Delete(uuid string) error {
  * Task processing
  */
 
-var taskQueue = sync.Map{}
-
 func (s *Service) ProcessQueue() *Service {
 	// lookup ffmpeg (path)
 	if !s.checkFFmpeg() {
@@ -377,15 +376,24 @@ func (s *Service) processQueue() {
 		}
 
 		for _, t := range *task {
-			ctx := context.Background()
-			taskQueue.Store(t.UUID, ctx)
 			go s.processNewTask(&t)
 		}
 	}
 }
 
+type taskContext struct {
+	ctx    context.Context
+	cancel context.CancelCauseFunc
+}
+
+// taskQueue holds taskContext for each running task.UUID
+var taskQueue = sync.Map{}
+
 func (s *Service) processNewTask(task *model.Task) {
 	debug.Task.Info("processing task (uuid: %s)", task.UUID)
+
+	ctx, cancel := context.WithCancelCause(context.Background())
+	taskQueue.Store(task.UUID, taskContext{ctx, cancel})
 	defer taskQueue.Delete(task.UUID)
 
 	task.StartedAt = time.Now().UnixMilli()
@@ -414,16 +422,38 @@ func (s *Service) processNewTask(task *model.Task) {
 	s.finalizeTask(task)
 }
 
-func (s *Service) cancelTask(task *model.Task, err error) {
+// updateRunningTask checks if a given task has status 'canceled' in the database before updating it.
+// if task is already canceled, the related context is being canceled to stop the actual execution process (ffmpeg)
+func (s *Service) updateRunningTask(task *model.Task) (*model.Task, error) {
+	ctxVal, ok := taskQueue.Load(task.UUID)
+	if !ok {
+		return task, fmt.Errorf("taskContext for task has not been found (uuid: %s)", task.UUID)
+	}
+	t, err := s.repository.First(task.UUID)
+	if err != nil {
+		return task, fmt.Errorf("failed to receive task during running updates (uuid: %s): %v", task.UUID, err)
+	}
+	if t.Status == dto.DoneCanceled {
+		if tc, ok2 := ctxVal.(taskContext); ok2 {
+			debug.Task.Debug("denied updating an already canceled task during processing, canceling context.. (uuid: %s)", task.UUID)
+			tc.cancel(errors.New("task has been canceled"))
+			return task, nil
+		}
+		return task, fmt.Errorf("taskQueue context for uuid %s is not of type taskContext", task.UUID)
+	}
+
+	return s.Update(task)
+}
+
+func (s *Service) cancelTask(task *model.Task) {
 	task.FinishedAt = time.Now().UnixMilli()
 	task.Progress = 100
 	task.Status = dto.DoneCanceled
-	task.Error = err.Error()
-	_, err = s.Update(task)
+	_, err := s.Update(task)
 	if err != nil {
 		debug.Task.Error("failed to update task after cancel (uuid: %s)", task.UUID)
 	}
-	debug.Task.Info("task canceled (uuid: %s): %v", task.UUID, err)
+	debug.Task.Info("task canceled (uuid: %s)", task.UUID)
 }
 
 func (s *Service) failTask(task *model.Task, err error) {
