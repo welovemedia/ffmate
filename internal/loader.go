@@ -38,6 +38,10 @@ func Init(options goyave.Options) {
 		panic(err)
 	}
 
+	// give db info for slow database connections
+	debug.Log.Info(fmt.Sprintf("%s version %s", server.Config().GetString("app.name"), server.Config().GetString("app.version")))
+	debug.Log.Info("connecting to database")
+
 	// setup cors
 	server.Router().CORS(&cors.Options{
 		AllowedOrigins:   []string{"*"},
