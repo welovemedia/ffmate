@@ -33,7 +33,7 @@ func (s *Service) prepareTaskFiles(task *model.Task) {
 	task.Command.Resolved = s.wildcardReplacer(task.Command.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
 
 	task.Status = dto.Running
-	if _, err := s.Update(task); err != nil {
+	if _, err := s.updateRunningTask(task); err != nil {
 		debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
 	}
 }
@@ -48,33 +48,44 @@ func (s *Service) createOutputDirectory(task *model.Task) error {
 func (s *Service) executeFFmpeg(task *model.Task) error {
 	debug.Task.Debug("starting ffmpeg process (uuid: %s)", task.UUID)
 
-	ctxAny, _ := taskQueue.Load(task.UUID)
-	ctx := ctxAny.(context.Context)
+	var err error
 
-	err := s.ffmpegService.Execute(&ffmpeg.ExecutionRequest{
-		Task:    task,
-		Command: task.Command.Resolved,
-		Ctx:     ctx,
-		UpdateFunc: func(progress, remaining float64) {
-			task.Progress = progress
-			task.Remaining = remaining
-			if _, err := s.Update(task); err != nil {
-				debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
+	// load taskContext from taskQueue
+	if ctxVal, ok := taskQueue.Load(task.UUID); !ok {
+		err = fmt.Errorf("taskContext for task has not been found (uuid: %s)", task.UUID)
+	} else {
+		// typecast ctxVal to taskContext
+		if ctx, ok2 := ctxVal.(taskContext); !ok2 {
+			err = fmt.Errorf("taskQueue context for uuid %s is not of type taskContext", task.UUID)
+		} else {
+			// executed ffmpeg with found context
+			err = s.ffmpegService.Execute(&ffmpeg.ExecutionRequest{
+				Task:    task,
+				Command: task.Command.Resolved,
+				Ctx:     ctx.ctx,
+				UpdateFunc: func(progress, remaining float64) {
+					task.Progress = progress
+					task.Remaining = remaining
+					if _, err := s.updateRunningTask(task); err != nil {
+						debug.Log.Error("failed to save task (uuid: %s): %v", task.UUID, err)
+					}
+				},
+			})
+
+			task.Progress = 100
+			task.Remaining = -1
+
+			// check for cancelation first
+			if cause := context.Cause(ctx.ctx); cause != nil {
+				s.cancelTask(task)
+				return cause
 			}
-		},
-	})
+		}
+	}
 
-	task.Progress = 100
-	task.Remaining = -1
-
+	// check for ffmpeg related errors
 	if err != nil {
 		debug.Task.Debug("finished processing with error (uuid: %s): %v", task.UUID, err)
-
-		if cause := context.Cause(ctx); cause != nil {
-			s.cancelTask(task, cause)
-			return cause
-		}
-
 		s.failTask(task, err)
 		return err
 	}
@@ -93,7 +104,7 @@ func (s *Service) runPostProcessing(task *model.Task) error {
 func (s *Service) finalizeTask(task *model.Task) {
 	task.FinishedAt = time.Now().UnixMilli()
 	task.Status = dto.DoneSuccessful
-	if _, err := s.Update(task); err != nil {
+	if _, err := s.updateRunningTask(task); err != nil {
 		debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
 	}
 	debug.Task.Info("task successful (uuid: %s)", task.UUID)
@@ -143,7 +154,7 @@ func (s *Service) initializeProcessing(task *model.Task, processor *dto.PrePostP
 		task.Status = dto.PostProcessing
 	}
 
-	if _, err := s.Update(task); err != nil {
+	if _, err := s.updateRunningTask(task); err != nil {
 		debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
 	}
 }
@@ -159,7 +170,7 @@ func (s *Service) handleSidecar(task *model.Task, processor *dto.PrePostProcessi
 	} else {
 		processor.SidecarPath.Resolved = s.wildcardReplacer(processor.SidecarPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
 	}
-	if _, err := s.Update(task); err != nil {
+	if _, err := s.updateRunningTask(task); err != nil {
 		debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
 	}
 
@@ -190,7 +201,7 @@ func (s *Service) handleScriptExecution(task *model.Task, processor *dto.PrePost
 	} else {
 		processor.ScriptPath.Resolved = s.wildcardReplacer(processor.ScriptPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
 	}
-	if _, err := s.Update(task); err != nil {
+	if _, err := s.updateRunningTask(task); err != nil {
 		debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
 	}
 
