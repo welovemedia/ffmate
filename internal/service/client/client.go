@@ -112,7 +112,8 @@ func (s *Service) saveClient(c *model.Client) {
 	var err error
 	_, err = s.save(c)
 	if err != nil {
-		panic(err)
+		debug.Log.Error("failed to save client: %v", err)
+		return
 	}
 	debug.Client.Debug("client info updated")
 }
