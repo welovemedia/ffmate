@@ -24,5 +24,6 @@ func TestClient(t *testing.T) {
 	assert.Contains(t, body[0].Labels, "test-label-2", "GET /api/v1/clients")
 	assert.Contains(t, body[0].Labels, "test-label-3", "GET /api/v1/clients")
 	assert.NotContains(t, body[0].Labels, "test-label-0", "GET /api/v1/clients")
+	assert.Equal(t, body[0].MaxConcurrentTasks, cfg.GetInt("ffmate.maxConcurrentTasks"), "GET /api/v1/clients")
 	assert.True(t, body[0].Self, "GET /api/v1/clients")
 }

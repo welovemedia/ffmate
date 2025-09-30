@@ -55,11 +55,12 @@ func (s *Service) save(newClient *model.Client) (*model.Client, error) {
 		Cluster:    newClient.Cluster,
 		Labels:     newClient.Labels,
 
-		OS:       runtime.GOOS,
-		Arch:     runtime.GOARCH,
-		Version:  s.version,
-		FFMpeg:   cfg.GetString("ffmate.ffmpeg"),
-		LastSeen: time.Now().UnixMilli(),
+		OS:                 runtime.GOOS,
+		Arch:               runtime.GOARCH,
+		Version:            s.version,
+		FFMpeg:             cfg.GetString("ffmate.ffmpeg"),
+		MaxConcurrentTasks: cfg.GetInt("ffmate.maxConcurrentTasks"),
+		LastSeen:           time.Now().UnixMilli(),
 	}
 
 	nc, err := s.repository.Save(c)
