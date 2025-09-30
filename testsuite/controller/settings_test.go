@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +16,7 @@ import (
 func TestSettingsLoad(t *testing.T) {
 	server := testsuite.InitServer(t)
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/settings", nil)
+	request := testsuite.NewRequest(http.MethodGet, "/api/v1/settings", nil)
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 
@@ -28,7 +27,7 @@ func TestSettingsStore(t *testing.T) {
 	server := testsuite.InitServer(t)
 
 	b, _ := json.Marshal(&dto.Settings{})
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/settings", bytes.NewReader(b))
+	request := testsuite.NewRequest(http.MethodPost, "/api/v1/settings", bytes.NewReader(b))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck

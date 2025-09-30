@@ -2,7 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,18 +12,18 @@ import (
 func TestUI(t *testing.T) {
 	server := testsuite.InitServer(t)
 
-	request := httptest.NewRequest(http.MethodGet, "/", nil)
+	request := testsuite.NewRequest(http.MethodGet, "/", nil)
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, "/ui", response.Header.Get("Location"), "GET /ui")
 	assert.Equal(t, http.StatusPermanentRedirect, response.StatusCode, "GET /ui")
 
-	request = httptest.NewRequest(http.MethodGet, "/ui", nil)
+	request = testsuite.NewRequest(http.MethodGet, "/ui", nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /ui")
 
-	request = httptest.NewRequest(http.MethodGet, "/ui/index.html", nil)
+	request = testsuite.NewRequest(http.MethodGet, "/ui/index.html", nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	body, _ := testsuite.ParseBody(response.Body)

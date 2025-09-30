@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/google/uuid"
@@ -44,7 +43,7 @@ func init() {
 
 func createWatchfolder(t *testing.T, server *testutil.TestServer) *http.Response {
 	body, _ := json.Marshal(newWatchfolder)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/watchfolders", bytes.NewReader(body))
+	request := testsuite.NewRequest(http.MethodPost, "/api/v1/watchfolders", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
@@ -74,7 +73,7 @@ func TestWatchfolderList(t *testing.T) {
 	response := createWatchfolder(t, server)
 	defer response.Body.Close() // nolint:errcheck
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/watchfolders", nil)
+	request := testsuite.NewRequest(http.MethodGet, "/api/v1/watchfolders", nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 
@@ -92,12 +91,12 @@ func TestWatchfolderDelete(t *testing.T) {
 	defer response.Body.Close() // nolint:errcheck
 	watchfolder, _ := testsuite.ParseJSONBody[dto.Watchfolder](response.Body)
 
-	request := httptest.NewRequest(http.MethodDelete, "/api/v1/watchfolders/"+watchfolder.UUID, nil)
+	request := testsuite.NewRequest(http.MethodDelete, "/api/v1/watchfolders/"+watchfolder.UUID, nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, 204, response.StatusCode, "DELETE /api/v1/watchfolders")
 
-	request = httptest.NewRequest(http.MethodDelete, "/api/v1/watchfolders/"+watchfolder.UUID, nil)
+	request = testsuite.NewRequest(http.MethodDelete, "/api/v1/watchfolders/"+watchfolder.UUID, nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, 400, response.StatusCode, "DELETE /api/v1/watchfolders")
@@ -110,14 +109,14 @@ func TestWatchfolderGet(t *testing.T) {
 	defer response.Body.Close() // nolint:errcheck
 	watchfolder, _ := testsuite.ParseJSONBody[dto.Watchfolder](response.Body)
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/watchfolders/"+watchfolder.UUID, nil)
+	request := testsuite.NewRequest(http.MethodGet, "/api/v1/watchfolders/"+watchfolder.UUID, nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	watchfolder, _ = testsuite.ParseJSONBody[dto.Watchfolder](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/watchfolders/{uuid}")
 	assert.Equal(t, "Test watchfolder", watchfolder.Name, "GET /api/v1/watchfolders/{uuid}")
 
-	request = httptest.NewRequest(http.MethodGet, "/api/v1/watchfolders/"+uuid.NewString(), nil)
+	request = testsuite.NewRequest(http.MethodGet, "/api/v1/watchfolders/"+uuid.NewString(), nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, 400, response.StatusCode, "GET /api/v1/watchfolders/{uuid}")
@@ -133,7 +132,7 @@ func TestWatchfolderUpdate(t *testing.T) {
 	watchfolder.Name = "Test Updated watchfolder"
 	watchfolder.Labels = append(watchfolder.Labels, "test-label-4")
 	body, _ := json.Marshal(watchfolder)
-	request := httptest.NewRequest(http.MethodPut, "/api/v1/watchfolders/"+watchfolder.UUID, bytes.NewReader(body))
+	request := testsuite.NewRequest(http.MethodPut, "/api/v1/watchfolders/"+watchfolder.UUID, bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 
 	response = server.TestRequest(request)

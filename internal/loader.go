@@ -48,7 +48,7 @@ func Init(options goyave.Options) {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
 		AllowedHeaders:   []string{"*"},
 		ExposedHeaders:   []string{"*"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 	})
 
 	// add global parse middleware

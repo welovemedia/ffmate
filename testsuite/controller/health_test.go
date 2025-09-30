@@ -2,7 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +16,7 @@ func TestHealth(t *testing.T) {
 	server := testsuite.InitServer(t)
 
 	// expect error
-	request := httptest.NewRequest(http.MethodGet, "/health", nil)
+	request := testsuite.NewRequest(http.MethodGet, "/health", nil)
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	body, _ := testsuite.ParseJSONBody[dto.Health](response.Body)
@@ -26,7 +25,7 @@ func TestHealth(t *testing.T) {
 
 	server.RegisterStartupHook(func(*goyave.Server) {
 		// expect ok
-		request = httptest.NewRequest(http.MethodGet, "/health", nil)
+		request = testsuite.NewRequest(http.MethodGet, "/health", nil)
 		resp := server.TestRequest(request)
 		defer resp.Body.Close() // nolint:errcheck
 		body, _ = testsuite.ParseJSONBody[dto.Health](resp.Body)

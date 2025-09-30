@@ -20,11 +20,7 @@ import (
 )
 
 func Register(_ *goyave.Server, router *goyave.Router) {
-	// service the UI
-	router.Controller(&ui.Controller{})
-
 	apiRouter := router.Subrouter("/api/v1")
-
 	apiRouter.Controller(&version.Controller{})
 	apiRouter.Controller(&preset.Controller{})
 	apiRouter.Controller(&webhook.Controller{})
@@ -33,22 +29,17 @@ func Register(_ *goyave.Server, router *goyave.Router) {
 	apiRouter.Controller(&settings.Controller{})
 	apiRouter.Controller(&client.Controller{})
 	apiRouter.Controller(&debug.Controller{})
-
-	// health
-	router.Controller(&health.Controller{})
-
 	// websocket
 	apiRouter.Subrouter("/ws").Controller(ws.New(&websocket.Controller{}))
 
-	// ui
-	router.Controller(&ui.Controller{})
-
-	// umami
-	router.Controller(&umami.Controller{})
-
+	// health
+	router.Controller(&health.Controller{})
 	// swagger
 	router.Controller(&swagger.Controller{})
-
+	// ui
+	router.Controller(&ui.Controller{})
+	// umami
+	router.Controller(&umami.Controller{})
 	// prometheus
 	router.Controller(&prometheus.Controller{})
 }

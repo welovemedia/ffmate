@@ -2,7 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +13,7 @@ import (
 func TestDebugSet(t *testing.T) {
 	server := testsuite.InitServer(t)
 
-	request := httptest.NewRequest(http.MethodPatch, "/api/v1/debug/moo", nil)
+	request := testsuite.NewRequest(http.MethodPatch, "/api/v1/debug/moo", nil)
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 
@@ -24,7 +23,7 @@ func TestDebugSet(t *testing.T) {
 func TestDebugDelete(t *testing.T) {
 	server := testsuite.InitServer(t)
 
-	request := httptest.NewRequest(http.MethodDelete, "/api/v1/debug", nil)
+	request := testsuite.NewRequest(http.MethodDelete, "/api/v1/debug", nil)
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +30,7 @@ func TestUmami(t *testing.T) {
 	server := testsuite.InitServer(t)
 
 	body, _ := json.Marshal(umami)
-	request := httptest.NewRequest(http.MethodPost, "/umami", bytes.NewReader(body))
+	request := testsuite.NewRequest(http.MethodPost, "/umami", bytes.NewReader(body))
 	request.Header.Add("Content-Type", "application/json")
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck

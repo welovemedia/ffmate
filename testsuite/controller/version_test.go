@@ -2,7 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,7 @@ import (
 func TestVersionGet(t *testing.T) {
 	server := testsuite.InitServer(t)
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
+	request := testsuite.NewRequest(http.MethodGet, "/api/v1/version", nil)
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	version, _ := testsuite.ParseJSONBody[dto.Version](response.Body)

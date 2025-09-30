@@ -29,6 +29,8 @@ require (
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -77,7 +79,6 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.2.0
-	github.com/gorilla/websocket v1.5.3
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/stretchr/testify v1.11.1

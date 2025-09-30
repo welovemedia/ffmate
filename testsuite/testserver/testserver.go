@@ -22,6 +22,12 @@ var c = map[string]any{
 		"connection": "sqlite3",
 		"name":       ":memory:",
 	},
+	"auth": map[string]any{
+		"basic": map[string]any{
+			"username": "user",
+			"password": "pass",
+		},
+	},
 }
 
 func New(t *testing.T) *testutil.TestServer {
@@ -33,6 +39,9 @@ func New(t *testing.T) *testutil.TestServer {
 	}
 	if !cfg.Has("ffmate.labels") {
 		cfg.Set("ffmate.labels", []string{"test-label-1", "test-label-2", "test-label-3"})
+	}
+	if !cfg.Has("ffmate.isAuth") {
+		cfg.Set("ffmate.isAuth", false)
 	}
 	cfg.Set("ffmate.session", uuid.NewString())
 	cfg.Set("ffmate.maxConcurrentTasks", 3)

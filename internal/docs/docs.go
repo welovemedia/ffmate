@@ -1115,12 +1115,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/dto.RawResolved"
                 },
                 "metadata": {
-                    "description": "Additional metadata for the task",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/dto.MetadataMap"
-                        }
-                    ]
+                    "$ref": "#/definitions/dto.MetadataMap"
                 },
                 "name": {
                     "type": "string"
@@ -1189,13 +1184,13 @@ const docTemplate = `{
                 "DONE_CANCELED"
             ],
             "x-enum-varnames": [
-                "QUEUED",
-                "RUNNING",
-                "PRE_PROCESSING",
-                "POST_PROCESSING",
-                "DONE_SUCCESSFUL",
-                "DONE_ERROR",
-                "DONE_CANCELED"
+                "Queued",
+                "Running",
+                "PreProcessing",
+                "PostProcessing",
+                "DoneSuccessful",
+                "DoneError",
+                "DoneCanceled"
             ]
         },
         "dto.Watchfolder": {
@@ -1306,20 +1301,20 @@ const docTemplate = `{
                 "watchfolder.deleted"
             ],
             "x-enum-varnames": [
-                "BATCH_CREATED",
-                "BATCH_FINISHED",
-                "TASK_CREATED",
-                "TASK_UPDATED",
-                "TASK_DELETED",
-                "PRESET_CREATED",
-                "PRESET_UPDATED",
-                "PRESET_DELETED",
-                "WEBHOOK_CREATED",
-                "WEBHOOK_UPDATED",
-                "WEBHOOK_DELETED",
-                "WATCHFOLDER_CREATED",
-                "WATCHFOLDER_UPDATED",
-                "WATCHFOLDER_DELETED"
+                "BatchCreated",
+                "BatchFinished",
+                "TaskCreated",
+                "TaskUpdated",
+                "TaskDeleted",
+                "PresetCreated",
+                "PresetUpdated",
+                "PresetDeleted",
+                "WebhookCreated",
+                "WebhookUpdated",
+                "WebhookDeleted",
+                "WatchfolderCreated",
+                "WatchfolderUpdated",
+                "WatchfolderDeleted"
             ]
         },
         "dto.WebhookExecution": {

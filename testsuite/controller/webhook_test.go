@@ -26,7 +26,7 @@ var newWebhook = &dto.Webhook{
 
 func createWebhook(t *testing.T, server *testutil.TestServer) *http.Response {
 	body, _ := json.Marshal(newWebhook)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks", bytes.NewReader(body))
+	request := testsuite.NewRequest(http.MethodPost, "/api/v1/webhooks", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/webhooks")
@@ -53,7 +53,7 @@ func TestWebhookExecution(t *testing.T) {
 	svc := server.Service(service.Webhook).(*webhookSvc.Service)
 	svc.FireInRoutine(dto.TaskCreated, "")
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/webhooks/executions", nil)
+	request := testsuite.NewRequest(http.MethodGet, "/api/v1/webhooks/executions", nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	executions, _ := testsuite.ParseJSONBody[[]dto.WebhookExecution](response.Body)
@@ -66,7 +66,7 @@ func TestWebhookList(t *testing.T) {
 	response := createWebhook(t, server)
 	defer response.Body.Close() // nolint:errcheck
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/webhooks", nil)
+	request := testsuite.NewRequest(http.MethodGet, "/api/v1/webhooks", nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 
@@ -84,12 +84,12 @@ func TestWebhookDelete(t *testing.T) {
 	defer response.Body.Close() // nolint:errcheck
 	webhook, _ := testsuite.ParseJSONBody[dto.Webhook](response.Body)
 
-	request := httptest.NewRequest(http.MethodDelete, "/api/v1/webhooks/"+webhook.UUID, nil)
+	request := testsuite.NewRequest(http.MethodDelete, "/api/v1/webhooks/"+webhook.UUID, nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, 204, response.StatusCode, "DELETE /api/v1/webhooks")
 
-	request = httptest.NewRequest(http.MethodDelete, "/api/v1/webhooks/"+webhook.UUID, nil)
+	request = testsuite.NewRequest(http.MethodDelete, "/api/v1/webhooks/"+webhook.UUID, nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, 400, response.StatusCode, "DELETE /api/v1/webhooks")
@@ -102,14 +102,14 @@ func TestWebhookGet(t *testing.T) {
 	defer response.Body.Close() // nolint:errcheck
 	webhook, _ := testsuite.ParseJSONBody[dto.Webhook](response.Body)
 
-	request := httptest.NewRequest(http.MethodGet, "/api/v1/webhooks/"+webhook.UUID, nil)
+	request := testsuite.NewRequest(http.MethodGet, "/api/v1/webhooks/"+webhook.UUID, nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	webhook, _ = testsuite.ParseJSONBody[dto.Webhook](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/webhooks/{uuid}")
 	assert.Equal(t, dto.TaskCreated, webhook.Event, "GET /api/v1/webhooks/{uuid}")
 
-	request = httptest.NewRequest(http.MethodGet, "/api/v1/webhooks/"+uuid.NewString(), nil)
+	request = testsuite.NewRequest(http.MethodGet, "/api/v1/webhooks/"+uuid.NewString(), nil)
 	response = server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	webhook, _ = testsuite.ParseJSONBody[dto.Webhook](response.Body)
@@ -125,7 +125,7 @@ func TestWebhookUpdate(t *testing.T) {
 
 	webhook.Event = dto.TaskUpdated
 	body, _ := json.Marshal(webhook)
-	request := httptest.NewRequest(http.MethodPut, "/api/v1/webhooks/"+webhook.UUID, bytes.NewReader(body))
+	request := testsuite.NewRequest(http.MethodPut, "/api/v1/webhooks/"+webhook.UUID, bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 
 	response = server.TestRequest(request)
@@ -160,7 +160,7 @@ func TestWebhookDelivery(t *testing.T) {
 		URL:   webhookServer.URL,
 	}
 	body, _ := json.Marshal(nw)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/webhooks", bytes.NewReader(body))
+	request := testsuite.NewRequest(http.MethodPost, "/api/v1/webhooks", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	resp := server.TestRequest(request)
 	defer resp.Body.Close() // nolint:errcheck
@@ -207,7 +207,7 @@ func TestWebhookDirectDelivery(t *testing.T) {
 		},
 	}
 	body, _ := json.Marshal(np)
-	request := httptest.NewRequest(http.MethodPost, "/api/v1/presets", bytes.NewReader(body))
+	request := testsuite.NewRequest(http.MethodPost, "/api/v1/presets", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	resp := server.TestRequest(request)
 	defer resp.Body.Close() // nolint:errcheck

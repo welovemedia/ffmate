@@ -2,7 +2,6 @@ package controller
 
 import (
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +12,7 @@ import (
 func TestPrometheus(t *testing.T) {
 	server := testsuite.InitServer(t)
 
-	request := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	request := testsuite.NewRequest(http.MethodGet, "/metrics", nil)
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
 	body, _ := testsuite.ParseBody(response.Body)
