@@ -88,7 +88,38 @@ func (s *Service) Update(task *model.Task) (*model.Task, error) {
 		}
 	}
 
+	// retry task until task.Retried == task.Retries after 3s delay
+	if s.mustRetryTask(task) {
+		uuid := task.UUID
+		go func() {
+			time.Sleep(3 * time.Second)
+			t, err := s.repository.First(uuid)
+			if err != nil {
+				debug.Task.Warn("failed to retry task (uuid: %s): %v", uuid, err)
+				return
+			}
+			if t == nil {
+				debug.Task.Warn("failed to retry task - task no more found (uuid: %s)", uuid)
+				return
+			}
+			if s.mustRetryTask(t) {
+				t.Retried++
+				t.Status = dto.Queued
+				_, err := s.Update(t)
+				if err != nil {
+					debug.Task.Error("failed to retry task (uuid: %s)", t.UUID)
+					return
+				}
+				debug.Task.Debug("retried task %d/%d (uuid: %s): %v", t.Retried, t.Retries, uuid, err)
+			}
+		}()
+	}
+
 	return task, nil
+}
+
+func (s *Service) mustRetryTask(task *model.Task) bool {
+	return task.Status == dto.DoneError && task.Retries > 0 && task.Retried < task.Retries
 }
 
 func (s *Service) Cancel(uuid string) (*model.Task, error) {
@@ -126,6 +157,7 @@ func (s *Service) Restart(uuid string) (*model.Task, error) {
 	w.Progress = 0
 	w.StartedAt = 0
 	w.FinishedAt = 0
+	w.Retried = 0
 	w.Error = ""
 
 	metrics.Gauge("task.restarted").Inc()
@@ -157,7 +189,7 @@ func (s *Service) GetBatch(uuid string, page int, perPage int) (*dto.Batch, int6
 
 var presetCache = sync.Map{}
 
-func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string) (*model.Task, error) {
+func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string) (*model.Task, error) { // nolint:gocyclo
 	if newTask.Preset != "" {
 		var preset *model.Preset
 		var err error
@@ -192,6 +224,9 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 		}
 		if preset.PostProcessing != nil && newTask.PostProcessing == nil {
 			newTask.PostProcessing = &dto.NewPrePostProcessing{ScriptPath: preset.PostProcessing.ScriptPath, SidecarPath: preset.PostProcessing.SidecarPath}
+		}
+		if preset.Retries > 0 && newTask.Retries == 0 {
+			newTask.Retries = preset.Retries
 		}
 
 		// apply labels from preset if no direct labels are set
@@ -237,6 +272,8 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 		Name:             newTask.Name,
 		Priority:         newTask.Priority,
 		Progress:         0,
+		Retries:          newTask.Retries,
+		Retried:          0,
 		Source:           source,
 		Labels:           labels,
 		Status:           dto.Queued,

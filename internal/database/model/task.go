@@ -24,6 +24,8 @@ type Task struct {
 	Batch            string
 	Labels           []Label `gorm:"many2many:task_labels;"`
 	Priority         uint
+	Retries          int
+	Retried          int
 	Remaining        float64
 	UpdatedAt        int64 `gorm:"autoUpdateTime:milli"`
 	ID               uint  `gorm:"primarykey"`
@@ -56,6 +58,8 @@ func (m *Task) ToDTO() *dto.Task {
 		Remaining: m.Remaining,
 
 		Labels: labels,
+		Retries: m.Retries,
+		Retried: m.Retried,
 
 		Error: m.Error,
 

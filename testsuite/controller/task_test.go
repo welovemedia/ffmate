@@ -23,6 +23,7 @@ var newTask = &dto.NewTask{
 	Command:    "-y",
 	Priority:   100,
 	Labels:     []string{"test-label-1", "test-label-2", "test-label-3"},
+	Retries:    5,
 	OutputFile: "/dev/null",
 	Metadata: &dto.MetadataMap{
 		"foo": "bar",
@@ -56,6 +57,8 @@ func TestTaskCreate(t *testing.T) {
 	assert.Equal(t, dto.Queued, task.Status, "POST /api/v1/tasks")
 	assert.NotNil(t, task.Metadata, "POST /api/v1/tasks")
 	assert.NotEmpty(t, task.UUID, "POST /api/v1/tasks")
+	assert.InDelta(t, 5, task.Retries, 0, "POST /api/v1/tasks")
+	assert.InDelta(t, 0, task.Retried, 0, "POST /api/v1/tasks")
 }
 
 func TestTaskList(t *testing.T) {

@@ -28,6 +28,7 @@ type NewTask struct {
 	Preset         string                `json:"preset"`
 	Name           string                `json:"name"`
 	Labels         Labels                `json:"labels,omitempty"`
+	Retries        int                   `json:"retries"`
 	InputFile      string                `json:"inputFile"`
 	OutputFile     string                `json:"outputFile"`
 	Priority       uint                  `json:"priority"`
@@ -47,6 +48,8 @@ type Task struct {
 	Batch          string             `json:"batch,omitempty"`
 	Labels         Labels             `json:"labels,omitempty"`
 	Source         TaskSource         `json:"source,omitempty"`
+	Retries        int                `json:"retries"`
+	Retried        int                `json:"retried"`
 	Error          string             `json:"error,omitempty"`
 	UUID           string             `json:"uuid"`
 	CreatedAt      int64              `json:"createdAt"`

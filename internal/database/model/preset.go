@@ -20,6 +20,7 @@ type Preset struct {
 	Labels         []Label `gorm:"many2many:preset_labels;"`
 	UUID           string
 	Description    string
+	Retries        int
 	Priority       uint
 	ID             uint `gorm:"primarykey"`
 }
@@ -44,6 +45,7 @@ func (m *Preset) ToDTO() *dto.Preset {
 		Webhooks: m.Webhooks,
 
 		Labels: labels,
+		Retries: m.Retries,
 
 		PreProcessing:  m.PreProcessing,
 		PostProcessing: m.PostProcessing,

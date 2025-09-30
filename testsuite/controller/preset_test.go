@@ -16,12 +16,14 @@ import (
 )
 
 var newPreset = &dto.NewPreset{
-	Name:        "Test preset",
-	Description: "Test desc",
-	Command:     "-y",
-	Priority:    100,
-	Labels:      []string{"test-label-1", "test-label-2", "test-label-3"},
-	OutputFile:  "/dev/null",
+	Name:             "Test preset",
+	Description:      "Test desc",
+	Command:          "-y",
+	Priority:         100,
+	Retries:          5,
+	Labels:           []string{"test-label-1", "test-label-2", "test-label-3"},
+	OutputFile:       "/dev/null",
+	GlobalPresetName: "moo",
 }
 
 func createPreset(t *testing.T, server *testutil.TestServer) *http.Response {
@@ -47,6 +49,7 @@ func TestPresetCreate(t *testing.T) {
 	assert.Contains(t, preset.Labels, "test-label-3", "POST /api/v1/presets")
 	assert.NotContains(t, preset.Labels, "test-label-0", "POST /api/v1/presets")
 	assert.NotEmpty(t, preset.UUID, "POST /api/v1/presets")
+	assert.InDelta(t, 5, preset.Retries, 0, "POST /api/v1/presets")
 }
 
 func TestPresetList(t *testing.T) {

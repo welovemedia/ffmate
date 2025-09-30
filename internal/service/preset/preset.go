@@ -63,6 +63,7 @@ func (s *Service) Add(newPreset *dto.NewPreset) (*model.Preset, error) {
 		Command:        newPreset.Command,
 		Name:           newPreset.Name,
 		Description:    newPreset.Description,
+		Retries:        newPreset.Retries,
 		Priority:       newPreset.Priority,
 		Webhooks:       newPreset.Webhooks,
 		Labels:         labels,
@@ -103,6 +104,7 @@ func (s *Service) Update(uuid string, newPreset *dto.NewPreset) (*model.Preset, 
 	w.Name = newPreset.Name
 	w.Description = newPreset.Description
 	w.Command = newPreset.Command
+	w.Retries = newPreset.Retries
 	w.PreProcessing = newPreset.PreProcessing
 	w.PostProcessing = newPreset.PostProcessing
 	w.OutputFile = newPreset.OutputFile
