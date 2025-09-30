@@ -21,6 +21,9 @@ lint:
 dev+sqlite:
 	go run -race main.go server --identifier="sev.moovit.de" --tray=true --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}" --labels="dev"
 
+dev+sqlite+memory:
+	go run -race main.go server --identifier="sev.moovit.de" --tray=false --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database=":memory:"
+
 dev+postgres:
 	go run -race main.go server --identifier="sev.moovit.de" --tray=false --debug="*" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_POSTGRES}" --labels="dev"
 

@@ -13,6 +13,7 @@ func (c *Controller) NewPresetRequest(_ *goyave.Request) v.RuleSet {
 		{Path: "description", Rules: v.List{v.String()}},
 		{Path: "command", Rules: v.List{v.String(), v.Required()}},
 		{Path: "priority", Rules: v.List{v.Uint()}},
+		{Path: "retries", Rules: v.List{v.Uint()}},
 		{Path: "outputFile", Rules: v.List{v.String()}},
 		{Path: "webhooks", Rules: v.List{v.Array()}},
 		{Path: "webhooks[].url", Rules: v.List{validate.PreserveValue(v.URL()), v.Required()}},

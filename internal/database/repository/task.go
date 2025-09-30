@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/welovemedia/ffmate/v2/internal/database/model"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
@@ -79,6 +80,40 @@ func (r *Task) Count() (int64, error) {
 	var count int64
 	db := r.DB.Model(&model.Task{}).Count(&count)
 	return count, db.Error
+}
+
+func (r *Task) FailRunningTasksForStartingClient(identifier string) ([]model.Task, error) {
+	var tasks []model.Task
+	err := r.DB.Raw(`
+		UPDATE tasks
+		SET status = ?, error = ?, finished_at = ?,remaining = -1, progress = 100
+		WHERE status = ? AND client_identifier = ?
+		RETURNING *;
+	`, dto.DoneError, "client disconnected during execution", time.Now().UnixMilli(), dto.Running, identifier).Scan(&tasks).Error
+
+	return tasks, err
+}
+
+func (r *Task) FailRunningTasksForOfflineClients() ([]model.Task, error) {
+	threshold := time.Now().Add(-60 * time.Second).UnixMilli() // int64
+
+	now := time.Now().UnixMilli()
+	var tasks []model.Task
+
+	err := r.DB.Raw(`
+		UPDATE tasks
+		SET status = ?, error = ?, finished_at = ?, remaining = -1, progress = 100
+		WHERE status = ?
+		  AND client_identifier IN (
+		      SELECT identifier
+		      FROM client
+		      WHERE last_seen < ?
+		  )
+		RETURNING *;
+	`, dto.DoneError, "client disconnected during execution", now, dto.Running, threshold).
+		Scan(&tasks).Error
+
+	return tasks, err
 }
 
 func (r *Task) CountUnfinishedByBatch(uuid string) (int64, error) {

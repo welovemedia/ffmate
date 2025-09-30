@@ -40,6 +40,7 @@ func (c *Controller) NewTaskRequest(_ *goyave.Request) v.RuleSet {
 		}},
 
 		{Path: "priority", Rules: v.List{v.Uint()}},
+		{Path: "retries", Rules: v.List{v.Uint()}},
 
 		{Path: "inputFile", Rules: v.List{v.String()}},
 		{Path: "outputFile", Rules: v.List{v.String()}},

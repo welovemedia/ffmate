@@ -44,7 +44,7 @@ func prepare(t *testing.T) (*testutil.TestServer, *Service) {
 	websocketSvc := websocketService.NewService(server.DB())
 	webhookSvc := webhookService.NewService(webhookRepository, webhookExecutionRepository, server.Config(), websocketSvc)
 	presetSvc := presetService.NewService(presetRepository, webhookSvc, websocketSvc)
-	taskSvc := taskService.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc).ProcessQueue()
+	taskSvc := taskService.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc, false)
 	watchfolderSvc := NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
 	clientSvc := clientService.NewService(clientRepository, "test-1.0.0", websocketSvc)
 	for _, svc := range map[string]goyave.Service{

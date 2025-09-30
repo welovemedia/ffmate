@@ -33,6 +33,8 @@ type Repository interface {
 	CountUnfinishedByBatch(uuid string) (int64, error)
 	CountAllStatus() (int, int, int, int, int, error)
 	NextQueued(amount int, labels dto.Labels) (*[]model.Task, error)
+	FailRunningTasksForStartingClient(identifier string) ([]model.Task, error)
+	FailRunningTasksForOfflineClients() ([]model.Task, error)
 }
 
 type Service struct {
@@ -43,13 +45,52 @@ type Service struct {
 	ffmpegService    *ffmpeg.Service
 }
 
-func NewService(repository Repository, presetService *preset.Service, webhookService *webhook.Service, websocketService *websocket.Service, ffmpegService *ffmpeg.Service) *Service {
-	return &Service{
+func NewService(repository Repository, presetService *preset.Service, webhookService *webhook.Service, websocketService *websocket.Service, ffmpegService *ffmpeg.Service, startCleanupProcessor bool) *Service {
+	s := &Service{
 		repository:       repository,
 		presetService:    presetService,
 		webhookService:   webhookService,
 		websocketService: websocketService,
 		ffmpegService:    ffmpegService,
+	}
+
+	if startCleanupProcessor {
+		go s.cleanupProcessor()
+	}
+
+	return s.startQueue()
+}
+
+// cleanupProcessor fails running jobs of offline (crashed) clients
+func (s *Service) cleanupProcessor() {
+	// fail tasks that belong to current identifier on startup (crashed client)
+	tasks, err := s.repository.FailRunningTasksForStartingClient(cfg.GetString("ffmate.identifier"))
+	if err != nil {
+		debug.Task.Error("failed to clean up running tasks on startup: %v", err)
+	}
+	debug.Task.Debug("cleaned up %d running tasks on startup", len(tasks))
+
+	// sleep before broadcasting to enable websocket connections to re-connect first
+	time.Sleep(3 * time.Second)
+	for _, t := range tasks {
+		s.websocketService.Broadcast(websocket.TaskUpdated, t.ToDTO())
+	}
+
+	// fail running tasks of clients every 5s that havn't been seen for >= 60s in cluster mode
+	if cfg.GetBool("ffmate.isCluster") {
+		for {
+			time.Sleep(5 * time.Second)
+			tasks, err := s.repository.FailRunningTasksForOfflineClients()
+			if err != nil {
+				debug.Task.Error("failed to clean up running tasks of offline clients: %v", err)
+			}
+			if len(tasks) > 0 {
+				for _, t := range tasks {
+					s.websocketService.Broadcast(websocket.TaskUpdated, t.ToDTO())
+				}
+				debug.Task.Debug("cleaned up %d running tasks of offline clients", len(tasks))
+			}
+		}
 	}
 }
 
@@ -353,7 +394,7 @@ func (s *Service) Delete(uuid string) error {
  * Task processing
  */
 
-func (s *Service) ProcessQueue() *Service {
+func (s *Service) startQueue() *Service {
 	// lookup ffmpeg (path)
 	if !s.checkFFmpeg() {
 		go func() {

@@ -41,6 +41,7 @@ var (
 	Log         = newLoggers("") // no namespace
 	Watchfolder = newLoggers("watchfolder")
 	Task        = newLoggers("task")
+	Preset      = newLoggers("preset")
 	Client      = newLoggers("client")
 	FFmpeg      = newLoggers("ffmpeg")
 	Websocket   = newLoggers("websocket")

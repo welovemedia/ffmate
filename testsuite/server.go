@@ -22,36 +22,7 @@ import (
 )
 
 func InitServer(t *testing.T) *testutil.TestServer {
-<<<<<<< HEAD
-	b, _ := json.Marshal(c)
-	conf, _ := config.LoadJSON(string(b))
-
-	if !cfg.Has("ffmate.identifier") {
-		cfg.Set("ffmate.identifier", "test-client")
-	}
-	if !cfg.Has("ffmate.labels") {
-		cfg.Set("ffmate.labels", []string{"test-label-1", "test-label-2", "test-label-3"})
-	}
-
-	cfg.Set("ffmate.session", uuid.NewString())
-	cfg.Set("ffmate.ffmpeg", "ffmpeg")
-	cfg.Set("ffmate.maxConcurrentTasks", 3)
-	cfg.Set("ffmate.isTray", false)
-	cfg.Set("ffmate.isCluster", false)
-	cfg.Set("ffmate.isFFmpeg", false)
-	cfg.Set("ffmate.debug", "")
-	cfg.Set("ffmate.isDocker", false)
-	cfg.Set("ffmate.isCluster", false)
-
-	server := testutil.NewTestServerWithOptions(t, goyave.Options{Config: conf})
-
-	// add global parsing
-	server.Router().GlobalMiddleware(&parse.Middleware{
-		MaxUploadSize: 10,
-	})
-=======
 	server := testserver.New(t)
->>>>>>> 9968a3f (feat: add additional tests)
 
 	// setup repositories
 	presetRepository := (&repository.Preset{DB: server.DB()}).Setup()
@@ -70,7 +41,7 @@ func InitServer(t *testing.T) *testutil.TestServer {
 	clientSvc := clientService.NewService(clientRepository, "test-1.0.0", websocketSvc)
 	webhookSvc := webhookService.NewService(webhookRepository, webhookExecutionRepository, server.Config(), websocketSvc)
 	presetSvc := presetService.NewService(presetRepository, webhookSvc, websocketSvc)
-	taskSvc := taskService.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc).ProcessQueue()
+	taskSvc := taskService.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc, false)
 	watchfolderSvc := watchfolderService.NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
 	for _, svc := range map[string]goyave.Service{
 		service.FFMpeg:      ffmpegSvc,

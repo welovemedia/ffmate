@@ -16,6 +16,8 @@ func TestClient(t *testing.T) {
 	request := testsuite.NewRequest(http.MethodGet, "/api/v1/clients", nil)
 	response := server.TestRequest(request)
 	defer response.Body.Close() // nolint:errcheck
+	// body2, _ := testsuite.ParseBody(response.Body)
+	// t.Log(string(body2))
 	body, _ := testsuite.ParseJSONBody[[]dto.Client](response.Body)
 	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /api/v1/clients")
 	assert.Len(t, body, 1, "GET /api/v1/clients")

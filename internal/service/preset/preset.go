@@ -72,7 +72,7 @@ func (s *Service) Add(newPreset *dto.NewPreset) (*model.Preset, error) {
 		PostProcessing: newPreset.PostProcessing,
 	}
 	w, err := s.repository.Save(preset)
-	debug.Log.Info("created preset (uuid: %s)", w.UUID)
+	debug.Preset.Info("created preset (uuid: %s)", w.UUID)
 
 	if newPreset.GlobalPresetName != "" {
 		metrics.GaugeVec("preset.global").WithLabelValues(newPreset.GlobalPresetName).Inc()
@@ -114,11 +114,11 @@ func (s *Service) Update(uuid string, newPreset *dto.NewPreset) (*model.Preset, 
 
 	w, err = s.repository.Save(w)
 	if err != nil {
-		debug.Log.Error("failed to update preset (uuid: %s): %v", w.UUID, err)
+		debug.Preset.Error("failed to update preset (uuid: %s): %v", w.UUID, err)
 		return nil, err
 	}
 
-	debug.Log.Error("updated preset (uuid: %s)", w.UUID)
+	debug.Preset.Error("updated preset (uuid: %s)", w.UUID)
 
 	if newPreset.GlobalPresetName != "" {
 		metrics.GaugeVec("preset.global").WithLabelValues(newPreset.GlobalPresetName).Inc()
@@ -144,11 +144,11 @@ func (s *Service) Delete(uuid string) error {
 
 	err = s.repository.Delete(w)
 	if err != nil {
-		debug.Log.Error("failed to delete preset (uuid: %s)", uuid)
+		debug.Preset.Error("failed to delete preset (uuid: %s)", uuid)
 		return err
 	}
 
-	debug.Log.Info("deleted preset (uuid: %s)", uuid)
+	debug.Preset.Info("deleted preset (uuid: %s)", uuid)
 
 	metrics.Gauge("preset.deleted").Inc()
 	s.webhookService.Fire(dto.PresetDeleted, w.ToDTO())

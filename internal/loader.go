@@ -94,7 +94,7 @@ func Init(options goyave.Options) {
 	clientSvc := client.NewService(clientRepository, server.Config().GetString("app.version"), websocketSvc)
 	webhookSvc := webhook.NewService(webhookRepository, webhookExecutionRepository, server.Config(), websocketSvc)
 	presetSvc := preset.NewService(presetRepository, webhookSvc, websocketSvc)
-	taskSvc := task.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc).ProcessQueue()
+	taskSvc := task.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc, true)
 	traySvc := tray.NewService(server, taskSvc, updateSvc)
 	watchfolderSvc := watchfolder.NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
 	settingSvc := settings.NewService(settingRepository)

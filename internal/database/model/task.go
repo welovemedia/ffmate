@@ -81,13 +81,14 @@ func (m *Task) ToDTO() *dto.Task {
 
 	if m.Client != nil {
 		d.Client = &dto.Client{
-			Identifier: m.Client.Identifier,
-			Session:    m.Client.Session,
-			Cluster:    m.Client.Cluster,
-			OS:         m.Client.OS,
-			Arch:       m.Client.Arch,
-			Version:    m.Client.Version,
-			LastSeen:   m.Client.LastSeen,
+			Identifier:         m.Client.Identifier,
+			Session:            m.Client.Session,
+			Cluster:            m.Client.Cluster,
+			OS:                 m.Client.OS,
+			Arch:               m.Client.Arch,
+			Version:            m.Client.Version,
+			MaxConcurrentTasks: m.Client.MaxConcurrentTasks,
+			LastSeen:           m.Client.LastSeen,
 		}
 	}
 
