@@ -261,7 +261,7 @@ func (s *Service) AddBatch(newBatch *dto.NewBatch) (*dto.Batch, error) {
 	}
 
 	metrics.Gauge("batch.created").Inc()
-	s.webhookService.Fire(dto.BatCreated, taskDTOs)
+	s.webhookService.Fire(dto.BatchCreated, taskDTOs)
 
 	batch := &dto.Batch{
 		UUID:  batchUUID,

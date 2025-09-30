@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/welovemedia/ffmate/v2/internal"
 	"github.com/welovemedia/ffmate/v2/internal/cfg"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/yosev/debugo"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/config"
@@ -42,6 +43,7 @@ func init() {
 	serverCmd.Flags().Bool("send-telemetry", true, "enable sending anonymous telemetry data")
 	serverCmd.Flags().Bool("no-ui", false, "do not open the ui in the browser")
 	serverCmd.Flags().String("identifier", "", "a unique client identifier (default to hostname)")
+	serverCmd.Flags().String("basic-auth", "", "enable basic auth in form of username:password")
 
 	_ = viper.BindPFlag("ffmpeg", serverCmd.Flags().Lookup("ffmpeg"))
 	_ = viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
@@ -51,6 +53,7 @@ func init() {
 	_ = viper.BindPFlag("sendTelemetry", serverCmd.Flags().Lookup("send-telemetry"))
 	_ = viper.BindPFlag("noUI", serverCmd.Flags().Lookup("no-ui"))
 	_ = viper.BindPFlag("identifier", serverCmd.Flags().Lookup("identifier"))
+	_ = viper.BindPFlag("basicAuth", serverCmd.Flags().Lookup("basic-auth"))
 }
 
 func server(_ *cobra.Command, _ []string) {
@@ -85,6 +88,7 @@ func setupConfig() {
 	cfg.Set("ffmate.isTray", viper.GetBool("tray"))
 	cfg.Set("ffmate.isUI", !viper.GetBool("noUI"))
 	cfg.Set("ffmate.isCluster", isCluster)
+	cfg.Set("ffmate.isAuth", false)
 
 	cfg.Set("ffmate.isFFmpeg", false)
 	cfg.Set("ffmate.identifier", client)
@@ -117,6 +121,25 @@ func setupGoyaveConfig() *config.Config {
 			"port": int(viper.GetUint("port")),
 		},
 		"database": map[string]any{},
+		"auth": map[string]any{
+			"basic": map[string]any{
+				"username": "",
+				"password": "",
+			},
+		},
+	}
+
+	// handle basic auth
+	if viper.GetString("basicAuth") != "" {
+		credentials := strings.SplitN(viper.GetString("basicAuth"), ":", 2)
+		if len(credentials) == 2 {
+			c["auth"].(map[string]any)["basic"].(map[string]any)["username"] = credentials[0]
+			c["auth"].(map[string]any)["basic"].(map[string]any)["password"] = credentials[1]
+			cfg.Set("ffmate.isAuth", true)
+		} else {
+			debug.Log.Error("invalid basic-auth configuration")
+			os.Exit(1)
+		}
 	}
 
 	// configure database

@@ -36,6 +36,7 @@ func New(t *testing.T) *testutil.TestServer {
 	cfg.Set("ffmate.isTray", true)
 	cfg.Set("ffmate.isCluster", false)
 	cfg.Set("ffmate.isFFmpeg", false)
+	cfg.Set("ffmate.isAuth", false)
 	cfg.Set("ffmate.debug", "")
 	cfg.Set("ffmate.isDocker", false)
 	cfg.Set("ffmate.isCluster", false)

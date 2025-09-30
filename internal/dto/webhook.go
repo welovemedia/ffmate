@@ -7,7 +7,7 @@ import (
 type WebhookEvent string
 
 const (
-	BatCreated    WebhookEvent = "batch.created"
+	BatchCreated  WebhookEvent = "batch.created"
 	BatchFinished WebhookEvent = "batch.finished"
 
 	TaskCreated WebhookEvent = "task.created"
