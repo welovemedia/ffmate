@@ -103,7 +103,8 @@ func (s *Service) UpdateClientInfo() {
 func (s *Service) saveClient(c *dto.NewClient) {
 	_, err := s.save(c)
 	if err != nil {
-		panic(err)
+		debug.Log.Error("failed to save client: %v", err)
+		return
 	}
 	debug.Client.Debug("client info updated")
 }

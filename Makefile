@@ -21,13 +21,17 @@ lint:
 	golangci-lint run --timeout=5m ./...
 
 dev+sqlite:
-	go run -race main.go server --identifier="sev.moovit.de" --tray=true --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}"
+	go run -race main.go server --identifier="sev.moovit.de" --tray=false --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}"
 
 dev+postgres:
 	go run -race main.go server --identifier="sev.moovit.de" --tray=false --debug="*" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_POSTGRES}"
 
 dev+postgres+2:
 	go run -race main.go server --identifier="sev-2.moovit.de" --tray=false --debug="*" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_POSTGRES}" --port 2999
+
+dev+e2e:
+	rm -rf /tmp/test.db
+	go run -race main.go server --identifier="test.e2e" --tray=false --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="/tmp/test.db"
 
 swagger:
 	swag init --outputTypes go -o internal/docs
