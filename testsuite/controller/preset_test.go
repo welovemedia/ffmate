@@ -43,7 +43,7 @@ func TestPresetCreate(t *testing.T) {
 	preset, _ := testsuite.ParseJSONBody[dto.Preset](response.Body)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/presets")
-	assert.Equal(t, preset.Name, "Test preset", "POST /api/v1/presets")
+	assert.Equal(t, "Test preset", preset.Name, "POST /api/v1/presets")
 	assert.Contains(t, preset.Labels, "test-label-1", "POST /api/v1/presets")
 	assert.Contains(t, preset.Labels, "test-label-2", "POST /api/v1/presets")
 	assert.Contains(t, preset.Labels, "test-label-3", "POST /api/v1/presets")
@@ -118,7 +118,7 @@ func TestPresetUpdate(t *testing.T) {
 	preset, _ = testsuite.ParseJSONBody[dto.Preset](response.Body)
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/presets/{uuid}")
 	assert.Contains(t, preset.Labels, "test-label-4", "POST /api/v1/presets")
-	assert.Equal(t, preset.Name, "Test Updated preset", "GET /api/v1/preset/{uuid}")
+	assert.Equal(t, "Test Updated preset", preset.Name, "GET /api/v1/preset/{uuid}")
 	assert.Equal(t, "Test Updated preset", preset.Name, "GET /api/v1/preset/{uuid}")
 
 	// update with invalid UUID

@@ -59,7 +59,7 @@ func TestWatchfolderCreate(t *testing.T) {
 	watchfolder, _ := testsuite.ParseJSONBody[dto.Watchfolder](response.Body)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/watchfolder")
-	assert.Equal(t, watchfolder.Name, "Test watchfolder", "POST /api/v1/watchfolder")
+	assert.Equal(t, "Test watchfolder", watchfolder.Name, "POST /api/v1/watchfolder")
 	assert.Contains(t, watchfolder.Labels, "test-label-1", "POST /api/v1/watchfolder")
 	assert.Contains(t, watchfolder.Labels, "test-label-2", "POST /api/v1/watchfolder")
 	assert.Contains(t, watchfolder.Labels, "test-label-3", "POST /api/v1/watchfolder")
@@ -136,8 +136,10 @@ func TestWatchfolderUpdate(t *testing.T) {
 	request.Header.Set("Content-Type", "application/json")
 
 	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 	watchfolder, _ = testsuite.ParseJSONBody[dto.Watchfolder](response.Body)
+
 	assert.Equal(t, 200, response.StatusCode, "GET /api/v1/watchfolder/{uuid}")
 	assert.Contains(t, watchfolder.Labels, "test-label-4", "GET /api/v1/watchfolder/{uuid}")
-	assert.Equal(t, watchfolder.Name, "Test Updated watchfolder", "GET /api/v1/watchfolder/{uuid}")
+	assert.Equal(t, "Test Updated watchfolder", watchfolder.Name, "GET /api/v1/watchfolder/{uuid}")
 }

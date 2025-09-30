@@ -14,8 +14,8 @@ import (
 )
 
 type Repository interface {
-	List(int, int) (*[]model.Client, int64, error)
-	Save(*model.Client) (*model.Client, error)
+	List(page int, perPage int) (*[]model.Client, int64, error)
+	Save(client *model.Client) (*model.Client, error)
 	First() (*model.Client, error)
 	Self(identifier string) (*model.Client, error)
 }
@@ -26,16 +26,12 @@ type Service struct {
 	version          string
 }
 
-var identifier string
-
 func NewService(repository *repository.Client, version string, websocketService *websocket.Service) *Service {
 	s := &Service{
 		repository:       repository,
 		version:          version,
 		websocketService: websocketService,
 	}
-
-	identifier = cfg.GetString("ffmate.identifier")
 
 	// periodically update client info
 	s.UpdateClientInfo(true)
@@ -73,7 +69,7 @@ func (s *Service) first() (*model.Client, error) {
 	return s.repository.First()
 }
 
-// Save client initially and start update loop
+// UpdateClientInfo saves client initially and start update loop
 func (s *Service) UpdateClientInfo(startLoop bool) {
 	var labels = make([]model.Label, len(cfg.GetStringSlice("ffmate.labels")))
 	for i, label := range cfg.GetStringSlice("ffmate.labels") {
@@ -102,7 +98,6 @@ func (s *Service) UpdateClientInfo(startLoop bool) {
 			for {
 				time.Sleep(15 * time.Second)
 				s.saveClient(client)
-
 			}
 		}()
 	}

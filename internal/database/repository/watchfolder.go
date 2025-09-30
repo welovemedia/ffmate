@@ -56,10 +56,10 @@ func (r *Watchfolder) Save(watchfolder *model.Watchfolder) (*model.Watchfolder, 
 	db := r.DB.Preload("Labels").Save(watchfolder)
 
 	for i := range watchfolder.Labels {
-		r.DB.FirstOrCreate(&watchfolder.Labels[i], model.Label{Value: watchfolder.Labels[i].Value})
+		_ = r.DB.FirstOrCreate(&watchfolder.Labels[i], model.Label{Value: watchfolder.Labels[i].Value})
 	}
 
-	r.DB.Model(watchfolder).Association("Labels").Replace(watchfolder.Labels)
+	_ = r.DB.Model(watchfolder).Association("Labels").Replace(watchfolder.Labels)
 
 	return watchfolder, db.Error
 }

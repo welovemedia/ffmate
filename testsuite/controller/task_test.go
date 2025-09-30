@@ -47,12 +47,12 @@ func TestTaskCreate(t *testing.T) {
 	task, _ := testsuite.ParseJSONBody[dto.Task](response.Body)
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/tasks")
-	assert.Equal(t, task.Name, "Test task", "POST /api/v1/tasks")
+	assert.Equal(t, "Test task", task.Name, "POST /api/v1/tasks")
 	assert.Contains(t, task.Labels, "test-label-1", "POST /api/v1/tasks")
 	assert.Contains(t, task.Labels, "test-label-2", "POST /api/v1/tasks")
 	assert.Contains(t, task.Labels, "test-label-3", "POST /api/v1/tasks")
 	assert.NotContains(t, task.Labels, "test-label-0", "POST /api/v1/tasks")
-	assert.Equal(t, task.Status, dto.Queued, "POST /api/v1/tasks")
+	assert.Equal(t, dto.Queued, task.Status, "POST /api/v1/tasks")
 	assert.Equal(t, "Test task", task.Name, "POST /api/v1/tasks")
 	assert.Equal(t, dto.Queued, task.Status, "POST /api/v1/tasks")
 	assert.NotNil(t, task.Metadata, "POST /api/v1/tasks")
@@ -182,43 +182,52 @@ func TestTaskNextFromQueue(t *testing.T) {
 	// tasks by label
 	server := testsuite.InitServer(t)
 
-	createTask(t, server)
-	createTask(t, server)
-	createTask(t, server)
+	response := createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
+	response = createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
+	response = createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
 
 	taskRepo := (&repository.Task{DB: server.DB()}).Setup()
 	tasks, err := taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
 	assert.NotNil(t, tasks, "Find next tasks by labels")
 	assert.NoError(t, err, tasks, "Find next tasks by labels")
-	assert.Equal(t, 3, len(*tasks), "Find next tasks by labels")
+	assert.Len(t, *tasks, 3, "Find next tasks by labels")
 
 	// no matching tasks
 	cfg.Set("ffmate.labels", []string{"no-labels"})
 	server = testsuite.InitServer(t)
 
-	createTask(t, server)
-	createTask(t, server)
-	createTask(t, server)
+	response = createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
+	response = createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
+	response = createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
 
 	taskRepo = (&repository.Task{DB: server.DB()}).Setup()
-	tasks, err = taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
+	tasks, _ = taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
 	assert.Nil(t, tasks, "Find next tasks by labels")
 
 	// 1/3 matching tasks
-	createTask(t, server)
-	createTask(t, server)
+	response = createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
+	response = createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
 
 	b := *newTask
 	b.Labels = append(b.Labels, "no-labels")
 	body, _ := json.Marshal(b)
 	request := testsuite.NewRequest(http.MethodPost, "/api/v1/tasks", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
-	response := server.TestRequest(request)
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/tasks")
 
 	taskRepo = (&repository.Task{DB: server.DB()}).Setup()
 	tasks, err = taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
 	assert.NotNil(t, tasks, "Find next tasks by labels")
 	assert.NoError(t, err, tasks, "Find next tasks by labels")
-	assert.Equal(t, 1, len(*tasks), "Find next tasks by labels")
+	assert.Len(t, *tasks, 1, "Find next tasks by labels")
 }

@@ -57,7 +57,7 @@ func (m *Task) ToDTO() *dto.Task {
 		Progress:  m.Progress,
 		Remaining: m.Remaining,
 
-		Labels: labels,
+		Labels:  labels,
 		Retries: m.Retries,
 		Retried: m.Retried,
 

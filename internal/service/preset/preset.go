@@ -15,9 +15,9 @@ import (
 
 type Repository interface {
 	List(page int, perPage int) (*[]model.Preset, int64, error)
-	Save(*model.Preset) (*model.Preset, error)
-	First(string) (*model.Preset, error)
-	Delete(*model.Preset) error
+	Save(preset *model.Preset) (*model.Preset, error)
+	First(uuid string) (*model.Preset, error)
+	Delete(preset *model.Preset) error
 	Count() (int64, error)
 }
 

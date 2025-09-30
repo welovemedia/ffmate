@@ -56,10 +56,10 @@ func (r *Task) Add(newTask *model.Task) (*model.Task, error) {
 	db := r.DB.Preload("Labels").Create(newTask)
 
 	for i := range newTask.Labels {
-		r.DB.FirstOrCreate(&newTask.Labels[i], model.Label{Value: newTask.Labels[i].Value})
+		_ = r.DB.FirstOrCreate(&newTask.Labels[i], model.Label{Value: newTask.Labels[i].Value})
 	}
 
-	r.DB.Model(newTask).Association("Labels").Replace(newTask.Labels)
+	_ = r.DB.Model(newTask).Association("Labels").Replace(newTask.Labels)
 
 	if db.Error != nil {
 		return newTask, db.Error
@@ -162,10 +162,11 @@ func (r *Task) CountAllStatus() (queued, running, doneSuccessful, doneError, don
 /**
  * Processing related methods
  */
-func (m *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, error) {
+
+func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, error) {
 	var tasks []model.Task
 
-	err := m.DB.Transaction(func(tx *gorm.DB) error {
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		// Subquery: task IDs with at least one overlapping label
 		sub := tx.Model(&model.Task{}).
 			Select("DISTINCT tasks.id").

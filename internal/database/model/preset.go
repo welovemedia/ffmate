@@ -44,7 +44,7 @@ func (m *Preset) ToDTO() *dto.Preset {
 
 		Webhooks: m.Webhooks,
 
-		Labels: labels,
+		Labels:  labels,
 		Retries: m.Retries,
 
 		PreProcessing:  m.PreProcessing,

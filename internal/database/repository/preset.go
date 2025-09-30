@@ -46,10 +46,10 @@ func (r *Preset) Save(preset *model.Preset) (*model.Preset, error) {
 	db := r.DB.Save(preset)
 
 	for i := range preset.Labels {
-		r.DB.FirstOrCreate(&preset.Labels[i], model.Label{Value: preset.Labels[i].Value})
+		_ = r.DB.FirstOrCreate(&preset.Labels[i], model.Label{Value: preset.Labels[i].Value})
 	}
 
-	r.DB.Model(preset).Association("Labels").Replace(preset.Labels)
+	_ = r.DB.Model(preset).Association("Labels").Replace(preset.Labels)
 
 	return preset, db.Error
 }

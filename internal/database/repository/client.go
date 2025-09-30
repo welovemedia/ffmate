@@ -31,10 +31,10 @@ func (r *Client) Save(newClient *model.Client) (*model.Client, error) {
 	}
 
 	for i := range newClient.Labels {
-		r.DB.FirstOrCreate(&newClient.Labels[i], model.Label{Value: newClient.Labels[i].Value})
+		_ = r.DB.FirstOrCreate(&newClient.Labels[i], model.Label{Value: newClient.Labels[i].Value})
 	}
 
-	r.DB.Model(newClient).Association("Labels").Replace(newClient.Labels)
+	_ = r.DB.Model(newClient).Association("Labels").Replace(newClient.Labels)
 
 	return newClient, nil
 }
