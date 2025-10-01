@@ -19,7 +19,7 @@ lint:
 	golangci-lint run --timeout=5m ./...
 
 dev+sqlite:
-	go run -race main.go server --identifier="sev.moovit.de" --tray=true --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}" --labels="dev"
+	go run -race main.go server --identifier="sev.moovit.de" --tray=true --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}" --labels="dev" --port 2999
 
 dev+sqlite+memory:
 	go run -race main.go server --identifier="sev.moovit.de" --tray=false --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database=":memory:"
