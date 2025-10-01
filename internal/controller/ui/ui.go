@@ -19,7 +19,7 @@ func (c *Controller) Init(server *goyave.Server) {
 	debug.Controller.Debug("registered ui controller")
 }
 
-//go:embed all:ui-build/*
+//go:embed ui-build
 var uiEmbed embed.FS
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
