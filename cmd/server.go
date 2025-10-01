@@ -56,9 +56,9 @@ func init() {
 }
 
 func server(_ *cobra.Command, _ []string) {
-	// setup database paths
+	// resolve database paths if needed
 	dbPath := viper.GetString("database")
-	if !strings.Contains(dbPath, ":memory:") {
+	if !strings.HasPrefix(dbPath, "postgresql://") && !strings.Contains(dbPath, ":memory:") {
 		if strings.HasPrefix(dbPath, "~") {
 			dbPath = filepath.Join(os.Getenv("HOME"), dbPath[1:])
 		}
