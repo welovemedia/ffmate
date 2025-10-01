@@ -183,7 +183,8 @@ type fileState struct {
 func (s *Service) Process() {
 	watchfolders, _, err := s.List(-1, -1)
 	if err != nil {
-		panic(err)
+		debug.Log.Error("failed to list watchfolder: %v", err)
+		os.Exit(1)
 	}
 
 	for _, watchfolder := range *watchfolders {

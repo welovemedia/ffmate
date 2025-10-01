@@ -35,7 +35,8 @@ func Init(options goyave.Options) {
 	options.Logger = nil
 	server, err := goyave.New(options)
 	if err != nil {
-		panic(err)
+		debug.Log.Error("failed to initiaize goyave: %v", err)
+		os.Exit(1)
 	}
 
 	// give db info for slow database connections

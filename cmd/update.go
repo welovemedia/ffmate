@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
 	updateSvc "github.com/welovemedia/ffmate/v2/internal/service/update"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/config"
@@ -32,7 +33,8 @@ func update(_ *cobra.Command, _ []string) {
 	})
 
 	if err != nil {
-		panic(err)
+		debug.Log.Error("failed to initialize ffmate: %v", err)
+		os.Exit(1)
 	}
 
 	// register update service

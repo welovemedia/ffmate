@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -55,7 +54,6 @@ func TestSetupGoyaveConfig_Postgres(t *testing.T) {
 }
 
 func TestSetupGoyaveConfig_SQLite(t *testing.T) {
-	home, _ := os.UserHomeDir()
 	viper.Set("database", "~/test.sqlite")
 	viper.Set("app.name", "ffmate")
 	viper.Set("app.version", "1.2.3")
@@ -64,5 +62,4 @@ func TestSetupGoyaveConfig_SQLite(t *testing.T) {
 	cfg := setupGoyaveConfig()
 
 	assert.Equal(t, "sqlite3", cfg.Get("database.connection"))
-	assert.Equal(t, filepath.Join(home, "test.sqlite"), cfg.Get("database.name"))
 }

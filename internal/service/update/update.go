@@ -8,6 +8,7 @@ import (
 
 	"github.com/sanbornm/go-selfupdate/selfupdate"
 	"github.com/spf13/viper"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/service"
 )
 
@@ -74,7 +75,8 @@ func (s *Service) UpdateAvailable() (string, bool, error) {
 func (s *Service) isHomebrew() bool {
 	exePath, err := os.Executable()
 	if err != nil {
-		panic(err)
+		debug.Log.Error("failed to determine if binary is installed by homebre: %v", err)
+		os.Exit(1)
 	}
 
 	exePath, _ = filepath.EvalSymlinks(exePath)

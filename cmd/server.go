@@ -97,7 +97,8 @@ func setupConfig() {
 	if client == "" {
 		client, err = os.Hostname()
 		if err != nil {
-			panic(err)
+			debug.Log.Error("failed to determine hostname: %v", err)
+			os.Exit(1)
 		}
 	}
 
@@ -126,15 +127,6 @@ func setupConfig() {
 
 // create a temporary json config and pass it to goyave
 func setupGoyaveConfig() *config.Config {
-	// replace possible ~ with user home folder
-	if strings.HasPrefix(viper.GetString("database"), "~") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			panic(err)
-		}
-		viper.Set("database", strings.Replace(viper.GetString("database"), "~", home, 1))
-	}
-
 	c := map[string]any{
 		"app": map[string]any{
 			"name":    viper.GetString("app.name"),
@@ -172,7 +164,8 @@ func setupGoyaveConfig() *config.Config {
 		// parse postgresl uri to url
 		url, err := url.Parse(viper.GetString("database"))
 		if err != nil {
-			panic(err)
+			debug.Log.Error("failed to parse database uri: %v", err)
+			os.Exit(1)
 		}
 
 		c["database"].(map[string]any)["connection"] = "postgres"
@@ -183,7 +176,8 @@ func setupGoyaveConfig() *config.Config {
 			if port, err := strconv.Atoi(url.Port()); err == nil {
 				c["database"].(map[string]any)["port"] = port
 			} else {
-				panic(err)
+				debug.Log.Error("failed to convert database port to int: %v", err)
+				os.Exit(1)
 			}
 		}
 		c["database"].(map[string]any)["username"] = url.User.Username()
@@ -199,13 +193,15 @@ func setupGoyaveConfig() *config.Config {
 	// marshal config to json
 	b, err := json.Marshal(c)
 	if err != nil {
-		panic(err)
+		debug.Log.Error("failed to marshal the config: %v", err)
+		os.Exit(1)
 	}
 
 	// init config from json string
 	cfg, err := config.LoadJSON(string(b))
 	if err != nil {
-		panic(err)
+		debug.Log.Error("failed to load the config: %v", err)
+		os.Exit(1)
 	}
 
 	return cfg
