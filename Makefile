@@ -60,7 +60,7 @@ build+linux:
 
 build+windows:
 	CGO_ENABLED=1 GOOS=windows GOARCH=arm64 go build -ldflags "-s -w" -o _bin/windows-arm64.exe main.go
-	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o _bin/windows-amd64.exe main.go
+	# CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o _bin/windows-amd64.exe main.go
 
 build+app: build
 	cp _bin/darwin-arm64 _app/ffmate_arm64/ffmate.app/Contents/MacOS/ffmate
