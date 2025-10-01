@@ -4,6 +4,8 @@ github.com/Code-Hex/uniseg v0.2.0 h1:QB/2UJFvEuRLSZqe+Sb1XQBTWjqGVbZoC6oSWzQRKws
 github.com/Code-Hex/uniseg v0.2.0/go.mod h1:/ndS2tP+X1lk2HUOcXWGtVTxVq0lWilwgMa4CbzdRsg=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
+github.com/YoSev/goyave/v5 v5.0.0-20251001205406-842ec3c621ef h1:Hqml38z+B+GG0qjCRj3RyQToYXCgfOCzZEAw//sYasg=
+github.com/YoSev/goyave/v5 v5.0.0-20251001205406-842ec3c621ef/go.mod h1:/OM02v48tCYOpJSofWv83I0vQV9rvvMDcnHzcIFwI8s=
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -203,5 +205,3 @@ gorm.io/gorm v1.31.0 h1:0VlycGreVhK7RF/Bwt51Fk8v0xLiiiFdbGDPIZQ7mJY=
 gorm.io/gorm v1.31.0/go.mod h1:XyQVbO2k6YkOis7C2437jSit3SsDK72s7n7rsSHd+Gs=
 goyave.dev/copier v0.4.4 h1:yK+2h1udZVDJXzwNLMv7PCxfb7XM94awBniL2LqShAw=
 goyave.dev/copier v0.4.4/go.mod h1:zjuGXlfkYsx9cTpQ9uL0304/ouASGCrrfJ5hpZmtxpM=
-goyave.dev/goyave/v5 v5.9.0 h1:Jcum1/lxDhVOcgMJK/KGfNmRsBmwwJQAA0uv9d9XmXc=
-goyave.dev/goyave/v5 v5.9.0/go.mod h1:/OM02v48tCYOpJSofWv83I0vQV9rvvMDcnHzcIFwI8s=
