@@ -60,7 +60,12 @@ func (s *Service) save(newClient *model.Client) (*model.Client, error) {
 	}
 
 	nc, err := s.repository.Save(c)
-	s.websocketService.Broadcast(websocket.ClientUpdated, nc.ToDTO())
+	if err != nil {
+		debug.Task.Error("failed to save client in database: %v", err)
+	}
+	if nc != nil {
+		s.websocketService.Broadcast(websocket.ClientUpdated, nc.ToDTO())
+	}
 
 	return c, err
 }
