@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/welovemedia/ffmate/v2/internal"
 	"github.com/welovemedia/ffmate/v2/internal/cfg"
+	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/yosev/debugo"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/config"
@@ -54,6 +56,23 @@ func init() {
 }
 
 func server(_ *cobra.Command, _ []string) {
+	// setup database paths
+	dbPath := viper.GetString("database")
+	if !strings.Contains(dbPath, ":memory:") {
+		if strings.HasPrefix(dbPath, "~") {
+			dbPath = filepath.Join(os.Getenv("HOME"), dbPath[1:])
+		}
+		if strings.HasPrefix(dbPath, "%APPDATA%") {
+			dbPath = strings.ReplaceAll(dbPath, "%APPDATA%", os.Getenv("APPDATA"))
+		}
+		if err := os.MkdirAll(filepath.Dir(dbPath), os.ModePerm); err != nil {
+			debug.Log.Error("failed to create database folder (path: %s): %v", filepath.Dir(dbPath), err)
+			os.Exit(1)
+		} else {
+			viper.Set("database", dbPath)
+		}
+	}
+
 	setupConfig()
 
 	// init goyave with config
