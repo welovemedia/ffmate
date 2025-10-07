@@ -17,11 +17,25 @@ import (
 )
 
 var newPreset = &dto.NewPreset{
-	Name:             "Test preset",
-	Description:      "Test desc",
-	Command:          "-y",
-	Priority:         100,
-	OutputFile:       "/dev/null",
+	Name:        "Test preset",
+	Description: "Test desc",
+	Command:     "-y",
+	Priority:    100,
+	OutputFile:  "/dev/null",
+	PreProcessing: &dto.NewPrePostProcessing{
+		SidecarPath: "/dev/null",
+		ScriptPath:  "/dev/null",
+	},
+	PostProcessing: &dto.NewPrePostProcessing{
+		SidecarPath: "/dev/null",
+		ScriptPath:  "/dev/null",
+	},
+	Webhooks: &dto.DirectWebhooks{
+		dto.NewWebhook{
+			Event: dto.TaskCreated,
+			URL:   "https://example.com",
+		},
+	},
 	GlobalPresetName: "moo",
 }
 
@@ -43,6 +57,14 @@ func TestPresetCreate(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/presets")
 	assert.Equal(t, "Test preset", preset.Name, "POST /api/v1/presets")
+	assert.Len(t, *preset.Webhooks, 1, "POST /api/v1/presets")
+	assert.NotNil(t, preset.PreProcessing, "POST /api/v1/presets")
+	assert.NotNil(t, preset.PostProcessing, "POST /api/v1/presets")
+	assert.False(t, preset.PreProcessing.ImportSidecar, "POST /api/v1/presets")
+	assert.Equal(t, preset.PreProcessing.SidecarPath, "/dev/null", "POST /api/v1/presets")
+	assert.Equal(t, preset.PreProcessing.ScriptPath, "/dev/null", "POST /api/v1/presets")
+	assert.Equal(t, preset.PostProcessing.SidecarPath, "/dev/null", "POST /api/v1/presets")
+	assert.Equal(t, preset.PostProcessing.ScriptPath, "/dev/null", "POST /api/v1/presets")
 	assert.NotEmpty(t, preset.UUID, "POST /api/v1/presets")
 }
 

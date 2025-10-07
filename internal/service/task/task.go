@@ -228,6 +228,33 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 		Webhooks:         newTask.Webhooks,
 		ClientIdentifier: cfg.GetString("ffmate.identifier"),
 	}
+
+	if newTask.PreProcessing != nil {
+		task.PreProcessing = &dto.PrePostProcessing{
+			ScriptPath: &dto.RawResolved{
+				Raw:      newTask.PreProcessing.ScriptPath,
+				Resolved: "",
+			},
+			SidecarPath: &dto.RawResolved{
+				Raw:      newTask.PreProcessing.SidecarPath,
+				Resolved: "",
+			},
+			ImportSidecar: newTask.PreProcessing.ImportSidecar,
+		}
+	}
+	if newTask.PostProcessing != nil {
+		task.PostProcessing = &dto.PrePostProcessing{
+			ScriptPath: &dto.RawResolved{
+				Raw:      newTask.PostProcessing.ScriptPath,
+				Resolved: "",
+			},
+			SidecarPath: &dto.RawResolved{
+				Raw:      newTask.PostProcessing.SidecarPath,
+				Resolved: "",
+			},
+		}
+	}
+
 	w, err := s.repository.Add(task)
 	debug.Task.Info("created task (uuid: %s)", w.UUID)
 
