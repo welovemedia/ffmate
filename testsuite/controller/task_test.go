@@ -25,6 +25,21 @@ var newTask = &dto.NewTask{
 	Labels:     []string{"test-label-1", "test-label-2", "test-label-3"},
 	Retries:    5,
 	OutputFile: "/dev/null",
+	PreProcessing: &dto.NewPrePostProcessing{
+		SidecarPath:   "/dev/null",
+		ScriptPath:    "/dev/null",
+		ImportSidecar: true,
+	},
+	PostProcessing: &dto.NewPrePostProcessing{
+		SidecarPath: "/dev/null",
+		ScriptPath:  "/dev/null",
+	},
+	Webhooks: &dto.DirectWebhooks{
+		dto.NewWebhook{
+			Event: dto.TaskCreated,
+			URL:   "https://example.com",
+		},
+	},
 	Metadata: &dto.MetadataMap{
 		"foo": "bar",
 	},
@@ -59,6 +74,14 @@ func TestTaskCreate(t *testing.T) {
 	assert.NotEmpty(t, task.UUID, "POST /api/v1/tasks")
 	assert.InDelta(t, 5, task.Retries, 0, "POST /api/v1/tasks")
 	assert.InDelta(t, 0, task.Retried, 0, "POST /api/v1/tasks")
+	assert.Len(t, *task.Webhooks, 1, "POST /api/v1/task")
+	assert.NotNil(t, task.PreProcessing, "POST /api/v1/tasks")
+	assert.NotNil(t, task.PostProcessing, "POST /api/v1/tasks")
+	assert.True(t, task.PreProcessing.ImportSidecar, "POST /api/v1/tasks")
+	assert.Equal(t, task.PreProcessing.SidecarPath.Raw, "/dev/null", "POST /api/v1/tasks")
+	assert.Equal(t, task.PreProcessing.ScriptPath.Raw, "/dev/null", "POST /api/v1/tasks")
+	assert.Equal(t, task.PostProcessing.SidecarPath.Raw, "/dev/null", "POST /api/v1/tasks")
+	assert.Equal(t, task.PostProcessing.ScriptPath.Raw, "/dev/null", "POST /api/v1/tasks")
 }
 
 func TestTaskList(t *testing.T) {

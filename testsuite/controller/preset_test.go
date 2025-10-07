@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/uuid"
@@ -16,19 +17,31 @@ import (
 )
 
 var newPreset = &dto.NewPreset{
-	Name:             "Test preset",
-	Description:      "Test desc",
-	Command:          "-y",
-	Priority:         100,
-	Retries:          5,
-	Labels:           []string{"test-label-1", "test-label-2", "test-label-3"},
-	OutputFile:       "/dev/null",
+	Name:        "Test preset",
+	Description: "Test desc",
+	Command:     "-y",
+	Priority:    100,
+	OutputFile:  "/dev/null",
+	PreProcessing: &dto.NewPrePostProcessing{
+		SidecarPath: "/dev/null",
+		ScriptPath:  "/dev/null",
+	},
+	PostProcessing: &dto.NewPrePostProcessing{
+		SidecarPath: "/dev/null",
+		ScriptPath:  "/dev/null",
+	},
+	Webhooks: &dto.DirectWebhooks{
+		dto.NewWebhook{
+			Event: dto.TaskCreated,
+			URL:   "https://example.com",
+		},
+	},
 	GlobalPresetName: "moo",
 }
 
 func createPreset(t *testing.T, server *testutil.TestServer) *http.Response {
 	body, _ := json.Marshal(newPreset)
-	request := testsuite.NewRequest(http.MethodPost, "/api/v1/presets", bytes.NewReader(body))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/presets", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/presets")
@@ -44,12 +57,15 @@ func TestPresetCreate(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, response.StatusCode, "POST /api/v1/presets")
 	assert.Equal(t, "Test preset", preset.Name, "POST /api/v1/presets")
-	assert.Contains(t, preset.Labels, "test-label-1", "POST /api/v1/presets")
-	assert.Contains(t, preset.Labels, "test-label-2", "POST /api/v1/presets")
-	assert.Contains(t, preset.Labels, "test-label-3", "POST /api/v1/presets")
-	assert.NotContains(t, preset.Labels, "test-label-0", "POST /api/v1/presets")
+	assert.Len(t, *preset.Webhooks, 1, "POST /api/v1/presets")
+	assert.NotNil(t, preset.PreProcessing, "POST /api/v1/presets")
+	assert.NotNil(t, preset.PostProcessing, "POST /api/v1/presets")
+	assert.False(t, preset.PreProcessing.ImportSidecar, "POST /api/v1/presets")
+	assert.Equal(t, preset.PreProcessing.SidecarPath, "/dev/null", "POST /api/v1/presets")
+	assert.Equal(t, preset.PreProcessing.ScriptPath, "/dev/null", "POST /api/v1/presets")
+	assert.Equal(t, preset.PostProcessing.SidecarPath, "/dev/null", "POST /api/v1/presets")
+	assert.Equal(t, preset.PostProcessing.ScriptPath, "/dev/null", "POST /api/v1/presets")
 	assert.NotEmpty(t, preset.UUID, "POST /api/v1/presets")
-	assert.InDelta(t, 5, preset.Retries, 0, "POST /api/v1/presets")
 }
 
 func TestPresetList(t *testing.T) {
