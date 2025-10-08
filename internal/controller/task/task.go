@@ -14,7 +14,7 @@ import (
 )
 
 type Service interface {
-	List(page int, perPage int) (*[]model.Task, int64, error)
+	List(page int, perPage int, status dto.TaskStatus) (*[]model.Task, int64, error)
 	GetBatch(uuid string, page int, perPage int) (*dto.Batch, int64, error)
 	Add(task *dto.NewTask, source dto.TaskSource, batch string) (*model.Task, error)
 	AddBatch(btach *dto.NewBatch) (*dto.Batch, error)
@@ -37,8 +37,8 @@ func (c *Controller) Init(server *goyave.Server) {
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
 	router.Delete("/tasks/{uuid}", c.delete)
-	router.Post("/tasks", c.add).ValidateBody(c.NewTaskRequest)
-	router.Get("/tasks", c.list).ValidateQuery(validate.PaginationRequest)
+	router.Post("/tasks", c.add).ValidateBody(NewTaskRequest)
+	router.Get("/tasks", c.list).ValidateQuery(validate.PaginationRequestWithTaskFilter)
 	router.Get("/tasks/{uuid}", c.get)
 	router.Patch("/tasks/{uuid}/cancel", c.cancel)
 	router.Patch("/tasks/{uuid}/restart", c.restart)
@@ -75,9 +75,9 @@ func (c *Controller) delete(response *goyave.Response, request *goyave.Request) 
 // @Success 200 {object} []dto.Task
 // @Router /tasks [get]
 func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
-	query := typeutil.MustConvert[*dto.Pagination](request.Query)
+	paginationWithFilter := typeutil.MustConvert[*dto.PaginationWithFilter](request.Query)
 
-	tasks, total, err := c.taskService.List(query.Page.Default(0), query.PerPage.Default(100))
+	tasks, total, err := c.taskService.List(paginationWithFilter.Page.Default(0), paginationWithFilter.PerPage.Default(100), paginationWithFilter.Status.Default(dto.All))
 	if err != nil {
 		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/tasks#monitoring-a-task"))
 		return

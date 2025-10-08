@@ -11,3 +11,19 @@ func PaginationRequest(_ *goyave.Request) v.RuleSet {
 		{Path: "perPage", Rules: v.List{v.Int(), v.Between(1, 100)}},
 	}
 }
+
+func PaginationRequestWithTaskFilter(_ *goyave.Request) v.RuleSet {
+	return v.RuleSet{
+		{Path: "page", Rules: v.List{
+			v.Int(),
+			v.Min(0),
+		}},
+		{Path: "perPage", Rules: v.List{
+			v.Int(),
+			v.Between(1, 100),
+		}},
+		{Path: "filter", Rules: v.List{
+			v.String(),
+		}},
+	}
+}

@@ -23,7 +23,7 @@ import (
 )
 
 type Repository interface {
-	List(page int, perPage int) (*[]model.Task, int64, error)
+	List(page int, perPage int, status dto.TaskStatus) (*[]model.Task, int64, error)
 	ListByBatch(uuid string, page int, perPage int) (*[]model.Task, int64, error)
 	Add(task *model.Task) (*model.Task, error)
 	Update(task *model.Task) (*model.Task, error)
@@ -207,8 +207,8 @@ func (s *Service) Restart(uuid string) (*model.Task, error) {
 	return s.Update(w)
 }
 
-func (s *Service) List(page int, perPage int) (*[]model.Task, int64, error) {
-	return s.repository.List(page, perPage)
+func (s *Service) List(page int, perPage int, status dto.TaskStatus) (*[]model.Task, int64, error) {
+	return s.repository.List(page, perPage, status)
 }
 
 func (s *Service) GetBatch(uuid string, page int, perPage int) (*dto.Batch, int64, error) {

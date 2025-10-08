@@ -6,7 +6,7 @@ import (
 	v "goyave.dev/goyave/v5/validation"
 )
 
-func (c *Controller) NewTaskRequest(_ *goyave.Request) v.RuleSet {
+func NewTaskRequest(_ *goyave.Request) v.RuleSet {
 	return v.RuleSet{
 		{Path: v.CurrentElement, Rules: v.List{v.Object()}},
 		{Path: "name", Rules: v.List{v.String(), v.Required()}},
@@ -62,5 +62,11 @@ func (c *Controller) NewTaskRequest(_ *goyave.Request) v.RuleSet {
 		{Path: "postProcessing", Rules: v.List{v.Object()}},
 		{Path: "postProcessing.scriptPath", Rules: v.List{v.String()}},
 		{Path: "postProcessing.sidecarPath", Rules: v.List{v.String()}},
+	}
+}
+
+func NewFilterRequest(_ *goyave.Request) v.RuleSet {
+	return v.RuleSet{
+		{Path: "status", Rules: v.List{v.String()}},
 	}
 }
