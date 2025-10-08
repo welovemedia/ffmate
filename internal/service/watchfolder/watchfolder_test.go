@@ -190,7 +190,7 @@ func TestCreateTask_CreatesTaskWithMetadata(t *testing.T) {
 
 	// Query created tasks
 	taskRepo := &repository.Task{DB: server.DB()}
-	tasks, _, err := taskRepo.List(0, 10)
+	tasks, _, err := taskRepo.List(0, 10, dto.All)
 	assert.NoError(t, err, "listing tasks should not error")
 	if assert.NotNil(t, tasks, "tasks should not be nil") && assert.GreaterOrEqual(t, len(*tasks), 1, "at least one task should exist") {
 		created := (*tasks)[0]

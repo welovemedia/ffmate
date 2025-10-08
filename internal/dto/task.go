@@ -17,6 +17,7 @@ const (
 	DoneSuccessful TaskStatus = "DONE_SUCCESSFUL"
 	DoneError      TaskStatus = "DONE_ERROR"
 	DoneCanceled   TaskStatus = "DONE_CANCELED"
+	All            TaskStatus = "ALL"
 )
 
 type NewTask struct {

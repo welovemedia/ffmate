@@ -38,9 +38,12 @@ func (r *Task) Delete(w *model.Task) error {
 	return r.DB.Error
 }
 
-func (r *Task) List(page int, perPage int) (*[]model.Task, int64, error) {
+func (r *Task) List(page int, perPage int, status dto.TaskStatus) (*[]model.Task, int64, error) {
 	var tasks = &[]model.Task{}
 	tx := r.DB.Preload("Client").Preload("Labels").Order("created_at DESC")
+	if status != dto.All {
+		tx = tx.Where("status = ?", status)
+	}
 	d := database.NewPaginator(tx, page+1, perPage, tasks)
 	err := d.Find()
 	return d.Records, d.Total, err
