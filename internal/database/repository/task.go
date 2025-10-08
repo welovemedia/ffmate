@@ -2,6 +2,8 @@ package repository
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/welovemedia/ffmate/v2/internal/database/model"
@@ -167,18 +169,20 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 	var tasks []model.Task
 
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		// Subquery: task IDs with at least one overlapping label
+		whereSQL, whereArgs := buildLabelFilterSQL(clientLabels)
+
 		sub := tx.Model(&model.Task{}).
 			Select("DISTINCT tasks.id").
-			Joins("JOIN task_labels tl ON tl.task_id = tasks.id").
-			Joins("JOIN labels l ON l.id = tl.label_id").
+			Joins("LEFT JOIN task_labels tl ON tl.task_id = tasks.id").
+			Joins("LEFT JOIN labels l ON l.id = tl.label_id").
 			Where("tasks.status = ?", dto.Queued).
-			Where("l.value IN ?", clientLabels).
+			Where(whereSQL, whereArgs...).
 			Order("tasks.priority DESC, tasks.created_at ASC").
 			Limit(amount)
 
-		// Load tasks
-		if err := tx.Preload("Labels").Where("tasks.id IN (?)", sub).Find(&tasks).Error; err != nil {
+		if err := tx.Preload("Labels").
+			Where("tasks.id IN (?)", sub).
+			Find(&tasks).Error; err != nil {
 			return err
 		}
 
@@ -186,7 +190,6 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 			return gorm.ErrRecordNotFound
 		}
 
-		// Update selected tasks to RUNNING
 		ids := make([]uint, len(tasks))
 		for i, t := range tasks {
 			ids[i] = t.ID
@@ -206,6 +209,33 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 	}
 
 	return &tasks, err
+}
+
+// buildLabelFilterSQL generates the SQL WHERE clause and args for filtering
+// queued tasks by client labels, respecting wildcard labels stored in the DB.
+//
+// Rules:
+// - If clientLabels is empty → only unlabeled tasks are eligible (l.id IS NULL)
+// - If task has no labels → always eligible
+// - If both have labels → must match at least one pattern (clientLabel LIKE REPLACE(l.value, '*', '%'))
+func buildLabelFilterSQL(clientLabels dto.Labels) (string, []interface{}) {
+	if len(clientLabels) == 0 {
+		return "l.id IS NULL", nil
+	}
+
+	// Build "clientLabel LIKE REPLACE(l.value, '*', '%')" for each
+	labelConds := make([]string, len(clientLabels))
+	args := make([]interface{}, len(clientLabels))
+
+	for i, lbl := range clientLabels {
+		labelConds[i] = "? LIKE REPLACE(l.value, '*', '%')"
+		args[i] = lbl
+	}
+
+	// Allow tasks with no labels (l.id IS NULL) or any matching label
+	sql := fmt.Sprintf("(l.id IS NULL OR (%s))", strings.Join(labelConds, " OR "))
+
+	return sql, args
 }
 
 /**

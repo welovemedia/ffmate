@@ -47,6 +47,9 @@ func (c *Controller) NewTaskRequest(_ *goyave.Request) v.RuleSet {
 
 		{Path: "metadata", Rules: v.List{v.Object()}},
 
+		{Path: "labels", Rules: v.List{v.Array(), v.Max(5)}},
+		{Path: "labels[]", Rules: v.List{v.String(), v.Min(1), v.Max(32)}},
+
 		{Path: "webhooks", Rules: v.List{v.Array()}},
 		{Path: "webhooks[].url", Rules: v.List{validate.PreserveValue(v.URL()), v.Required()}},
 		{Path: "webhooks[].event", Rules: v.List{v.String(), v.Required()}},
