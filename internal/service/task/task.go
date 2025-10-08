@@ -271,7 +271,7 @@ func (s *Service) Add(newTask *dto.NewTask, source dto.TaskSource, batch string)
 		}
 
 		// apply labels from preset if no direct labels are set
-		if len(newTask.Labels) == 0 {
+		if len(newTask.Labels) == 0 && len(preset.Labels) > 0 {
 			var labels = make(dto.Labels, len(preset.Labels))
 			for i, label := range preset.Labels {
 				labels[i] = label.Value

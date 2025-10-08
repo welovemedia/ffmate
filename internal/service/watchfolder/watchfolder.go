@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -289,18 +291,32 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 	}
 }
 
-// check if watchfolder and user labels have at least one overlap
+// hasLabelOverlap checks if any task label matches any client label.
+// Task labels (a) can contain '*' wildcards, which are converted to regex '.*'.
+// Client labels (b) are literal strings.
 func hasLabelOverlap(a []model.Label, b []string) bool {
-	set := make(map[string]struct{}, len(a))
-	for _, s := range a {
-		set[s.Value] = struct{}{}
+	if len(a) == 0 {
+		return true
+	} else if len(b) == 0 {
+		return false
 	}
 
-	for _, s := range b {
-		if _, ok := set[s]; ok {
+	for _, taskLabel := range a {
+		pattern := taskLabel.Value
+
+		regexPattern := "^" + strings.ReplaceAll(regexp.QuoteMeta(pattern), "\\*", ".*") + "$"
+		re, err := regexp.Compile(regexPattern)
+		if err != nil {
+			continue
+		}
+
+		if slices.ContainsFunc(b, func(clientLabel string) bool {
+			return re.MatchString(clientLabel)
+		}) {
 			return true
 		}
 	}
+
 	return false
 }
 
