@@ -147,9 +147,8 @@ func Init(options goyave.Options) {
 				const interval = 3 * time.Hour
 				for {
 					telemetrySvc.SendTelemetry(startTime, false, startup)
-					next := time.Now().Truncate(interval).Add(interval)
 					startup = false
-					time.Sleep(time.Until(next))
+					time.Sleep(interval)
 				}
 			}()
 		})
