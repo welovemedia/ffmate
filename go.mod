@@ -10,7 +10,7 @@ require (
 	github.com/sanbornm/go-selfupdate v0.0.0-20230714125711-e1c03e3d6ac7
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
-	github.com/yosev/debugo v0.6.0
+	github.com/yosev/debugo v0.6.3
 	gorm.io/gorm v1.31.0
 	goyave.dev/goyave/v5 v5.9.0
 )
