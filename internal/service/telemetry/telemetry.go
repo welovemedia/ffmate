@@ -52,6 +52,7 @@ func (s *Service) SendTelemetry(runtimeDuration time.Time, isShuttingDown bool, 
 	resp, err := client.Do(req)
 	if err != nil {
 		debug.Telemetry.Error("failed to send telemetry data: %+v", err)
+		return
 	}
 	defer resp.Body.Close() // nolint:errcheck
 }
