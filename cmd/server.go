@@ -161,7 +161,7 @@ func setupGoyaveConfig() *config.Config {
 		if password, ok := url.User.Password(); ok {
 			c["database"].(map[string]any)["password"] = password
 		}
-		c["database"].(map[string]any)["options"] = "?" + url.RawQuery
+		c["database"].(map[string]any)["options"] = url.RawQuery
 	} else {
 		c["database"].(map[string]any)["connection"] = "sqlite3"
 		c["database"].(map[string]any)["name"] = viper.GetString("database")
