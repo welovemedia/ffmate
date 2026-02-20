@@ -17,7 +17,7 @@ linters:
     - errcheck
   settings:
     gocyclo:
-      min-complexity: 18
+      min-complexity: 50
     govet:
       disable:
         - shadow

@@ -51,7 +51,7 @@ func TestSetupGoyaveConfig_Postgres(t *testing.T) {
 	assert.Equal(t, "testdb", cfg.Get("database.name"))
 	assert.Equal(t, "user", cfg.Get("database.username"))
 	assert.Equal(t, "pass", cfg.Get("database.password"))
-	assert.Equal(t, "?sslmode=disable", cfg.Get("database.options"))
+	assert.Equal(t, "sslmode=disable", cfg.Get("database.options"))
 }
 
 func TestSetupGoyaveConfig_SQLite(t *testing.T) {

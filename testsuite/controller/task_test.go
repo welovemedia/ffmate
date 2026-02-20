@@ -68,10 +68,10 @@ func TestTaskCreate(t *testing.T) {
 	assert.NotNil(t, task.PreProcessing, "POST /api/v1/tasks")
 	assert.NotNil(t, task.PostProcessing, "POST /api/v1/tasks")
 	assert.True(t, task.PreProcessing.ImportSidecar, "POST /api/v1/tasks")
-	assert.Equal(t, task.PreProcessing.SidecarPath.Raw, "/dev/null", "POST /api/v1/tasks")
-	assert.Equal(t, task.PreProcessing.ScriptPath.Raw, "/dev/null", "POST /api/v1/tasks")
-	assert.Equal(t, task.PostProcessing.SidecarPath.Raw, "/dev/null", "POST /api/v1/tasks")
-	assert.Equal(t, task.PostProcessing.ScriptPath.Raw, "/dev/null", "POST /api/v1/tasks")
+	assert.Equal(t, "/dev/null", task.PreProcessing.SidecarPath.Raw, "POST /api/v1/tasks")
+	assert.Equal(t, "/dev/null", task.PreProcessing.ScriptPath.Raw, "POST /api/v1/tasks")
+	assert.Equal(t, "/dev/null", task.PostProcessing.SidecarPath.Raw, "POST /api/v1/tasks")
+	assert.Equal(t, "/dev/null", task.PostProcessing.ScriptPath.Raw, "POST /api/v1/tasks")
 }
 
 func TestTaskList(t *testing.T) {
