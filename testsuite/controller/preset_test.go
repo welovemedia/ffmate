@@ -61,10 +61,10 @@ func TestPresetCreate(t *testing.T) {
 	assert.NotNil(t, preset.PreProcessing, "POST /api/v1/presets")
 	assert.NotNil(t, preset.PostProcessing, "POST /api/v1/presets")
 	assert.False(t, preset.PreProcessing.ImportSidecar, "POST /api/v1/presets")
-	assert.Equal(t, preset.PreProcessing.SidecarPath, "/dev/null", "POST /api/v1/presets")
-	assert.Equal(t, preset.PreProcessing.ScriptPath, "/dev/null", "POST /api/v1/presets")
-	assert.Equal(t, preset.PostProcessing.SidecarPath, "/dev/null", "POST /api/v1/presets")
-	assert.Equal(t, preset.PostProcessing.ScriptPath, "/dev/null", "POST /api/v1/presets")
+	assert.Equal(t, "/dev/null", preset.PreProcessing.SidecarPath, "POST /api/v1/presets")
+	assert.Equal(t, "/dev/null", preset.PreProcessing.ScriptPath, "POST /api/v1/presets")
+	assert.Equal(t, "/dev/null", preset.PostProcessing.SidecarPath, "POST /api/v1/presets")
+	assert.Equal(t, "/dev/null", preset.PostProcessing.ScriptPath, "POST /api/v1/presets")
 	assert.NotEmpty(t, preset.UUID, "POST /api/v1/presets")
 }
 

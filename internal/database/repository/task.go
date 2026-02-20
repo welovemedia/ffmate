@@ -221,14 +221,14 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 // - If clientLabels is empty → only unlabeled tasks are eligible (l.id IS NULL)
 // - If task has no labels → always eligible
 // - If both have labels → must match at least one pattern (clientLabel LIKE REPLACE(l.value, '*', '%'))
-func buildLabelFilterSQL(clientLabels dto.Labels) (string, []interface{}) {
+func buildLabelFilterSQL(clientLabels dto.Labels) (string, []any) {
 	if len(clientLabels) == 0 {
 		return "l.id IS NULL", nil
 	}
 
 	// Build "clientLabel LIKE REPLACE(l.value, '*', '%')" for each
 	labelConds := make([]string, len(clientLabels))
-	args := make([]interface{}, len(clientLabels))
+	args := make([]any, len(clientLabels))
 
 	for i, lbl := range clientLabels {
 		labelConds[i] = "? LIKE REPLACE(l.value, '*', '%')"
