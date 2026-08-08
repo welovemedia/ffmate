@@ -19,8 +19,8 @@ import (
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/config"
 
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 	_ "goyave.dev/goyave/v5/database/dialect/postgres"
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
 )
 
 var serverCmd = &cobra.Command{
