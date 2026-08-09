@@ -36,7 +36,7 @@ func TestSetupConfig(t *testing.T) {
 }
 
 func TestSetupGoyaveConfig_Postgres(t *testing.T) {
-	viper.Set("database", "postgresql://user:pass@localhost:5432/testdb?sslmode=disable")
+	viper.Set("database", "postgresql://user:pass@localhost:5435/testdb?sslmode=disable")
 	viper.Set("app.name", "ffmate")
 	viper.Set("app.version", "1.2.3")
 	viper.Set("port", 8080)
@@ -44,7 +44,8 @@ func TestSetupGoyaveConfig_Postgres(t *testing.T) {
 	cfg := setupGoyaveConfig()
 
 	assert.Equal(t, "postgres", cfg.Get("database.connection"))
-	assert.Equal(t, "localhost:5432", cfg.Get("database.host"))
+	assert.Equal(t, "localhost", cfg.Get("database.host"))
+	assert.Equal(t, 5435, cfg.Get("database.port"))
 	assert.Equal(t, "testdb", cfg.Get("database.name"))
 	assert.Equal(t, "user", cfg.Get("database.username"))
 	assert.Equal(t, "pass", cfg.Get("database.password"))
