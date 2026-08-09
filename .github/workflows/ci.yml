@@ -139,6 +139,17 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Set GoReleaser previous tag (to non -dev-)
+        if: ${{ !contains(github.ref_name, '-dev-') }}
+        run: |
+          PREVIOUS_TAG=$(git tag --sort=-v:refname \
+            | grep -v -- '-dev-' \
+            | grep -v -- "^${GITHUB_REF_NAME}$" \
+            | head -n 1)
+
+          echo "GORELEASER_PREVIOUS_TAG=$PREVIOUS_TAG" >> "$GITHUB_ENV"
+          echo "Previous stable tag: $PREVIOUS_TAG"
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
