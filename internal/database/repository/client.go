@@ -26,15 +26,20 @@ func (r *Client) List(page int, perPage int) (*[]model.Client, int64, error) {
 }
 
 func (r *Client) Save(newClient *model.Client) (*model.Client, error) {
-	if err := r.DB.Save(newClient).Error; err != nil {
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(newClient).Error; err != nil {
+			return err
+		}
+
+		if err := upsertLabels(tx, newClient.Labels); err != nil {
+			return err
+		}
+
+		return tx.Model(newClient).Association("Labels").Replace(newClient.Labels)
+	})
+	if err != nil {
 		return nil, err
 	}
-
-	for i := range newClient.Labels {
-		_ = r.DB.FirstOrCreate(&newClient.Labels[i], model.Label{Value: newClient.Labels[i].Value})
-	}
-
-	_ = r.DB.Model(newClient).Association("Labels").Replace(newClient.Labels)
 
 	return newClient, nil
 }
