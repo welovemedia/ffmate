@@ -7,7 +7,6 @@ const (
 	Task        = "task"
 	Websocket   = "websocket"
 	Telemetry   = "telemetry"
-	Tray        = "tray"
 	FFMpeg      = "ffmpeg"
 	Settings    = "settings"
 	Client      = "client"

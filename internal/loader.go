@@ -20,7 +20,6 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/service/settings"
 	"github.com/welovemedia/ffmate/v2/internal/service/task"
 	"github.com/welovemedia/ffmate/v2/internal/service/telemetry"
-	"github.com/welovemedia/ffmate/v2/internal/service/tray"
 	"github.com/welovemedia/ffmate/v2/internal/service/update"
 	"github.com/welovemedia/ffmate/v2/internal/service/watchfolder"
 	"github.com/welovemedia/ffmate/v2/internal/service/webhook"
@@ -96,11 +95,9 @@ func Init(options goyave.Options) {
 	webhookSvc := webhook.NewService(webhookRepository, webhookExecutionRepository, server.Config(), websocketSvc)
 	presetSvc := preset.NewService(presetRepository, webhookSvc, websocketSvc)
 	taskSvc := task.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc, true)
-	traySvc := tray.NewService(server, taskSvc, updateSvc)
 	watchfolderSvc := watchfolder.NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
 	settingSvc := settings.NewService(settingRepository)
 	for name, svc := range map[string]goyave.Service{
-		service.Tray:        traySvc,
 		service.Update:      updateSvc,
 		service.FFMpeg:      ffmpegSvc,
 		service.Telemetry:   telemetrySvc,
@@ -157,13 +154,8 @@ func Init(options goyave.Options) {
 	// start watchfolder processor
 	watchfolderSvc.Process()
 
-	// enable tray
-	if cfg.GetBool("ffmate.isTray") {
-		traySvc.Run()
-	} else {
-		if err := server.Start(); err != nil {
-			debug.Log.Error("failed to start ffmate server: %v", err)
-			os.Exit(1)
-		}
+	if err := server.Start(); err != nil {
+		debug.Log.Error("failed to start ffmate server: %v", err)
+		os.Exit(1)
 	}
 }

@@ -45,7 +45,6 @@ func New(t *testing.T) *testutil.TestServer {
 	}
 	cfg.Set("ffmate.session", uuid.NewString())
 	cfg.Set("ffmate.maxConcurrentTasks", 3)
-	cfg.Set("ffmate.isTray", true)
 	cfg.Set("ffmate.isCluster", false)
 	cfg.Set("ffmate.isFFmpeg", false)
 	cfg.Set("ffmate.ffmpeg", "ffmpeg")
