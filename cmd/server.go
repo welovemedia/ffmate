@@ -166,7 +166,7 @@ func setupGoyaveConfig() *config.Config {
 		}
 
 		c["database"].(map[string]any)["connection"] = "postgres"
-		c["database"].(map[string]any)["host"] = url.Host
+		c["database"].(map[string]any)["host"] = url.Hostname()
 		c["database"].(map[string]any)["name"] = strings.Trim(url.Path, "/")
 		c["database"].(map[string]any)["port"] = 5432
 		if url.Port() != "" {
