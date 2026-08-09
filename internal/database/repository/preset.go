@@ -30,8 +30,7 @@ func (r *Preset) First(uuid string) (*model.Preset, error) {
 }
 
 func (r *Preset) Delete(w *model.Preset) error {
-	r.DB.Delete(w)
-	return r.DB.Error
+	return r.DB.Delete(w).Error
 }
 
 func (r *Preset) List(page int, perPage int) (*[]model.Preset, int64, error) {
@@ -43,15 +42,19 @@ func (r *Preset) List(page int, perPage int) (*[]model.Preset, int64, error) {
 }
 
 func (r *Preset) Save(preset *model.Preset) (*model.Preset, error) {
-	db := r.DB.Save(preset)
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(preset).Error; err != nil {
+			return err
+		}
 
-	for i := range preset.Labels {
-		_ = r.DB.FirstOrCreate(&preset.Labels[i], model.Label{Value: preset.Labels[i].Value})
-	}
+		if err := upsertLabels(tx, preset.Labels); err != nil {
+			return err
+		}
 
-	_ = r.DB.Model(preset).Association("Labels").Replace(preset.Labels)
+		return tx.Model(preset).Association("Labels").Replace(preset.Labels)
+	})
 
-	return preset, db.Error
+	return preset, err
 }
 
 func (r *Preset) Count() (int64, error) {
@@ -66,6 +69,6 @@ func (r *Preset) Count() (int64, error) {
 
 func (r *Preset) CountDeleted() (int64, error) {
 	var count int64
-	result := r.DB.Unscoped().Model(&model.Preset{}).Unscoped().Where("deleted_at IS NOT NULL").Count(&count)
+	result := r.DB.Unscoped().Model(&model.Preset{}).Where("deleted_at IS NOT NULL").Count(&count)
 	return count, result.Error
 }

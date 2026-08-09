@@ -8,7 +8,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/cfg"
 	"github.com/welovemedia/ffmate/v2/testsuite"
 
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 )
 
 func TestAuthSuccess(t *testing.T) {
