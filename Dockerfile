@@ -6,22 +6,28 @@ LABEL org.opencontainers.image.licenses="AGPL-3.0"
 
 WORKDIR /app
 
-RUN apk add --no-cache jellyfin-ffmpeg bash jq curl
+RUN apk add --no-cache \
+    jellyfin-ffmpeg \
+    bash \
+    jq \
+    curl \
+    && ln -s /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/local/bin/ffmpeg \
+    && ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe
 
 ARG TARGETPLATFORM
 COPY ${TARGETPLATFORM}/ffmate /app/ffmate
 
-RUN ln -s /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/local/bin/ffmpeg \
- && ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe
- 
+RUN chmod 755 /app/ffmate
+
 ENV PORT=3000 \
     DATABASE=/app/db/sqlite.db \
     DEBUGO="info:?,warn:?,error:?" \
     MAX_CONCURRENT_TASKS=3 \
-    IDENTIFIER=
+    IDENTIFIER="" \
+    GOCACHE=off
 
 EXPOSE ${PORT}
 
 RUN mkdir -p /app/db
 
-CMD ["sh", "-c", "/app/ffmate server --port=\"$PORT\" --identifier=\"$IDENTIFIER\" --debug=\"$DEBUGO\" --database=\"$DATABASE\" --max-concurrent-tasks=\"$MAX_CONCURRENT_TASKS\""]
+CMD ["sh", "-c", "exec /app/ffmate server --port=\"$PORT\" --identifier=\"$IDENTIFIER\" --debug=\"$DEBUGO\" --database=\"$DATABASE\" --max-concurrent-tasks=\"$MAX_CONCURRENT_TASKS\""]
