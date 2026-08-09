@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/welovemedia/ffmate/v2/testsuite"
 
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 )
 
 func TestDebugSet(t *testing.T) {

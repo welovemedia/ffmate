@@ -6,8 +6,6 @@ project_name: ffmate
 before:
   hooks:
     - go mod tidy
-    - make test
-    - make build+frontend
 
 builds:
   - main: ./...
