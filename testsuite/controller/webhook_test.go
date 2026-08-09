@@ -15,7 +15,7 @@ import (
 	webhookSvc "github.com/welovemedia/ffmate/v2/internal/service/webhook"
 	"github.com/welovemedia/ffmate/v2/testsuite"
 
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 	"goyave.dev/goyave/v5/util/testutil"
 )
 

@@ -8,7 +8,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/testsuite"
 
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 )
 
 func TestVersionGet(t *testing.T) {
