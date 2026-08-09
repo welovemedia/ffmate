@@ -5,14 +5,61 @@ LABEL org.opencontainers.image.description="FFmate is a modern and powerful auto
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
 
 WORKDIR /app
+RUN set -eux; \
+    echo "Architecture:"; \
+    apk --print-arch
 
-RUN apk add --no-cache \
-    jellyfin-ffmpeg \
-    bash \
-    jq \
-    curl \
-    && ln -s /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/local/bin/ffmpeg \
-    && ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe
+RUN set -eux; \
+    echo "Repositories:"; \
+    cat /etc/apk/repositories
+
+RUN set -eux; \
+    echo "Updating indexes:"; \
+    apk update
+
+RUN set -eux; \
+    echo "Installing bash:"; \
+    apk add --no-cache bash
+
+RUN set -eux; \
+    echo "Installing jq:"; \
+    apk add --no-cache jq
+
+RUN set -eux; \
+    echo "Installing curl:"; \
+    apk add --no-cache curl
+
+RUN set -eux; \
+    echo "Installing jellyfin-ffmpeg:"; \
+    apk add --no-cache jellyfin-ffmpeg
+
+RUN set -eux; \
+    echo "jellyfin-ffmpeg directory:"; \
+    ls -la /usr/lib/jellyfin-ffmpeg
+
+RUN set -eux; \
+    echo "ffmpeg binary:"; \
+    ls -la /usr/lib/jellyfin-ffmpeg/ffmpeg
+
+RUN set -eux; \
+    echo "ffprobe binary:"; \
+    ls -la /usr/lib/jellyfin-ffmpeg/ffprobe
+
+RUN set -eux; \
+    echo "Linking ffmpeg:"; \
+    ln -s /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/local/bin/ffmpeg
+
+RUN set -eux; \
+    echo "Linking ffprobe:"; \
+    ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe
+
+RUN set -eux; \
+    echo "FFmpeg location:"; \
+    command -v ffmpeg
+
+RUN set -eux; \
+    echo "FFmpeg version:"; \
+    ffmpeg -version
 
 ARG TARGETPLATFORM
 COPY ${TARGETPLATFORM}/ffmate /app/ffmate
