@@ -14,7 +14,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/service/client"
 	"github.com/welovemedia/ffmate/v2/testsuite"
 
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 	"goyave.dev/goyave/v5/util/testutil"
 )
 
@@ -215,7 +215,7 @@ func TestTaskNextFromQueue(t *testing.T) {
 	taskRepo := (&repository.Task{DB: server.DB()}).Setup()
 	tasks, err := taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
 	assert.NotNil(t, tasks, "Find next tasks by labels")
-	assert.NoError(t, err, tasks, "Find next tasks by labels")
+	assert.NoError(t, err, "Find next tasks by labels")
 	assert.Len(t, *tasks, 3, "Find next tasks by labels")
 
 	// no matching tasks
@@ -251,6 +251,6 @@ func TestTaskNextFromQueue(t *testing.T) {
 	taskRepo = (&repository.Task{DB: server.DB()}).Setup()
 	tasks, err = taskRepo.NextQueued(3, cfg.GetStringSlice("ffmate.labels"))
 	assert.NotNil(t, tasks, "Find next tasks by labels")
-	assert.NoError(t, err, tasks, "Find next tasks by labels")
+	assert.NoError(t, err, "Find next tasks by labels")
 	assert.Len(t, *tasks, 1, "Find next tasks by labels")
 }

@@ -32,8 +32,7 @@ func (r *Watchfolder) First(uuid string) (*model.Watchfolder, error) {
 }
 
 func (r *Watchfolder) Delete(w *model.Watchfolder) error {
-	r.DB.Delete(w)
-	return r.DB.Error
+	return r.DB.Delete(w).Error
 }
 
 func (r *Watchfolder) List(page int, perPage int) (*[]model.Watchfolder, int64, error) {
@@ -41,27 +40,30 @@ func (r *Watchfolder) List(page int, perPage int) (*[]model.Watchfolder, int64, 
 
 	// return all (internal usage)
 	if page == -1 && perPage == -1 {
-		total, _ := r.Count()
-		r.DB.Preload("Labels").Order("created_at DESC").Find(&watchfolders)
-		return watchfolders, total, r.DB.Error
-	} else {
-		tx := r.DB.Preload("Labels").Order("created_at DESC")
-		d := database.NewPaginator(tx, page+1, perPage, watchfolders)
-		err := d.Find()
-		return d.Records, d.Total, err
+		err := r.DB.Preload("Labels").Order("created_at DESC").Find(watchfolders).Error
+		return watchfolders, int64(len(*watchfolders)), err
 	}
+
+	tx := r.DB.Preload("Labels").Order("created_at DESC")
+	d := database.NewPaginator(tx, page+1, perPage, watchfolders)
+	err := d.Find()
+	return d.Records, d.Total, err
 }
 
 func (r *Watchfolder) Save(watchfolder *model.Watchfolder) (*model.Watchfolder, error) {
-	db := r.DB.Preload("Labels").Save(watchfolder)
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(watchfolder).Error; err != nil {
+			return err
+		}
 
-	for i := range watchfolder.Labels {
-		_ = r.DB.FirstOrCreate(&watchfolder.Labels[i], model.Label{Value: watchfolder.Labels[i].Value})
-	}
+		if err := upsertLabels(tx, watchfolder.Labels); err != nil {
+			return err
+		}
 
-	_ = r.DB.Model(watchfolder).Association("Labels").Replace(watchfolder.Labels)
+		return tx.Model(watchfolder).Association("Labels").Replace(watchfolder.Labels)
+	})
 
-	return watchfolder, db.Error
+	return watchfolder, err
 }
 
 func (r *Watchfolder) Count() (int64, error) {
@@ -112,6 +114,6 @@ func (r *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error
 
 func (r *Watchfolder) CountDeleted() (int64, error) {
 	var count int64
-	result := r.DB.Unscoped().Model(&model.Watchfolder{}).Unscoped().Where("deleted_at IS NOT NULL").Count(&count)
+	result := r.DB.Unscoped().Model(&model.Watchfolder{}).Where("deleted_at IS NOT NULL").Count(&count)
 	return count, result.Error
 }
