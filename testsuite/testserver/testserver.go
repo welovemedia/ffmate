@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/welovemedia/ffmate/v2/internal/cfg"
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/config"
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
 	"goyave.dev/goyave/v5/middleware/parse"
 	"goyave.dev/goyave/v5/util/testutil"
 )
