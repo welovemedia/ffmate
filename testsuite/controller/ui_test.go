@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 	"github.com/welovemedia/ffmate/v2/testsuite"
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
 )
 
 func TestUI(t *testing.T) {
