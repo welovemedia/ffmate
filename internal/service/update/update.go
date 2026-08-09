@@ -30,8 +30,8 @@ func NewService(version string) *Service {
 	}
 }
 
-func (s *Service) CheckForUpdate(force bool, dry bool) (string, bool, error) {
-	res, found, err := s.UpdateAvailable()
+func (s *Service) CheckForUpdate(force bool, dry bool, dev bool) (string, bool, error) {
+	res, found, err := s.UpdateAvailable(dev)
 	if err != nil {
 		return "", false, fmt.Errorf("failed to contact update server: %+v", err)
 	}
@@ -60,7 +60,12 @@ func (s *Service) CheckForUpdate(force bool, dry bool) (string, bool, error) {
 	return "no updates found", false, nil
 }
 
-func (s *Service) UpdateAvailable() (string, bool, error) {
+func (s *Service) UpdateAvailable(dev bool) (string, bool, error) {
+	if dev {
+		updater.ApiURL = "https://earth.ffmate.io/_update-dev/"
+	} else {
+		updater.ApiURL = "https://earth.ffmate.io/_update/"
+	}
 	res, err := updater.UpdateAvailable()
 	if err != nil {
 		return "", false, err

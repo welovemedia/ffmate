@@ -18,16 +18,14 @@ var updateCmd = &cobra.Command{
 	Run:   update,
 }
 
-var dry bool
-
 func init() {
 	rootCmd.AddCommand(updateCmd)
 
-	updateCmd.Flags().BoolVar(&dry, "dry", false, "run in dry mode (no real update)")
-	_ = viper.BindPFlag("dry", updateCmd.Flags().Lookup("dry"))
+	updateCmd.Flags().Bool("dry", false, "run in dry mode (no real update)")
+	updateCmd.Flags().Bool("dev", false, "run in dev mode (check for dev updates)")
 }
 
-func update(_ *cobra.Command, _ []string) {
+func update(cmd *cobra.Command, _ []string) {
 	server, err := goyave.New(goyave.Options{
 		Config: config.LoadDefault(),
 	})
@@ -37,16 +35,18 @@ func update(_ *cobra.Command, _ []string) {
 		os.Exit(1)
 	}
 
-	// register update service
 	svc := updateSvc.NewService(viper.GetString("app.version"))
 	server.RegisterService(svc)
 
-	res, _, err := svc.CheckForUpdate(false, viper.GetBool("dry"))
+	dry, _ := cmd.Flags().GetBool("dry")
+	dev, _ := cmd.Flags().GetBool("dev")
+
+	res, _, err := svc.CheckForUpdate(false, dry, dev)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
-	} else {
-		fmt.Println(res)
-		os.Exit(0)
 	}
+
+	fmt.Println(res)
+	os.Exit(0)
 }

@@ -9,7 +9,7 @@ import (
 var svc = NewService("0.0.0")
 
 func TestCheckForUpdate(t *testing.T) {
-	v, ok, err := svc.CheckForUpdate(false, true)
+	v, ok, err := svc.CheckForUpdate(false, true, false)
 
 	assert.Nil(t, err, "Error")
 	assert.True(t, ok, "Ok")
