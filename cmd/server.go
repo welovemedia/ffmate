@@ -40,7 +40,6 @@ func init() {
 		serverCmd.Flags().String("database", "~/.ffmate/db.sqlite", "the path do the database")
 	}
 	serverCmd.Flags().Uint("max-concurrent-tasks", 3, "define maximum concurrent running tasks")
-	serverCmd.Flags().Bool("tray", false, "start with tray menu (experimental)")
 	serverCmd.Flags().Bool("send-telemetry", true, "enable sending anonymous telemetry data")
 	serverCmd.Flags().Bool("no-ui", false, "do not open the ui in the browser")
 	serverCmd.Flags().String("identifier", "", "a unique client identifier (default to hostname)")
@@ -51,7 +50,6 @@ func init() {
 	_ = viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
 	_ = viper.BindPFlag("database", serverCmd.Flags().Lookup("database"))
 	_ = viper.BindPFlag("maxConcurrentTasks", serverCmd.Flags().Lookup("max-concurrent-tasks"))
-	_ = viper.BindPFlag("tray", serverCmd.Flags().Lookup("tray"))
 	_ = viper.BindPFlag("sendTelemetry", serverCmd.Flags().Lookup("send-telemetry"))
 	_ = viper.BindPFlag("noUI", serverCmd.Flags().Lookup("no-ui"))
 	_ = viper.BindPFlag("identifier", serverCmd.Flags().Lookup("identifier"))
@@ -111,7 +109,6 @@ func setupConfig() {
 	cfg.Set("ffmate.debug", viper.GetString("debug"))
 	cfg.Set("ffmate.maxConcurrentTasks", viper.GetInt("maxConcurrentTasks"))
 	cfg.Set("ffmate.database", viper.GetString("database"))
-	cfg.Set("ffmate.isTray", viper.GetBool("tray"))
 	cfg.Set("ffmate.isUI", !viper.GetBool("noUI"))
 	cfg.Set("ffmate.isCluster", isCluster)
 	cfg.Set("ffmate.isAuth", false)

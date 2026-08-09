@@ -68,7 +68,6 @@ func (s *Service) collectTelemetry(runtimeDuration time.Time, isShuttingDown boo
 		"arch":            runtime.GOARCH,
 		"session":         cfg.GetString("ffmate.session"),
 		"config": map[string]any{
-			"isTray":             cfg.GetBool("ffmate.isTray"),
 			"maxConcurrentTasks": cfg.GetInt("ffmate.maxConcurrentTasks"),
 			"debug":              cfg.GetString("ffmate.debug"),
 			"isDocker":           cfg.GetBool("ffmate.isDocker"),
