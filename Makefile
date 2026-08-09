@@ -18,6 +18,9 @@ test+coverage+func:
 lint:
 	golangci-lint run --timeout=5m ./...
 
+vulncheck:
+	govulncheck ./...
+
 dev+sqlite:
 	CGO_ENABLED=0 go run -race main.go server --identifier="sev.moovit.de" --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}" --labels="hardware-red,hardware-blue" --ffmpeg="/opt/homebrew/bin/ffmpeg"
 
