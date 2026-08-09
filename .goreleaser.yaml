@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+
+version: 2
+project_name: ffmate
+
+before:
+  hooks:
+    - go mod tidy
+    - make test
+    - make build+frontend
+
+builds:
+  - main: ./...
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - arm64
+      - amd64
+
+dockers_v2:
+  - images:
+      - ghcr.io/welovemedia/ffmate
+    tags:
+      - "v{{ .Version }}"
+      - latest
+    dockerfile: Dockerfile
+    platforms:
+      - linux/amd64
+      - linux/arm64
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+release:
+  mode: replace
+  draft: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

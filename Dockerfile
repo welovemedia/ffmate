@@ -6,9 +6,10 @@ LABEL org.opencontainers.image.licenses="AGPL-3.0"
 
 WORKDIR /app
 
-RUN apk update && apk add --no-cache ffmpeg bash jq
+RUN apk add --no-cache ffmpeg bash jq
 
-COPY ./_bin/linux-amd64 /app/ffmate
+ARG TARGETPLATFORM
+COPY ${TARGETPLATFORM}/ffmate /app/ffmate
 
 ENV PORT=3000 \
     DATABASE=/app/db/sqlite.db \
@@ -20,4 +21,4 @@ EXPOSE ${PORT}
 
 RUN mkdir -p /app/db
 
-CMD sh -c '/app/ffmate server --port="$PORT" --identifier="$IDENTIFIER" --debug="$DEBUGO" --database="$DATABASE" --max-concurrent-tasks="$MAX_CONCURRENT_TASKS"'
+CMD ["sh", "-c", "/app/ffmate server --port=\"$PORT\" --identifier=\"$IDENTIFIER\" --debug=\"$DEBUGO\" --database=\"$DATABASE\" --max-concurrent-tasks=\"$MAX_CONCURRENT_TASKS\""]
