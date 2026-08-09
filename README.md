@@ -11,7 +11,6 @@
 <p align="center">
     <a href="https://github.com/welovemedia/ffmate/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--v3-green" alt="License"/></a>
     <a href="https://pkg.go.dev/badge/github/welovemedia/ffmate/v2"><img src="https://pkg.go.dev/badge/github/welovemedia/ffmate/v2.svg" alt="Go Reference"></a>
-    <a href="https://goreportcard.com/report/github.com/welovemedia/ffmate/v2"><img src="https://goreportcard.com/badge/github.com/welovemedia/ffmate/v2" alt="Go Report"></a>
     <a href="https://discord.gg/NzfeHn37jT"><img src="https://img.shields.io/discord/1330908876912066650?logo=discord" alt="Discord"/></a>
 </p>
 
