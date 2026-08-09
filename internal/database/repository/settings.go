@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/welovemedia/ffmate/v2/internal/database/model"
 	"gorm.io/gorm"
 )
@@ -17,7 +19,7 @@ func (r *Settings) Setup() *Settings {
 func (r *Settings) Load() (*model.Settings, error) {
 	settings := &model.Settings{}
 	db := r.DB.First(&settings, 1)
-	if db.Error != nil && db.Error == gorm.ErrRecordNotFound {
+	if db.Error != nil && errors.Is(db.Error, gorm.ErrRecordNotFound) {
 		settings = &model.Settings{}
 		db.Error = nil
 	}
