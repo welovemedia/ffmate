@@ -6,9 +6,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/welovemedia/ffmate/v2/internal/cfg"
+	_ "github.com/welovemedia/ffmate/v2/internal/dialect"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/config"
-	_ "goyave.dev/goyave/v5/database/dialect/sqlite"
 	"goyave.dev/goyave/v5/middleware/parse"
 	"goyave.dev/goyave/v5/util/testutil"
 )
@@ -53,6 +53,14 @@ func New(t *testing.T) *testutil.TestServer {
 	cfg.Set("ffmate.isCluster", false)
 
 	server := testutil.NewTestServerWithOptions(t, goyave.Options{Config: conf})
+
+	sqlDB, err := server.DB().DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
 
 	// add global parsing
 	server.Router().GlobalMiddleware(&parse.Middleware{

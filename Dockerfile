@@ -6,13 +6,24 @@ LABEL org.opencontainers.image.licenses="AGPL-3.0"
 
 WORKDIR /app
 
-RUN apk add --no-cache \
+RUN set -eux; \
+    echo "Architecture:"; \
+    apk --print-arch; \
+    echo "Repositories:"; \
+    cat /etc/apk/repositories; \
+    echo "Updating indexes:"; \
+    apk update; \
+    echo "Installing packages:"; \
+    apk add --no-cache \
     jellyfin-ffmpeg \
     bash \
     jq \
     curl \
     && ln -s /usr/lib/jellyfin-ffmpeg/ffmpeg /usr/local/bin/ffmpeg \
-    && ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe
+    && ln -s /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe \
+    echo "FFmpeg:"; \
+    command -v ffmpeg; \
+    ffmpeg -version
 
 ARG TARGETPLATFORM
 COPY ${TARGETPLATFORM}/ffmate /app/ffmate

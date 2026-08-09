@@ -36,8 +36,7 @@ func (r *Webhook) Update(webhook *model.Webhook) (*model.Webhook, error) {
 }
 
 func (r *Webhook) Delete(w *model.Webhook) error {
-	r.DB.Delete(w)
-	return r.DB.Error
+	return r.DB.Delete(w).Error
 }
 
 func (r *Webhook) Add(newWebhook *model.Webhook) (*model.Webhook, error) {
@@ -55,8 +54,8 @@ func (r *Webhook) List(page int, perPage int) (*[]model.Webhook, int64, error) {
 
 func (r *Webhook) ListAllByEvent(event dto.WebhookEvent) (*[]model.Webhook, error) {
 	var webhooks = &[]model.Webhook{}
-	r.DB.Order("created_at DESC").Where("event = ?", event).Find(&webhooks)
-	return webhooks, r.DB.Error
+	err := r.DB.Order("created_at DESC").Where("event = ?", event).Find(webhooks).Error
+	return webhooks, err
 }
 
 func (r *Webhook) Count() (int64, error) {
@@ -71,6 +70,6 @@ func (r *Webhook) Count() (int64, error) {
 
 func (r *Webhook) CountDeleted() (int64, error) {
 	var count int64
-	result := r.DB.Unscoped().Model(&model.Webhook{}).Unscoped().Where("deleted_at IS NOT NULL").Count(&count)
+	result := r.DB.Unscoped().Model(&model.Webhook{}).Where("deleted_at IS NOT NULL").Count(&count)
 	return count, result.Error
 }
