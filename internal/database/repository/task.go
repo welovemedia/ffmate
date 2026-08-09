@@ -34,8 +34,7 @@ func (r *Task) First(uuid string) (*model.Task, error) {
 }
 
 func (r *Task) Delete(w *model.Task) error {
-	r.DB.Delete(w)
-	return r.DB.Error
+	return r.DB.Delete(w).Error
 }
 
 func (r *Task) List(page int, perPage int, status dto.TaskStatus) (*[]model.Task, int64, error) {
@@ -58,16 +57,19 @@ func (r *Task) ListByBatch(uuid string, page int, perPage int) (*[]model.Task, i
 }
 
 func (r *Task) Add(newTask *model.Task) (*model.Task, error) {
-	db := r.DB.Preload("Labels").Create(newTask)
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(newTask).Error; err != nil {
+			return err
+		}
 
-	for i := range newTask.Labels {
-		_ = r.DB.FirstOrCreate(&newTask.Labels[i], model.Label{Value: newTask.Labels[i].Value})
-	}
+		if err := upsertLabels(tx, newTask.Labels); err != nil {
+			return err
+		}
 
-	_ = r.DB.Model(newTask).Association("Labels").Replace(newTask.Labels)
-
-	if db.Error != nil {
-		return newTask, db.Error
+		return tx.Model(newTask).Association("Labels").Replace(newTask.Labels)
+	})
+	if err != nil {
+		return newTask, err
 	}
 	return r.First(newTask.UUID)
 }
@@ -123,7 +125,9 @@ func (r *Task) FailRunningTasksForOfflineClients() ([]model.Task, error) {
 
 func (r *Task) CountUnfinishedByBatch(uuid string) (int64, error) {
 	var count int64
-	db := r.DB.Model(&model.Task{}).Where("batch = ? and status != 'DONE_SUCCESSFUL' and status != 'DONE_ERROR' and status != 'DONE_CANCELED'", uuid).Count(&count)
+	db := r.DB.Model(&model.Task{}).
+		Where("batch = ? AND status NOT IN (?)", uuid, []dto.TaskStatus{dto.DoneSuccessful, dto.DoneError, dto.DoneCanceled}).
+		Count(&count)
 	return count, db.Error
 }
 
@@ -139,12 +143,13 @@ type statusCount struct {
 func (r *Task) CountAllStatus() (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
 	var counts []statusCount
 
-	r.DB.Model(&model.Task{}).
+	err = r.DB.Model(&model.Task{}).
 		Select("status, COUNT(*) as count").
 		Group("status").
-		Find(&counts)
-
-	err = r.DB.Error
+		Find(&counts).Error
+	if err != nil {
+		return
+	}
 
 	for _, r := range counts {
 		switch r.Status {
@@ -185,6 +190,7 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 
 		if err := tx.Preload("Labels").
 			Where("tasks.id IN (?)", sub).
+			Order("tasks.priority DESC, tasks.created_at ASC").
 			Find(&tasks).Error; err != nil {
 			return err
 		}
@@ -258,12 +264,12 @@ func (r *Task) CountByStatus(status dto.TaskStatus) (int64, error) {
 }
 func (r *Task) CountDeletedByStatus(status dto.TaskStatus) (int64, error) {
 	var count int64
-	db := r.DB.Unscoped().Model(&model.Task{}).Unscoped().Where("status = ? AND deleted_at IS NOT NULL", status).Count(&count)
+	db := r.DB.Unscoped().Model(&model.Task{}).Where("status = ? AND deleted_at IS NOT NULL", status).Count(&count)
 	return count, db.Error
 }
 
 func (r *Task) CountDeleted() (int64, error) {
 	var count int64
-	db := r.DB.Unscoped().Model(&model.Task{}).Unscoped().Where("deleted_at IS NOT NULL").Count(&count)
+	db := r.DB.Unscoped().Model(&model.Task{}).Where("deleted_at IS NOT NULL").Count(&count)
 	return count, db.Error
 }

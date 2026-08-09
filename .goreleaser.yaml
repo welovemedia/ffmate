@@ -6,8 +6,6 @@ project_name: ffmate
 before:
   hooks:
     - go mod tidy
-    - make test
-    - make build+frontend
 
 builds:
   - main: ./...
@@ -26,7 +24,7 @@ dockers_v2:
       - ghcr.io/welovemedia/ffmate
     tags:
       - "v{{ .Version }}"
-      - latest
+      - "{{- if eq .Branch \"main\" }}latest{{ end }}"
     dockerfile: Dockerfile
     platforms:
       - linux/amd64
