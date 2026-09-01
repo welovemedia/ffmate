@@ -58,7 +58,7 @@ func (r *Task) ListByBatch(uuid string, page int, perPage int) (*[]model.Task, i
 
 func (r *Task) Add(newTask *model.Task) (*model.Task, error) {
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(newTask).Error; err != nil {
+		if err := tx.Omit("Labels").Create(newTask).Error; err != nil {
 			return err
 		}
 
@@ -76,9 +76,19 @@ func (r *Task) Add(newTask *model.Task) (*model.Task, error) {
 
 func (r *Task) Update(task *model.Task) (*model.Task, error) {
 	task.Client = nil // will be re-linked during save
-	db := r.DB.Session(&gorm.Session{FullSaveAssociations: true}).Preload("Labels").Save(task)
-	if db.Error != nil {
-		return task, db.Error
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit("Labels").Session(&gorm.Session{FullSaveAssociations: true}).Save(task).Error; err != nil {
+			return err
+		}
+
+		if err := upsertLabels(tx, task.Labels); err != nil {
+			return err
+		}
+
+		return tx.Model(task).Association("Labels").Replace(task.Labels)
+	})
+	if err != nil {
+		return task, err
 	}
 	return r.First(task.UUID)
 }
@@ -180,9 +190,7 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 		whereSQL, whereArgs := buildLabelFilterSQL(clientLabels)
 
 		sub := tx.Model(&model.Task{}).
-			Select("DISTINCT tasks.id").
-			Joins("LEFT JOIN task_labels tl ON tl.task_id = tasks.id").
-			Joins("LEFT JOIN labels l ON l.id = tl.label_id").
+			Select("tasks.id").
 			Where("tasks.status = ?", dto.Queued).
 			Where(whereSQL, whereArgs...).
 			Order("tasks.priority DESC, tasks.created_at ASC").
@@ -223,13 +231,19 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 // buildLabelFilterSQL generates the SQL WHERE clause and args for filtering
 // queued tasks by client labels, respecting wildcard labels stored in the DB.
 //
+// Uses EXISTS/NOT EXISTS against task_labels/labels instead of a LEFT JOIN so
+// the outer query never produces duplicate rows per task (a JOIN + DISTINCT
+// combined with ORDER BY on non-selected columns is rejected by postgres).
+//
 // Rules:
-// - If clientLabels is empty → only unlabeled tasks are eligible (l.id IS NULL)
+// - If clientLabels is empty → only unlabeled tasks are eligible
 // - If task has no labels → always eligible
 // - If both have labels → must match at least one pattern (clientLabel LIKE REPLACE(l.value, '*', '%'))
 func buildLabelFilterSQL(clientLabels dto.Labels) (string, []any) {
+	noLabels := "NOT EXISTS (SELECT 1 FROM task_labels tl WHERE tl.task_id = tasks.id)"
+
 	if len(clientLabels) == 0 {
-		return "l.id IS NULL", nil
+		return noLabels, nil
 	}
 
 	// Build "clientLabel LIKE REPLACE(l.value, '*', '%')" for each
@@ -241,8 +255,13 @@ func buildLabelFilterSQL(clientLabels dto.Labels) (string, []any) {
 		args[i] = lbl
 	}
 
-	// Allow tasks with no labels (l.id IS NULL) or any matching label
-	sql := fmt.Sprintf("(l.id IS NULL OR (%s))", strings.Join(labelConds, " OR "))
+	matchesLabel := fmt.Sprintf(`EXISTS (
+		SELECT 1 FROM task_labels tl
+		JOIN labels l ON l.id = tl.label_id
+		WHERE tl.task_id = tasks.id AND (%s)
+	)`, strings.Join(labelConds, " OR "))
+
+	sql := fmt.Sprintf("(%s OR %s)", noLabels, matchesLabel)
 
 	return sql, args
 }

@@ -43,7 +43,7 @@ func (r *Preset) List(page int, perPage int) (*[]model.Preset, int64, error) {
 
 func (r *Preset) Save(preset *model.Preset) (*model.Preset, error) {
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(preset).Error; err != nil {
+		if err := tx.Omit("Labels").Save(preset).Error; err != nil {
 			return err
 		}
 

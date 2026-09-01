@@ -5,6 +5,7 @@ import (
 
 	"github.com/welovemedia/ffmate/v2/internal/database/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"goyave.dev/goyave/v5/database"
 )
 
@@ -27,7 +28,10 @@ func (r *Client) List(page int, perPage int) (*[]model.Client, int64, error) {
 
 func (r *Client) Save(newClient *model.Client) (*model.Client, error) {
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(newClient).Error; err != nil {
+		if err := tx.Omit("Labels").Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "identifier"}},
+			UpdateAll: true,
+		}).Create(newClient).Error; err != nil {
 			return err
 		}
 

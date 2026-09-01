@@ -52,7 +52,7 @@ func (r *Watchfolder) List(page int, perPage int) (*[]model.Watchfolder, int64, 
 
 func (r *Watchfolder) Save(watchfolder *model.Watchfolder) (*model.Watchfolder, error) {
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Save(watchfolder).Error; err != nil {
+		if err := tx.Omit("Labels").Save(watchfolder).Error; err != nil {
 			return err
 		}
 
