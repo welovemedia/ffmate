@@ -23,7 +23,7 @@ func (r *Task) Setup() *Task {
 
 func (r *Task) First(uuid string) (*model.Task, error) {
 	var task model.Task
-	result := r.DB.Preload("Client").Preload("Labels").Where("uuid = ?", uuid).First(&task)
+	result := r.DB.Preload("Client.Labels").Preload("Labels").Where("uuid = ?", uuid).First(&task)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -39,7 +39,7 @@ func (r *Task) Delete(w *model.Task) error {
 
 func (r *Task) List(page int, perPage int, status dto.TaskStatus) (*[]model.Task, int64, error) {
 	var tasks = &[]model.Task{}
-	tx := r.DB.Preload("Client").Preload("Labels").Order("created_at DESC")
+	tx := r.DB.Preload("Client.Labels").Preload("Labels").Order("created_at DESC")
 	if status != dto.All {
 		tx = tx.Where("status = ?", status)
 	}
@@ -50,7 +50,7 @@ func (r *Task) List(page int, perPage int, status dto.TaskStatus) (*[]model.Task
 
 func (r *Task) ListByBatch(uuid string, page int, perPage int) (*[]model.Task, int64, error) {
 	var tasks = &[]model.Task{}
-	tx := r.DB.Preload("Client").Preload("Labels").Order("created_at DESC").Where("batch = ?", uuid)
+	tx := r.DB.Preload("Client.Labels").Preload("Labels").Order("created_at DESC").Where("batch = ?", uuid)
 	d := database.NewPaginator(tx, page+1, perPage, tasks)
 	err := d.Find()
 	return d.Records, d.Total, err

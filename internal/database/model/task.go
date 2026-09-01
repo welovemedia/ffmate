@@ -80,12 +80,18 @@ func (m *Task) ToDTO() *dto.Task {
 	}
 
 	if m.Client != nil {
+		var clientLabels = make([]string, len(m.Client.Labels))
+		for i, label := range m.Client.Labels {
+			clientLabels[i] = label.Value
+		}
+
 		d.Client = &dto.Client{
 			Identifier:         m.Client.Identifier,
 			Session:            m.Client.Session,
 			Cluster:            m.Client.Cluster,
 			OS:                 m.Client.OS,
 			Arch:               m.Client.Arch,
+			Labels:             clientLabels,
 			Version:            m.Client.Version,
 			MaxConcurrentTasks: m.Client.MaxConcurrentTasks,
 			LastSeen:           m.Client.LastSeen,
