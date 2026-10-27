@@ -30,7 +30,7 @@ func (s *Service) runPreProcessing(task *model.Task) error {
 func (s *Service) prepareTaskFiles(task *model.Task) {
 	task.InputFile.Resolved = s.wildcardReplacer(task.InputFile.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
 	task.OutputFile.Resolved = s.wildcardReplacer(task.OutputFile.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
-	task.Command.Resolved = s.wildcardReplacer(task.Command.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
+	task.Command.Resolved = s.wildcardReplacerCommand(task.Command.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
 
 	task.Status = dto.Running
 	if _, err := s.updateRunningTask(task); err != nil {
@@ -197,9 +197,9 @@ func (s *Service) handleScriptExecution(task *model.Task, processor *dto.PrePost
 	}
 
 	if processorType == "pre" {
-		processor.ScriptPath.Resolved = s.wildcardReplacer(processor.ScriptPath.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
+		processor.ScriptPath.Resolved = s.wildcardReplacerCommand(processor.ScriptPath.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
 	} else {
-		processor.ScriptPath.Resolved = s.wildcardReplacer(processor.ScriptPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
+		processor.ScriptPath.Resolved = s.wildcardReplacerCommand(processor.ScriptPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
 	}
 	if _, err := s.updateRunningTask(task); err != nil {
 		debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
