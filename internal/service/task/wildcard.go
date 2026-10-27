@@ -23,7 +23,7 @@ func (s *Service) wildcardReplacer(input string, inputFile string, outputFile st
 	input = strings.ReplaceAll(input, "${INPUT_FILE_BASE}", filepath.Base(inputFile))
 	input = strings.ReplaceAll(input, "${OUTPUT_FILE_BASE}", filepath.Base(outputFile))
 	input = strings.ReplaceAll(input, "${INPUT_FILE_EXTENSION}", filepath.Ext(filepath.Base(inputFile)))
-	input = strings.ReplaceAll(input, "${OUTPUT_FILE_EXTENSION", filepath.Ext(filepath.Base(outputFile)))
+	input = strings.ReplaceAll(input, "${OUTPUT_FILE_EXTENSION}", filepath.Ext(filepath.Base(outputFile)))
 	input = strings.ReplaceAll(input, "${INPUT_FILE_BASENAME}", strings.TrimSuffix(filepath.Base(inputFile), filepath.Ext(filepath.Base(inputFile))))
 	input = strings.ReplaceAll(input, "${OUTPUT_FILE_BASENAME}", strings.TrimSuffix(filepath.Base(outputFile), filepath.Ext(filepath.Base(outputFile))))
 	input = strings.ReplaceAll(input, "${INPUT_FILE_DIR}", filepath.Dir(inputFile))
