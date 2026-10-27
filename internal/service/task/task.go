@@ -31,7 +31,6 @@ type Repository interface {
 	Delete(task *model.Task) error
 	Count() (int64, error)
 	CountUnfinishedByBatch(uuid string) (int64, error)
-	CountAllStatus() (int, int, int, int, int, error)
 	NextQueued(amount int, labels dto.Labels) (*[]model.Task, error)
 	FailRunningTasksForStartingClient(identifier string) ([]model.Task, error)
 	FailRunningTasksForOfflineClients() ([]model.Task, error)
@@ -580,14 +579,6 @@ func (s *Service) taskQueueLength() int {
 		return true
 	})
 	return length
-}
-
-/**
- * CountAllStatus is used in systray
- */
-
-func (s *Service) CountAllStatus() (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
-	return s.repository.CountAllStatus()
 }
 
 func (s *Service) Name() string {

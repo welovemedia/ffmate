@@ -142,44 +142,6 @@ func (r *Task) CountUnfinishedByBatch(uuid string) (int64, error) {
 }
 
 /**
- * Stats (systray) related methods
- */
-
-type statusCount struct {
-	Status string
-	Count  int
-}
-
-func (r *Task) CountAllStatus() (queued, running, doneSuccessful, doneError, doneCanceled int, err error) {
-	var counts []statusCount
-
-	err = r.DB.Model(&model.Task{}).
-		Select("status, COUNT(*) as count").
-		Group("status").
-		Find(&counts).Error
-	if err != nil {
-		return
-	}
-
-	for _, r := range counts {
-		switch r.Status {
-		case "QUEUED":
-			queued = r.Count
-		case "RUNNING", "PRE_PROCESSING", "POST_PROCESSING":
-			running = r.Count
-		case "DONE_SUCCESSFUL":
-			doneSuccessful = r.Count
-		case "DONE_ERROR":
-			doneError = r.Count
-		case "DONE_CANCELED":
-			doneCanceled = r.Count
-		}
-	}
-
-	return
-}
-
-/**
  * Processing related methods
  */
 
