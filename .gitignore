@@ -11,3 +11,4 @@ _app
 **/ui-build/*
 !**/ui-build/index.html
 coverage.txt
+edith.yaml
