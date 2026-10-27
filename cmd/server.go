@@ -33,6 +33,7 @@ func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	serverCmd.Flags().String("ffmpeg", "", "path to ffmpeg binary")
+	serverCmd.Flags().String("host", "0.0.0.0", "the host to bind to")
 	serverCmd.Flags().Uint("port", 3000, "the port to listen to")
 	if runtime.GOOS == "windows" {
 		serverCmd.Flags().String("database", "%APPDATA%\\ffmate\\db.sql", "the path do the database")
@@ -47,6 +48,7 @@ func init() {
 	serverCmd.Flags().String("basic-auth", "", "enable basic auth in form of username:password")
 
 	_ = viper.BindPFlag("ffmpeg", serverCmd.Flags().Lookup("ffmpeg"))
+	_ = viper.BindPFlag("host", serverCmd.Flags().Lookup("host"))
 	_ = viper.BindPFlag("port", serverCmd.Flags().Lookup("port"))
 	_ = viper.BindPFlag("database", serverCmd.Flags().Lookup("database"))
 	_ = viper.BindPFlag("maxConcurrentTasks", serverCmd.Flags().Lookup("max-concurrent-tasks"))
@@ -131,7 +133,7 @@ func setupGoyaveConfig() *config.Config {
 			"debug":   false,
 		},
 		"server": map[string]any{
-			"host": "0.0.0.0",
+			"host": viper.GetString("host"),
 			"port": int(viper.GetUint("port")),
 		},
 		"database": map[string]any{},
