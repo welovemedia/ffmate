@@ -239,14 +239,14 @@ func (s *Service) reimportSidecarIfNeeded(task *model.Task, processor *dto.PrePo
 	if err != nil {
 		return err
 	}
-	taskDto := &dto.Task{}
-	if err := json.Unmarshal(data, taskDto); err != nil {
+	taskDTO := &dto.Task{}
+	if err := json.Unmarshal(data, taskDTO); err != nil {
 		return err
 	}
-	typeutil.Copy(task, taskDto)
-	if len(taskDto.Labels) > 0 {
-		var labels = make([]model.Label, len(taskDto.Labels))
-		for i, label := range taskDto.Labels {
+	typeutil.Copy(task, taskDTO)
+	if len(taskDTO.Labels) > 0 {
+		var labels = make([]model.Label, len(taskDTO.Labels))
+		for i, label := range taskDTO.Labels {
 			labels[i] = model.Label{Value: label}
 		}
 		task.Labels = labels
