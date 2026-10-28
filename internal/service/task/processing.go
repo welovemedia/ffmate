@@ -147,6 +147,8 @@ func (s *Service) trackProcessingMetrics(processor *dto.PrePostProcessing, proce
 func (s *Service) initializeProcessing(task *model.Task, processor *dto.PrePostProcessing, processorType string) {
 	debug.Task.Debug("starting %sProcessing (uuid: %s)", processorType, task.UUID)
 	processor.StartedAt = time.Now().UnixMilli()
+	processor.FinishedAt = 0
+	processor.Error = ""
 
 	if processorType == "pre" {
 		task.Status = dto.PreProcessing
