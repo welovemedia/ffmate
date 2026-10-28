@@ -18,6 +18,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/metrics"
 	"github.com/welovemedia/ffmate/v2/internal/service/ffmpeg"
+	"goyave.dev/goyave/v5/util/typeutil"
 )
 
 func (s *Service) runPreProcessing(task *model.Task) error {
@@ -238,9 +239,19 @@ func (s *Service) reimportSidecarIfNeeded(task *model.Task, processor *dto.PrePo
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(data, task); err != nil {
+	taskDto := &dto.Task{}
+	if err := json.Unmarshal(data, taskDto); err != nil {
 		return err
 	}
+	typeutil.Copy(task, taskDto)
+	if len(taskDto.Labels) > 0 {
+		var labels = make([]model.Label, len(taskDto.Labels))
+		for i, label := range taskDto.Labels {
+			labels[i] = model.Label{Value: label}
+		}
+		task.Labels = labels
+	}
+
 	debug.Task.Debug("re-imported sidecar file (uuid: %s)", task.UUID)
 	return nil
 }
