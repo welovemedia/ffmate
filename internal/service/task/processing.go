@@ -214,6 +214,11 @@ func (s *Service) handleScriptExecution(task *model.Task, processor *dto.PrePost
 		return nil
 	}
 
+	if len(args) == 0 {
+		processor.Error = "processing script resolves to an empty command"
+		return nil
+	}
+
 	cmd := exec.Command(args[0], args[1:]...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
