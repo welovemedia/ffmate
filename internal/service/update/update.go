@@ -63,8 +63,10 @@ func (s *Service) CheckForUpdate(force bool, dry bool, dev bool) (string, bool, 
 func (s *Service) UpdateAvailable(dev bool) (string, bool, error) {
 	if dev {
 		updater.ApiURL = "https://earth.ffmate.io/_update-dev/"
+		updater.BinURL = "https://earth.ffmate.io/_update-dev/"
 	} else {
 		updater.ApiURL = "https://earth.ffmate.io/_update/"
+		updater.BinURL = "https://earth.ffmate.io/_update/"
 	}
 	res, err := updater.UpdateAvailable()
 	if err != nil {
