@@ -101,6 +101,34 @@ func TestTaskList(t *testing.T) {
 	assert.Equal(t, "1", response.Header.Get("X-Total"), "GET /api/v1/tasks")
 }
 
+func TestTaskListStatusFilter(t *testing.T) {
+	server := testsuite.InitServer(t)
+
+	response := createTask(t, server)
+	defer response.Body.Close() // nolint:errcheck
+
+	request := testsuite.NewRequest(http.MethodGet, "/api/v1/tasks?status=QUEUED", nil)
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
+
+	tasks, _ := testsuite.ParseJSONBody[[]dto.Task](response.Body)
+
+	assert.Equal(t, http.StatusOK, response.StatusCode, "GET /api/v1/tasks?status=QUEUED")
+	assert.Len(t, tasks, 1, "GET /api/v1/tasks?status=QUEUED")
+
+	request = testsuite.NewRequest(http.MethodGet, "/api/v1/tasks?status=QUEUED&status=RUNNING", nil)
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
+
+	assert.Equal(t, http.StatusUnprocessableEntity, response.StatusCode, "GET /api/v1/tasks?status=QUEUED&status=RUNNING")
+
+	request = testsuite.NewRequest(http.MethodGet, "/api/v1/tasks?status=INVALID", nil)
+	response = server.TestRequest(request)
+	defer response.Body.Close() // nolint:errcheck
+
+	assert.Equal(t, http.StatusUnprocessableEntity, response.StatusCode, "GET /api/v1/tasks?status=INVALID")
+}
+
 func TestTaskDelete(t *testing.T) {
 	server := testsuite.InitServer(t)
 
