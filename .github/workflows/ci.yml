@@ -205,5 +205,5 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY_SECRET }}
           AWS_REGION: ${{ secrets.S3_REGION }}
           AWS_S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
-          DEST_DIR: ${{ github.ref == 'refs/heads/main' && '_update' || '_update-dev' }}
+          DEST_DIR: ${{ contains(github.ref_name, '-dev-') && '_update-dev' || '_update' }}
           SOURCE_DIR: "_update"
