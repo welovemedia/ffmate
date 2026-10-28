@@ -234,20 +234,23 @@ func (s *Service) fireWebhook(webhook *model.Webhook, data any, callback func(ev
 
 	var resp *http.Response
 	for try := 0; try <= len(retryDelays); try++ {
+		// Reset the body as it has been consumed by a previous try
+		req.Body = io.NopCloser(bytes.NewBuffer(b))
 		resp, err = client.Do(req)
 		if err == nil {
 			debug.Webhook.Debug("fired webhook for event '%s' (uuid: %s)", webhook.Event, webhook.UUID)
 			break
 		}
-		defer resp.Body.Close() // nolint:errcheck
 
 		if try < len(retryDelays) {
 			time.Sleep(retryDelays[try])
 			continue
 		}
 
-		debug.Log.Error("failed to fire webhook for event '%s' (uuid: %s) after %d tries", webhook.Event, webhook.UUID, try+1)
+		debug.Log.Error("failed to fire webhook for event '%s' (uuid: %s) after %d tries: %v", webhook.Event, webhook.UUID, try+1, err)
+		return
 	}
+	defer resp.Body.Close() // nolint:errcheck
 
 	// Save a copy of body for the callback
 	req.Body = io.NopCloser(bytes.NewBuffer(b))
