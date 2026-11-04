@@ -4,115 +4,102 @@
 
 <p align="center">
     <a href="https://github.com/welovemedia/ffmate/releases"><img src="https://img.shields.io/github/v/release/welovemedia/ffmate?include_prereleases" alt="Version"/></a>
-    <a href="https://github.com/welovemedia/ffmate/actions"><img src="https://github.com/welovemedia/ffmate/workflows/CI/badge.svg?brandh=dev" alt="Build Status"/></a>
-    <a href="https://coveralls.io/github/welovemedia/ffmate?branch=dev"><img src="https://coveralls.io/repos/github/welovemedia/ffmate/badge.svg?branch=dev" alt="Coverage Status"/></a>
+    <a href="https://github.com/welovemedia/ffmate/actions"><img src="https://github.com/welovemedia/ffmate/workflows/CI/badge.svg" alt="Build Status"/></a>
+    <a href="https://coveralls.io/github/welovemedia/ffmate?branch=main"><img src="https://coveralls.io/repos/github/welovemedia/ffmate/badge.svg?branch=main" alt="Coverage Status"/></a>
 </p>
 
 <p align="center">
-    <a href="https://github.com/welovemedia/ffmate/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--v3-green" alt="License"/></a>
-    <a href="https://pkg.go.dev/badge/github/welovemedia/ffmate/v2"><img src="https://pkg.go.dev/badge/github/welovemedia/ffmate/v2.svg" alt="Go Reference"></a>
+    <a href="https://github.com/welovemedia/ffmate/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-AGPL--v3-green" alt="License"/></a>
+    <a href="https://pkg.go.dev/github.com/welovemedia/ffmate/v2"><img src="https://pkg.go.dev/badge/github.com/welovemedia/ffmate/v2.svg" alt="Go Reference"></a>
     <a href="https://discord.gg/NzfeHn37jT"><img src="https://img.shields.io/discord/1330908876912066650?logo=discord" alt="Discord"/></a>
 </p>
 
 
 ## FFmate
 
-FFmate is an automation layer built on top of [FFmpeg](https://ffmpeg.org/), designed not only to simplify transcoding but also to serve as an **extensible engine for custom media workflows**. It provides developers with the tools to integrate FFmpeg's power into their applications and services through a comprehensive REST API, event-driven webhooks, and scriptable pre/post-processing hooks.
+FFmate is an automation layer on top of [FFmpeg](https://ffmpeg.org/). It simplifies transcoding and works as an extensible engine for custom media workflows. Applications and services can use FFmpeg through a REST API, event-driven webhooks, and pre- and post-processing scripts.
 
-If you're looking to build custom media processing pipelines, integrate transcoding into your existing systems, or develop tools that leverage FFmpeg, FFmate provides the foundation.
+FFmate fits custom media processing pipelines, transcoding inside existing systems, and tools built around FFmpeg.
 
-## ✨ Core Features for Extensibility
-
-FFmate is built with extensibility in mind. Here's how you can leverage its core components:
+## Core features
 
 - **REST API** – Submit and manage FFmpeg tasks programmatically
-- **Web UI** – Monitor and control jobs in real time, no terminal required
-- **Cluster Support** – Run multiple FFmate instances together, sharing the same database for scaling and redundancy
+- **Web UI** – Monitor and control tasks in real time, no terminal required
+- **Cluster Support** – Run multiple FFmate instances that share one PostgreSQL database for scaling and redundancy
 - **Watchfolders** – Automatically process files dropped into a directory
-- **Presets** – Ready-made set of pre-configured transcoding presets for common use cases
+- **Presets** – Built-in presets for common transcoding jobs, plus your own
 - **Webhooks** – Get real-time notifications for task events
-- **Dynamic Wildcards** – Automate file naming and folder structures
-- **Pre/Post Processing** – Run custom scripts before or after each task to automate complex workflow steps
-- **Built-in Queue** – Manage task execution with priority control and smart concurrency handling
+- **Wildcards** – Build output file names and folder structures from the input file, the date and other values
+- **Pre/Post Processing** – Run custom scripts before or after each task
+- **Built-in Queue** – Runs tasks by priority, with a limit on how many run at the same time
 
-## 📚 Product Documentation
+## Documentation
 
-Want to dive deeper into FFmate? The documentation covers everything—from API usage to Web UI features and real-world examples 👉 Everything you need is now available at [https://docs.ffmate.io](https://docs.ffmate.io)
+The documentation covers the API, the Web UI and real-world examples: [https://docs.ffmate.io](https://docs.ffmate.io)
 
-## 🚀 Getting Started for Developers
-
-To start extending, integrating with, or contributing to FFmate:
+## Getting started for developers
 
 ### Prerequisites
 
-*   **FFmpeg:** Installed and in `$PATH`.
-*   **Go (Golang):** Version 1.24+ (or specify your project's minimum version). Required for building from source or contributing to core.
-*   **Git:** For cloning the repository.
-*   Familiarity with REST APIs and JSON.
-*   Your preferred scripting language (Python, Bash, Node.js, etc.) for pre/post-processing scripts.
+*   FFmpeg, installed and in `$PATH`.
+*   Git, for cloning the repository.
+*   A scripting language such as Python, Bash or Node.js for pre- and post-processing scripts.
 
-### Installation & Setup
+To build from source, you also need:
 
-You have two main options:
+*   Go 1.26.5 or newer.
+*   Node.js and pnpm, to build the Web UI.
 
-1.  **Use Pre-compiled Binaries (for integration/extension):**
-    *   Download the latest binary from [GitHub Releases](https://github.com/welovemedia/ffmate/releases).
-    *   Make executable: `chmod +x ffmate`
-    *   (Optional) Move to a directory in your `$PATH`.
-    *   Run FFmate Server: `./ffmate server`
+### Installation and setup
 
-2.  **Build from Source (for core contribution/deep customization):**
-    *   **Clone the repository:**
+There are two options.
+
+1.  Use a pre-compiled binary:
+    *   Download the archive for your system from [GitHub Releases](https://github.com/welovemedia/ffmate/releases), for example `ffmate_Linux_x86_64.tar.gz`. Windows archives are `.zip`.
+    *   Unpack it: `tar -xzf ffmate_Linux_x86_64.tar.gz`
+    *   Optionally move the `ffmate` binary to a directory in your `$PATH`.
+    *   Start FFmate: `./ffmate server`
+
+2.  Build from source:
+    *   Clone the repository with its Web UI submodule:
         ```bash
-        git clone https://github.com/welovemedia/ffmate.git
+        git clone --recurse-submodules https://github.com/welovemedia/ffmate.git
         cd ffmate
         ```
-    *   **Install Go dependencies:**
+    *   Build the Web UI. Without this step, `/ui` shows a placeholder page:
         ```bash
-        go mod tidy
-        # or go get ./...
+        make build+frontend
         ```
-    *   **Build the FFmate binary:**
+    *   Build the binary:
         ```bash
         go build -o ffmate main.go
         ```
-        The compiled `ffmate` binary will be in the root of the `ffmate` directory.
-    *   **Run FFmate Server:**
+    *   Start FFmate. For development, turn on debug logging:
         ```bash
-        ./ffmate server
-        # For development, consider enabling debug for relevant namespaces:
-        # ./ffmate server --debug="api:webhook:queue:ffmpeg:sev"
+        ./ffmate server --debug="debug:*"
         ```
 
-The API will be available at `http://localhost:3000`.
+The API is available at `http://localhost:3000/api/v1` and the Web UI at `http://localhost:3000/ui`.
 
-### Key Extension Points - Quick Reference
+### Extension points
 
-*   **Integrating with an existing application?**
-    *   Start with the `/api/v1/tasks` endpoint to submit jobs.
-    *   Use `/api/v1/webhooks` to get status updates back to your application.
-*   **Need custom logic around transcoding?**
-    *   Implement pre/post-processing scripts.
-    *   Define `scriptPath` and `sidecarPath` in your task/preset API calls.
-*   **Building a custom dashboard or UI?**
-    *   The entire Web UI is built on the public REST API and WebSockets. You can do the same!
-    *   WebSockets (served from `/ws` on the same port) provide real-time updates for tasks and logs.
-*   **Automating complex ingestion workflows?**
-    *   Use the `/api/v1/watchfolders` endpoint combined with presets that trigger your custom processing logic.
+*   Integrating with an existing application: submit tasks with `/api/v1/tasks` and use `/api/v1/webhooks` to get status updates back.
+*   Custom logic around transcoding: set `scriptPath` and `sidecarPath` inside `preProcessing` or `postProcessing` in task and preset requests.
+*   Custom dashboard or UI: the Web UI only uses the public REST API and a WebSocket at `/api/v1/ws`. The WebSocket sends live updates for tasks, presets, watchfolders, webhooks, FFmate instances and logs.
+*   Ingestion workflows: create watchfolders with `/api/v1/watchfolders` and presets that run the custom processing.
 
-## 🔧 Understanding FFmate Internals & Code Structure
+## Internals and code structure
 
-FFmate is a Go application. A high-level overview of its structure and key components for extension:
+FFmate is a Go application.
 
-**Conceptual Diagram:**
 ```mermaid
 graph TD
     %% ─── UI & API ─────────────────────────
-    YourApp["Your Application / Script"] -- REST API --> REST_API["FFmate REST API (Gin)"]
-    WebUI["FFmate Web UI (Vue/React/Static)"] -- REST API / WebSockets --> REST_API
+    YourApp["Your Application / Script"] -- REST API --> REST_API["FFmate REST API (Goyave)"]
+    WebUI["FFmate Web UI (Nuxt)"] -- REST API / WebSockets --> REST_API
 
     %% ─── Services (single row) ───────────
-    subgraph FFmate_Services ["Services Layer (./internal/services)"]
+    subgraph FFmate_Services ["Services Layer (./internal/service)"]
         direction LR
         TaskSvc["Task Service"]
         PresetSvc["Preset Service"]
@@ -125,11 +112,11 @@ graph TD
     REST_API --> WebhookSvc
 
     %% ─── Core & DB side-by-side ───────────
-    subgraph FFmate_Core ["Core Logic (./internal/core, ./internal/ffmpeg)"]
+    subgraph FFmate_Core ["Core Logic (./internal/service/task, ./internal/service/ffmpeg)"]
         direction LR
         Queue["Task Queue Processor"]
         PrePostScripts["Pre/Post-Processing Engine"]
-        DB[(SQLite DB - GORM)]
+        DB[(SQLite or PostgreSQL - GORM)]
     end
     TaskSvc --> Queue
     Queue --> PrePostScripts
@@ -151,57 +138,52 @@ graph TD
     classDef ffbin  fill:#ff99cc,stroke:#b3366b,stroke-width:1.2px,color:#000000;
 ```
 
-**Code Structure:**
+Repository layout:
 
-*   **`main.go`**: Main application entry point, CLI command parsing (using Cobra), server initialization.
-*   **`/internal/`**: Core application logic, not intended for direct import by other projects.
-    *   **`/controller/`**: HTTP request handlers (e.g., using Gin). This is where API routes are defined and map to services.
-    *   **`/services/`**: Business logic for each major feature (Tasks, Presets, Watchfolders, Webhooks). Services orchestrate operations, interact with the database, and call core components.
-    *   **`/dto/`**: A folder holding all Data Transfer Objects.
-    *   **`/queue/`**: Manages the task queue, concurrency, and task lifecycle.
-    *   **`/interceptor/`**: Interceptors to use with Gin for various routes.
-    *   **`/middleware/`**: Global middleware being used by Gin.
-    *   **`/metrics/`**: Manages and exposes prometheus metrics for later scraping.
-    *   **`/ffmpeg/`**: Wrapper around the `ffmpeg` binary, responsible for executing commands, parsing progress, and handling output/errors.
-    *   **`/database/`**: Database models/structs (e.g., for GORM if used) and database interaction logic (repository pattern).
-    *   **`/config/`**: Application configuration management.
-    *   **`/utils/`**: Common utility functions.
-*   **`/pkg/`**: Libraries intended to be used by external applications (if any). (Your current docs don't suggest FFmate is used as a library itself, mostly as a standalone server).
-*   **`/ui/`** or **`/web/dist/`**: Contains the pre-built static assets for the Web UI.
-*   **`/docs/`**: Your Markdown documentation.
-*   **`go.mod`, `go.sum`**: Go module files.
+*   `main.go` sets the version and starts the CLI.
+*   `cmd/` holds the CLI commands (`server`, `update`, `version`), built with Cobra.
+*   `internal/` holds the application code. Other projects cannot import it.
+    *   `controller/` has the HTTP handlers (Goyave) and the API routes, one package per feature. It also serves the Web UI, Swagger, health, metrics and the WebSocket.
+    *   `service/` has the logic for each feature: tasks, presets, watchfolders, webhooks, clients, settings, updates, telemetry and the WebSocket. The task queue is in `service/task`, the `ffmpeg` wrapper in `service/ffmpeg`.
+    *   `dto/` has the data transfer objects.
+    *   `database/` has the GORM models (`model/`) and the repositories (`repository/`).
+    *   `middleware/` has the middleware used by Goyave.
+    *   `metrics/` has the Prometheus metrics served at `/metrics`.
+    *   `cfg/`, `debug/`, `validate/` and `exception/` have configuration, debug logging, request validation and error handling.
+    *   `dialect/` registers the SQLite driver (pure Go, no CGO).
+    *   `docs/` has the generated Swagger documentation.
+*   `ui/` is the [ffmate-ui](https://github.com/welovemedia/ffmate-ui) submodule. `make build+frontend` copies its build into `internal/controller/ui/ui-build/`, which is embedded in the binary.
+*   `testsuite/` has the integration tests.
+*   `go.mod` and `go.sum` are the Go module files.
 
-**Key Extension & Contribution Areas:**
+Good places to start:
 
-*   **API Handlers (`/internal/controller/`):** Extend existing API endpoints or add new ones.
-*   **Services (`/internal/services/`):** Modify or add business logic for features.
-*   **Core Logic (`/internal/ffmpeg/`):** Enhance task processing, FFmpeg interaction, or pre/post-script handling.
-*   **Web UI (`/ui/`):** The ffmate-ui repository as submodule.
+*   API handlers in `internal/controller/`: extend an endpoint or add one.
+*   Business logic in `internal/service/`: change or add behaviour for a feature.
+*   Task processing, FFmpeg handling and pre/post-processing in `internal/service/task/` and `internal/service/ffmpeg/`.
+*   Web UI in `ui/`.
 
-## 🤝 Contributing to FFmate Core
+## Contributing
 
-Interested in contributing directly to FFmate's development? We welcome contributions!
+Contributions are welcome.
 
-1.  **Understand the Project:** Familiarize yourself with the existing documentation and code structure (see "Understanding FFmate Internals & Code Structure" above).
-2.  **Setup your Environment:** Ensure you have Go (see prerequisites) and Git installed.
-3.  **Find an Issue or Propose an Enhancement:** Check existing [GitHub Issues](https://github.com/welovemedia/ffmate/issues) or discuss your ideas on Discord first.
-4.  **Fork the Project.**
-5.  **Clone your fork and build from source** (see "Build from Source" instructions above).
-6.  **Create your Feature Branch:** (`git checkout -b feature/YourAmazingFeature`).
-7.  **Write Code & Tests:** Implement your feature or fix. Add unit tests where appropriate.
-8.  **Ensure Code Quality:**
-    *   Run `go fmt ./...` to format your code.
-    *   Run `go vet ./...` to check for suspicious constructs.
-    *   (If linters like `golangci-lint` are used, run them).
-9.  **Commit your Changes:** (`git commit -m 'feat: Add YourAmazingFeature'`). Follow conventional commit messages if applicable.
-10. **Push to the Branch:** (`git push origin feature/YourAmazingFeature`).
-11. **Open a Pull Request** against the `main` (or `develop`) branch of the original `welovemedia/ffmate` repository. Provide a clear description of your changes.
+1.  Check the existing [GitHub Issues](https://github.com/welovemedia/ffmate/issues), or talk about your idea on Discord first.
+2.  Fork the repository, clone your fork and build from source as described above.
+3.  Create a branch, for example `git checkout -b feature/my-change`.
+4.  Write the code and add tests where they make sense.
+5.  Run `go fmt ./...`, `go vet ./...`, `make lint` and `make test`.
+6.  Commit with a conventional message, for example `git commit -m 'feat: add my change'`.
+7.  Push the branch and open a pull request against the `dev` branch of `welovemedia/ffmate` with a clear description of the change.
 
-## 💬 Developer Community & Support
+## Community and support
 
-*   **Discord (Developer Chat):** Join our [FFmate Community on Discord](https://discord.gg/NzfeHn37jT) for discussions on extending FFmate, asking technical questions, and sharing your projects.
-*   **GitHub Issues:** Report bugs, discuss potential enhancements [GitHub Issues](https://github.com/welovemedia/ffmate/issues).
+*   Discord: join the [FFmate community](https://discord.gg/NzfeHn37jT) to talk about extending FFmate, ask technical questions and share projects.
+*   GitHub: report bugs and propose enhancements in [GitHub Issues](https://github.com/welovemedia/ffmate/issues).
 
-## 📄 License
+## Sponsor
 
-This project is licensed under the **AGPL-3.0**. See the [LICENSE](LICENSE) file for full details.
+FFmate is created and maintained by developers and product managers at [MoovIT GmbH](https://moovit.de), a German systems integrator and software company that brings video production and IT together. MoovIT sponsors FFmate by letting the team build and maintain it during their working hours, alongside MoovIT's own projects.
+
+## License
+
+FFmate is licensed under the AGPL-3.0. See the [LICENSE](LICENSE) file for details.
