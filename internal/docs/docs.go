@@ -853,7 +853,16 @@ const docTemplate = `{
                 "identifier": {
                     "type": "string"
                 },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "lastSeen": {
+                    "type": "integer"
+                },
+                "maxConcurrentTasks": {
                     "type": "integer"
                 },
                 "os": {
@@ -911,6 +920,12 @@ const docTemplate = `{
                 "globalPresetName": {
                     "type": "string"
                 },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },
@@ -924,6 +939,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/dto.NewPrePostProcessing"
                 },
                 "priority": {
+                    "type": "integer"
+                },
+                "retries": {
                     "type": "integer"
                 },
                 "webhooks": {
@@ -942,6 +960,12 @@ const docTemplate = `{
                 },
                 "inputFile": {
                     "type": "string"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "metadata": {
                     "$ref": "#/definitions/dto.MetadataMap"
@@ -962,6 +986,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "priority": {
+                    "type": "integer"
+                },
+                "retries": {
                     "type": "integer"
                 },
                 "webhooks": {
@@ -986,6 +1013,12 @@ const docTemplate = `{
                 },
                 "interval": {
                     "type": "integer"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "name": {
                     "type": "string"
@@ -1047,6 +1080,12 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "name": {
                     "type": "string"
                 },
@@ -1060,6 +1099,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/dto.NewPrePostProcessing"
                 },
                 "priority": {
+                    "type": "integer"
+                },
+                "retries": {
                     "type": "integer"
                 },
                 "updatedAt": {
@@ -1114,6 +1156,12 @@ const docTemplate = `{
                 "inputFile": {
                     "$ref": "#/definitions/dto.RawResolved"
                 },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "metadata": {
                     "$ref": "#/definitions/dto.MetadataMap"
                 },
@@ -1137,6 +1185,12 @@ const docTemplate = `{
                 },
                 "remaining": {
                     "type": "number"
+                },
+                "retried": {
+                    "type": "integer"
+                },
+                "retries": {
+                    "type": "integer"
                 },
                 "source": {
                     "$ref": "#/definitions/dto.TaskSource"
@@ -1181,7 +1235,8 @@ const docTemplate = `{
                 "POST_PROCESSING",
                 "DONE_SUCCESSFUL",
                 "DONE_ERROR",
-                "DONE_CANCELED"
+                "DONE_CANCELED",
+                "ALL"
             ],
             "x-enum-varnames": [
                 "Queued",
@@ -1190,7 +1245,8 @@ const docTemplate = `{
                 "PostProcessing",
                 "DoneSuccessful",
                 "DoneError",
-                "DoneCanceled"
+                "DoneCanceled",
+                "All"
             ]
         },
         "dto.Watchfolder": {
@@ -1213,6 +1269,12 @@ const docTemplate = `{
                 },
                 "interval": {
                     "type": "integer"
+                },
+                "labels": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "lastCheck": {
                     "type": "integer"
