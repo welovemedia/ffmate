@@ -57,8 +57,10 @@ func InitServer(t *testing.T) *testutil.TestServer {
 		server.RegisterService(svc)
 	}
 
-	server.RegisterRoutes(controller.Register)
-	server.RegisterRoutes(middleware.Register)
+	server.RegisterRoutes(func(server *goyave.Server, router *goyave.Router) {
+		controller.Register(server, router)
+		middleware.Register(server, router)
+	})
 
 	return server
 }

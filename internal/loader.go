@@ -114,10 +114,10 @@ func Init(options goyave.Options) {
 	}
 
 	// register routes
-	server.RegisterRoutes(controller.Register)
-
-	// register middlewares
-	server.RegisterRoutes(middleware.Register)
+	server.RegisterRoutes(func(server *goyave.Server, router *goyave.Router) {
+		controller.Register(server, router)
+		middleware.Register(server, router)
+	})
 
 	// setup debug logger to broadcast to websocket clients
 	debug.RegisterBroadcastLogger(func(p []byte) {
