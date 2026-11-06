@@ -91,10 +91,12 @@ func Init(options goyave.Options) {
 	ffmpegSvc := ffmpeg.NewService()
 	updateSvc := update.NewService(server.Config().GetString("app.version"))
 	websocketSvc := websocket.NewService(server.DB())
-	clientSvc := client.NewService(clientRepository, server.Config().GetString("app.version"), websocketSvc)
 	webhookSvc := webhook.NewService(webhookRepository, webhookExecutionRepository, server.Config(), websocketSvc)
 	presetSvc := preset.NewService(presetRepository, webhookSvc, websocketSvc)
 	taskSvc := task.NewService(taskRepository, presetSvc, webhookSvc, websocketSvc, ffmpegSvc, true)
+	// the client service must be created after the task service, as the latter resolves the ffmpeg path
+	// (ffmate.ffmpeg) which is persisted with the initial client info
+	clientSvc := client.NewService(clientRepository, server.Config().GetString("app.version"), websocketSvc)
 	watchfolderSvc := watchfolder.NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
 	settingSvc := settings.NewService(settingRepository)
 	for name, svc := range map[string]goyave.Service{
