@@ -100,13 +100,32 @@ func (r *Task) Count() (int64, error) {
 }
 
 func (r *Task) FailRunningTasksForStartingClient(identifier string) ([]model.Task, error) {
+	// UPDATE ... RETURNING is avoided here, as the sqlite driver fails with
+	// "bad parameter or other API misuse: not an error (21)" on it
 	var tasks []model.Task
-	err := r.DB.Raw(`
-		UPDATE tasks
-		SET status = ?, error = ?, finished_at = ?,remaining = -1, progress = 100
-		WHERE status = ? AND client_identifier = ?
-		RETURNING *;
-	`, dto.DoneError, "client disconnected during execution", time.Now().UnixMilli(), dto.Running, identifier).Scan(&tasks).Error
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		var ids []uint
+		if err := tx.Model(&model.Task{}).
+			Where("status = ? AND client_identifier = ?", dto.Running, identifier).
+			Pluck("id", &ids).Error; err != nil {
+			return err
+		}
+		if len(ids) == 0 {
+			return nil
+		}
+
+		if err := tx.Model(&model.Task{}).Where("id IN ?", ids).Updates(map[string]any{
+			"status":      dto.DoneError,
+			"error":       "client disconnected during execution",
+			"finished_at": time.Now().UnixMilli(),
+			"remaining":   -1,
+			"progress":    100,
+		}).Error; err != nil {
+			return err
+		}
+
+		return tx.Preload("Labels").Where("id IN ?", ids).Find(&tasks).Error
+	})
 
 	return tasks, err
 }
