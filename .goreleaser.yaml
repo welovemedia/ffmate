@@ -24,7 +24,9 @@ dockers_v2:
       - ghcr.io/welovemedia/ffmate
     tags:
       - "v{{ .Version }}"
-      - "{{- if eq .Branch \"main\" }}latest{{ end }}"
+      # Tag builds run on a detached HEAD, so .Branch is never "main".
+      # Stable (non -dev-) tags are cut from main; tag those as latest.
+      - "{{- if not (contains .Tag \"-dev-\") }}latest{{ end }}"
     dockerfile: Dockerfile
     platforms:
       - linux/amd64
