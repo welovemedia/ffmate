@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/welovemedia/ffmate/v2/internal/controller/apikey"
 	"github.com/welovemedia/ffmate/v2/internal/controller/client"
 	"github.com/welovemedia/ffmate/v2/internal/controller/debug"
 	"github.com/welovemedia/ffmate/v2/internal/controller/health"
@@ -29,6 +30,7 @@ func Register(_ *goyave.Server, router *goyave.Router) {
 	apiRouter.Controller(&settings.Controller{})
 	apiRouter.Controller(&client.Controller{})
 	apiRouter.Controller(&debug.Controller{})
+	apiRouter.Controller(&apikey.Controller{})
 	// websocket
 	apiRouter.Subrouter("/ws").Controller(ws.New(&websocket.Controller{}))
 

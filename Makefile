@@ -24,6 +24,9 @@ vulncheck:
 dev+sqlite:
 	CGO_ENABLED=0 go run -race main.go server --identifier="sev.moovit.de" --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}" --labels="hardware-red,hardware-blue, hardware-yellow" --ffmpeg="/opt/homebrew/bin/ffmpeg"
 
+dev+sqlite+basic:
+	CGO_ENABLED=0 go run -race main.go server --identifier="sev.moovit.de" --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database="${FFMATE_DB_SQLITE}" --labels="hardware-red,hardware-blue, hardware-yellow" --ffmpeg="/opt/homebrew/bin/ffmpeg" --basic-auth="test:test"
+
 dev+sqlite+memory:
 	go run -race main.go server --identifier="sev.moovit.de" --debug="info:?,debug:?,warn:?,error:?" --send-telemetry=false --no-ui=true --database=":memory:"
 

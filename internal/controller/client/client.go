@@ -7,6 +7,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/exception"
+	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/util/typeutil"
@@ -28,7 +29,7 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Get("/clients", c.list)
+	router.Get("/clients", c.list).SetMeta(middleware.MetaAccess, middleware.AccessRead)
 }
 
 // @Summary List all clients

@@ -14,6 +14,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/service/apikey"
 	"github.com/welovemedia/ffmate/v2/internal/service/client"
 	"github.com/welovemedia/ffmate/v2/internal/service/ffmpeg"
 	"github.com/welovemedia/ffmate/v2/internal/service/preset"
@@ -43,10 +44,11 @@ func Init(options goyave.Options) {
 	debug.Log.Info("connecting to database")
 
 	// setup cors
+	// "Authorization" must be listed explicitly, browsers never match it against "*"
 	server.Router().CORS(&cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
-		AllowedHeaders:   []string{"*"},
+		AllowedHeaders:   []string{"*", "Authorization"},
 		ExposedHeaders:   []string{"*"},
 		AllowCredentials: true,
 	})
@@ -85,6 +87,7 @@ func Init(options goyave.Options) {
 	taskRepository := (&repository.Task{DB: server.DB()}).Setup()
 	settingRepository := (&repository.Settings{DB: server.DB()}).Setup()
 	clientRepository := (&repository.Client{DB: server.DB()}).Setup()
+	apiKeyRepository := (&repository.APIKey{DB: server.DB()}).Setup()
 
 	// setup and register services
 	telemetrySvc := telemetry.NewService(server.Config(), server.DB())
@@ -99,6 +102,7 @@ func Init(options goyave.Options) {
 	clientSvc := client.NewService(clientRepository, server.Config().GetString("app.version"), websocketSvc)
 	watchfolderSvc := watchfolder.NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
 	settingSvc := settings.NewService(settingRepository)
+	apiKeySvc := apikey.NewService(apiKeyRepository)
 	for name, svc := range map[string]goyave.Service{
 		service.Update:      updateSvc,
 		service.FFMpeg:      ffmpegSvc,
@@ -110,6 +114,7 @@ func Init(options goyave.Options) {
 		service.Task:        taskSvc,
 		service.Settings:    settingSvc,
 		service.Client:      clientSvc,
+		service.APIKey:      apiKeySvc,
 	} {
 		server.RegisterService(svc)
 		debug.Service.Debug("registered %s service", name)

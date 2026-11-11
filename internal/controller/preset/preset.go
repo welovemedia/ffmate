@@ -7,6 +7,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/exception"
+	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
 	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
@@ -33,11 +34,11 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Delete("/presets/{uuid}", c.delete)
-	router.Post("/presets", c.add).ValidateBody(c.NewPresetRequest)
-	router.Put("/presets/{uuid}", c.update).ValidateBody(c.NewPresetRequest)
-	router.Get("/presets", c.list).ValidateQuery(validate.PaginationRequest)
-	router.Get("/presets/{uuid}", c.get)
+	router.Delete("/presets/{uuid}", c.delete).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Post("/presets", c.add).ValidateBody(c.NewPresetRequest).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Put("/presets/{uuid}", c.update).ValidateBody(c.NewPresetRequest).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Get("/presets", c.list).ValidateQuery(validate.PaginationRequest).SetMeta(middleware.MetaAccess, middleware.AccessRead)
+	router.Get("/presets/{uuid}", c.get).SetMeta(middleware.MetaAccess, middleware.AccessRead)
 }
 
 // @Summary Delete a preset

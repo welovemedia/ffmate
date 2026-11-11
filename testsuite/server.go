@@ -7,6 +7,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/database/repository"
 	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
+	apiKeyService "github.com/welovemedia/ffmate/v2/internal/service/apikey"
 	clientService "github.com/welovemedia/ffmate/v2/internal/service/client"
 	"github.com/welovemedia/ffmate/v2/internal/service/ffmpeg"
 	presetService "github.com/welovemedia/ffmate/v2/internal/service/preset"
@@ -21,7 +22,9 @@ import (
 	"goyave.dev/goyave/v5/util/testutil"
 )
 
-func InitServer(t *testing.T) *testutil.TestServer {
+// InitServer creates a test server with all services and routes registered.
+// Optional routes are registered additionally (e.g. test-only routes).
+func InitServer(t *testing.T, routes ...func(router *goyave.Router)) *testutil.TestServer {
 	server := testserver.New(t)
 
 	// setup repositories
@@ -31,10 +34,12 @@ func InitServer(t *testing.T) *testutil.TestServer {
 	watchfolderRepository := (&repository.Watchfolder{DB: server.DB()}).Setup()
 	taskRepository := (&repository.Task{DB: server.DB()}).Setup()
 	clientRepository := (&repository.Client{DB: server.DB()}).Setup()
+	apiKeyRepository := (&repository.APIKey{DB: server.DB()}).Setup()
 	settingsRepository := (&repository.Settings{DB: server.DB()}).Setup()
 
 	// setup and register services
 	settingsSvc := settingsSvc.NewService(settingsRepository)
+	apiKeySvc := apiKeyService.NewService(apiKeyRepository)
 	telemetrySvc := telemetry.NewService(server.Config(), server.DB())
 	ffmpegSvc := ffmpeg.NewService()
 	websocketSvc := websocketService.NewService(server.DB())
@@ -53,6 +58,7 @@ func InitServer(t *testing.T) *testutil.TestServer {
 		service.Task:        taskSvc,
 		service.Settings:    settingsSvc,
 		service.Client:      clientSvc,
+		service.APIKey:      apiKeySvc,
 	} {
 		server.RegisterService(svc)
 	}
@@ -60,6 +66,9 @@ func InitServer(t *testing.T) *testutil.TestServer {
 	server.RegisterRoutes(func(server *goyave.Server, router *goyave.Router) {
 		controller.Register(server, router)
 		middleware.Register(server, router)
+		for _, r := range routes {
+			r(router)
+		}
 	})
 
 	return server

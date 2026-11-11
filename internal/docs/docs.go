@@ -22,6 +22,173 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/apikeys": {
+            "get": {
+                "description": "List all existing api keys (without the secret key)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apikeys"
+                ],
+                "summary": "List all api keys",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.APIKey"
+                            }
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/exception.HTTPError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Add a new api key. The secret key is only returned once in this response.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apikeys"
+                ],
+                "summary": "Add a new api key",
+                "parameters": [
+                    {
+                        "description": "new api key",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.NewAPIKey"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreatedAPIKey"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/exception.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/apikeys/{uuid}": {
+            "get": {
+                "description": "Get a single api key by its uuid (without the secret key)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apikeys"
+                ],
+                "summary": "Get single api key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "the api keys uuid",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIKey"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/exception.HTTPError"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete (revoke) an api key by its uuid",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apikeys"
+                ],
+                "summary": "Delete an api key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "the api keys uuid",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/exception.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/apikeys/{uuid}/rotate": {
+            "post": {
+                "description": "Replace the secret key of an existing api key. Name, access and uuid are kept, the previous key is invalid immediately. The new secret key is only returned once in this response.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "apikeys"
+                ],
+                "summary": "Rotate an api key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "the api keys uuid",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreatedAPIKey"
+                        }
+                    },
+                    "412": {
+                        "description": "Precondition Failed",
+                        "schema": {
+                            "$ref": "#/definitions/exception.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
         "/batches": {
             "post": {
                 "description": "Add a batch of new tasks to the queue",
@@ -824,6 +991,40 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dto.APIKey": {
+            "type": "object",
+            "properties": {
+                "access": {
+                    "$ref": "#/definitions/dto.APIKeyAccess"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "prefix": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.APIKeyAccess": {
+            "type": "string",
+            "enum": [
+                "read",
+                "write"
+            ],
+            "x-enum-varnames": [
+                "APIKeyAccessRead",
+                "APIKeyAccessWrite"
+            ]
+        },
         "dto.Batch": {
             "type": "object",
             "properties": {
@@ -879,9 +1080,46 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreatedAPIKey": {
+            "type": "object",
+            "properties": {
+                "access": {
+                    "$ref": "#/definitions/dto.APIKeyAccess"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "prefix": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.MetadataMap": {
             "type": "object",
             "additionalProperties": {}
+        },
+        "dto.NewAPIKey": {
+            "type": "object",
+            "properties": {
+                "access": {
+                    "$ref": "#/definitions/dto.APIKeyAccess"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
         },
         "dto.NewBatch": {
             "type": "object",
@@ -1439,6 +1677,23 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "integer"
+                }
+            }
+        },
+        "exception.HTTPError": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "docs": {
+                    "type": "string"
+                },
+                "err": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
                 }
             }
         }

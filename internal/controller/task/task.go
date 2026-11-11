@@ -7,6 +7,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/exception"
+	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
 	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
@@ -36,15 +37,15 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Delete("/tasks/{uuid}", c.delete)
-	router.Post("/tasks", c.add).ValidateBody(NewTaskRequest)
-	router.Get("/tasks", c.list).ValidateQuery(validate.PaginationRequestWithTaskFilter)
-	router.Get("/tasks/{uuid}", c.get)
-	router.Patch("/tasks/{uuid}/cancel", c.cancel)
-	router.Patch("/tasks/{uuid}/restart", c.restart)
+	router.Delete("/tasks/{uuid}", c.delete).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Post("/tasks", c.add).ValidateBody(NewTaskRequest).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Get("/tasks", c.list).ValidateQuery(validate.PaginationRequestWithTaskFilter).SetMeta(middleware.MetaAccess, middleware.AccessRead)
+	router.Get("/tasks/{uuid}", c.get).SetMeta(middleware.MetaAccess, middleware.AccessRead)
+	router.Patch("/tasks/{uuid}/cancel", c.cancel).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Patch("/tasks/{uuid}/restart", c.restart).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
 
-	router.Post("/batches", c.addBatch)
-	router.Get("/batches/{uuid}", c.getBatch).ValidateQuery(validate.PaginationRequest)
+	router.Post("/batches", c.addBatch).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Get("/batches/{uuid}", c.getBatch).ValidateQuery(validate.PaginationRequest).SetMeta(middleware.MetaAccess, middleware.AccessRead)
 }
 
 // @Summary Delete a task
