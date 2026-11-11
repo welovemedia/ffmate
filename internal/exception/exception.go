@@ -35,3 +35,7 @@ func HTTPInvalidQuery(name string) *HTTPError {
 func HTTPNotFound(err error, docs string) *HTTPError {
 	return &HTTPError{HTTPCode: 400, Code: "001.000.0008", Error: "not.found", Message: err.Error(), Docs: docs}
 }
+
+func HTTPPreconditionFailed(err error, docs string) *HTTPError {
+	return &HTTPError{HTTPCode: 412, Code: "001.000.0009", Error: "precondition.failed", Message: err.Error(), Docs: docs}
+}
