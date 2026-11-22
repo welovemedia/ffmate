@@ -150,6 +150,7 @@ func (s *Service) Update(task *model.Task) (*model.Task, error) {
 					debug.Task.Error("failed to retry task (uuid: %s)", t.UUID)
 					return
 				}
+				metrics.Gauge("task.updated").Inc()
 				debug.Task.Debug("retried task %d/%d (uuid: %s): %v", t.Retried, t.Retries, uuid, err)
 			}
 		}()
