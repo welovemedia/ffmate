@@ -28,9 +28,22 @@ func (s *Service) runPreProcessing(task *model.Task) error {
 	return nil
 }
 
-func (s *Service) prepareTaskFiles(task *model.Task) {
+// resolveTaskFiles resolves the input and output file once at the start of processing,
+// so pre-processing, the ffmpeg command and post-processing all see the same values
+// (wildcards like ${UUID} or ${TIMESTAMP_*} would otherwise resolve differently each time).
+func (s *Service) resolveTaskFiles(task *model.Task) {
 	task.InputFile.Resolved = s.wildcardReplacer(task.InputFile.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
 	task.OutputFile.Resolved = s.wildcardReplacer(task.OutputFile.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
+}
+
+func (s *Service) prepareTaskFiles(task *model.Task) {
+	// re-resolve only if an imported sidecar changed the raw value (and therefore cleared the resolved one)
+	if task.InputFile.Resolved == "" {
+		task.InputFile.Resolved = s.wildcardReplacer(task.InputFile.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
+	}
+	if task.OutputFile.Resolved == "" {
+		task.OutputFile.Resolved = s.wildcardReplacer(task.OutputFile.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
+	}
 	task.Command.Resolved = s.wildcardReplacerCommand(task.Command.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
 
 	task.Status = dto.Running
@@ -168,11 +181,7 @@ func (s *Service) handleSidecar(task *model.Task, processor *dto.PrePostProcessi
 	}
 
 	// Resolve path and save
-	if processorType == "pre" {
-		processor.SidecarPath.Resolved = s.wildcardReplacer(processor.SidecarPath.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
-	} else {
-		processor.SidecarPath.Resolved = s.wildcardReplacer(processor.SidecarPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
-	}
+	processor.SidecarPath.Resolved = s.wildcardReplacer(processor.SidecarPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
 	if _, err := s.updateRunningTask(task); err != nil {
 		debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
 	}
@@ -199,11 +208,7 @@ func (s *Service) handleScriptExecution(task *model.Task, processor *dto.PrePost
 		return nil
 	}
 
-	if processorType == "pre" {
-		processor.ScriptPath.Resolved = s.wildcardReplacerCommand(processor.ScriptPath.Raw, task.InputFile.Raw, task.OutputFile.Raw, task.Source, task.Metadata)
-	} else {
-		processor.ScriptPath.Resolved = s.wildcardReplacerCommand(processor.ScriptPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
-	}
+	processor.ScriptPath.Resolved = s.wildcardReplacerCommand(processor.ScriptPath.Raw, task.InputFile.Resolved, task.OutputFile.Resolved, task.Source, task.Metadata)
 	if _, err := s.updateRunningTask(task); err != nil {
 		debug.Log.Error("failed to save task (uuid: %s)", task.UUID)
 	}
@@ -280,7 +285,10 @@ func (i *sidecarImport) applyTo(task *model.Task) {
 		if *dst == nil {
 			*dst = &dto.RawResolved{}
 		}
-		(*dst).Raw = src.Raw
+		if (*dst).Raw != src.Raw {
+			(*dst).Raw = src.Raw
+			(*dst).Resolved = "" // changed by the sidecar, must be resolved again
+		}
 	}
 	importRaw(&task.Command, i.Command)
 	importRaw(&task.InputFile, i.InputFile)

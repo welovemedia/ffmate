@@ -533,6 +533,8 @@ func (s *Service) processNewTask(task *model.Task) {
 
 	task.StartedAt = time.Now().UnixMilli()
 
+	s.resolveTaskFiles(task)
+
 	if err := s.runPreProcessing(task); err != nil {
 		s.failTask(task, err)
 		return
