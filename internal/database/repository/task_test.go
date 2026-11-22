@@ -78,3 +78,45 @@ func TestDeleteInactiveRefusesActiveTasks(t *testing.T) {
 		assert.True(t, deleted, "%s task must be deleted", status)
 	}
 }
+
+func TestUpdateUnlessCanceled(t *testing.T) {
+	server := testserver.New(t)
+	repo := (&Task{DB: server.DB()}).Setup()
+
+	task, err := repo.Add(&model.Task{UUID: uuid.NewString(), Status: dto.Running, OutputFile: &dto.RawResolved{Raw: "out-${UUID}.mp4"}})
+	assert.NoError(t, err)
+
+	// regular progress update of a running task: all fields (incl. json columns and labels) are written
+	task.Progress = 42
+	task.Remaining = 7
+	task.OutputFile.Resolved = "out-1.mp4"
+	task.Labels = []model.Label{{Value: "gpu"}}
+	updated, err := repo.UpdateUnlessCanceled(task)
+	assert.NoError(t, err)
+	if assert.NotNil(t, updated) {
+		assert.Equal(t, 42.0, updated.Progress)
+		assert.Equal(t, "out-1.mp4", updated.OutputFile.Resolved)
+		assert.Equal(t, []string{"gpu"}, []string{updated.Labels[0].Value})
+	}
+
+	// a cancel stored in the meantime must not be overwritten by a progress update
+	assert.NoError(t, server.DB().Model(&model.Task{}).Where("uuid = ?", task.UUID).Update("status", dto.DoneCanceled).Error)
+	task.Progress = 80
+	task.Status = dto.Running
+	updated, err = repo.UpdateUnlessCanceled(task)
+	assert.NoError(t, err)
+	assert.Nil(t, updated)
+	stored, _ := repo.First(task.UUID)
+	assert.Equal(t, dto.DoneCanceled, stored.Status)
+	assert.Equal(t, 42.0, stored.Progress, "nothing is written for a canceled task")
+
+	// a deleted task is neither updated nor re-inserted
+	other, err := repo.Add(&model.Task{UUID: uuid.NewString(), Status: dto.Running})
+	assert.NoError(t, err)
+	assert.NoError(t, repo.Delete(other))
+	updated, err = repo.UpdateUnlessCanceled(other)
+	assert.NoError(t, err)
+	assert.Nil(t, updated)
+	found, _ := repo.First(other.UUID)
+	assert.Nil(t, found)
+}

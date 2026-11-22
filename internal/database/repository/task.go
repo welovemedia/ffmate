@@ -105,6 +105,37 @@ func (r *Task) Update(task *model.Task) (*model.Task, error) {
 	return r.First(task.UUID)
 }
 
+// UpdateUnlessCanceled writes all fields (and labels) of a task that is being processed, unless the
+// stored task has been canceled or deleted in the meantime. The status check is part of the UPDATE
+// statement, so a concurrent cancel (also from another cluster instance) is never overwritten.
+// Returns (nil, nil) if nothing was written.
+func (r *Task) UpdateUnlessCanceled(task *model.Task) (*model.Task, error) {
+	written := false
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&model.Task{}).
+			Where("uuid = ? AND status <> ?", task.UUID, dto.DoneCanceled).
+			Select("*").
+			Omit("id", "created_at", "deleted_at", "Labels", "Client").
+			Updates(task)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil
+		}
+		written = true
+
+		if err := upsertLabels(tx, task.Labels); err != nil {
+			return err
+		}
+		return tx.Model(task).Association("Labels").Replace(task.Labels)
+	})
+	if err != nil || !written {
+		return nil, err
+	}
+	return r.First(task.UUID)
+}
+
 // UpdateFields writes only the given columns of an existing (non-deleted) task.
 // Unlike Update it never inserts: if the task no longer exists, (nil, nil) is returned.
 // Tasks currently having one of the unlessStatus statuses are not updated either (nil, nil is returned).

@@ -29,6 +29,7 @@ type Repository interface {
 	Add(task *model.Task) (*model.Task, error)
 	Update(task *model.Task) (*model.Task, error)
 	UpdateFields(uuid string, fields map[string]any, unlessStatus ...dto.TaskStatus) (*model.Task, error)
+	UpdateUnlessCanceled(task *model.Task) (*model.Task, error)
 	First(uuid string) (*model.Task, error)
 	Delete(task *model.Task) error
 	DeleteInactive(task *model.Task) (bool, error)
@@ -201,7 +202,17 @@ func (s *Service) Cancel(uuid string) (*model.Task, error) {
 	metrics.Gauge("task.canceled").Inc()
 	debug.Log.Info("canceled task (uuid: %s)", uuid)
 
-	return s.Update(w)
+	t, err := s.Update(w)
+
+	// stop the execution right away if the task is being processed by this instance
+	// (other instances stop it on their next progress update, which no longer overwrites the cancelation)
+	if ctxVal, ok := taskQueue.Load(uuid); ok {
+		if tc, ok2 := ctxVal.(taskContext); ok2 {
+			tc.cancel(errors.New("task has been canceled"))
+		}
+	}
+
+	return t, err
 }
 
 func (s *Service) Restart(uuid string) (*model.Task, error) {
@@ -581,11 +592,15 @@ func (s *Service) updateRunningTask(task *model.Task) (*model.Task, error) {
 	if !ok {
 		return task, fmt.Errorf("taskContext for task has not been found (uuid: %s)", task.UUID)
 	}
-	t, err := s.repository.First(task.UUID)
+
+	// write conditionally: a cancel stored concurrently (API or another cluster instance) must win
+	task.ClientIdentifier = cfg.GetString("ffmate.identifier")
+	t, err := s.repository.UpdateUnlessCanceled(task)
 	if err != nil {
-		return task, fmt.Errorf("failed to receive task during running updates (uuid: %s): %v", task.UUID, err)
+		return task, fmt.Errorf("failed to update task during processing (uuid: %s): %v", task.UUID, err)
 	}
-	if t == nil || t.Status == dto.DoneCanceled {
+	if t == nil {
+		// canceled or deleted: stop the execution (ffmpeg) of this task
 		if tc, ok2 := ctxVal.(taskContext); ok2 {
 			debug.Task.Debug("denied updating an already canceled or deleted task during processing, canceling context.. (uuid: %s)", task.UUID)
 			tc.cancel(errors.New("task has been canceled"))
@@ -594,7 +609,8 @@ func (s *Service) updateRunningTask(task *model.Task) (*model.Task, error) {
 		return task, fmt.Errorf("taskQueue context for uuid %s is not of type taskContext", task.UUID)
 	}
 
-	return s.Update(task)
+	s.notifyUpdated(t)
+	return t, nil
 }
 
 func (s *Service) cancelTask(task *model.Task) {
