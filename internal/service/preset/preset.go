@@ -118,7 +118,7 @@ func (s *Service) Update(uuid string, newPreset *dto.NewPreset) (*model.Preset, 
 		return nil, err
 	}
 
-	debug.Preset.Error("updated preset (uuid: %s)", w.UUID)
+	debug.Preset.Info("updated preset (uuid: %s)", w.UUID)
 
 	if newPreset.GlobalPresetName != "" {
 		metrics.GaugeVec("preset.global").WithLabelValues(newPreset.GlobalPresetName).Inc()
