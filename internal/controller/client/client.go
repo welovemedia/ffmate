@@ -46,7 +46,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 
 	clients, total, err := c.clientService.List(query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/settings#load-settings"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/ffmate-internals#client-endpoint"))
 		return
 	}
 

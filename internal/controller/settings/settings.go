@@ -41,7 +41,7 @@ func (c *Controller) RegisterRoutes(router *goyave.Router) {
 func (c *Controller) load(response *goyave.Response, _ *goyave.Request) {
 	settings, err := c.settingsService.Load()
 	if err != nil {
-		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/settings#load-settings"))
+		response.JSON(400, exception.HTTPBadRequest(err, ""))
 		return
 	}
 
@@ -61,7 +61,7 @@ func (c *Controller) save(response *goyave.Response, request *goyave.Request) {
 
 	settings, err := c.settingsService.Store(newSettings)
 	if err != nil {
-		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/settings#save-settings"))
+		response.JSON(400, exception.HTTPBadRequest(err, ""))
 		return
 	}
 

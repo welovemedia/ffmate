@@ -39,8 +39,8 @@ func NewTaskRequest(_ *goyave.Request) v.RuleSet {
 			}), "Either command or preset must be set"),
 		}},
 
-		{Path: "priority", Rules: v.List{v.Uint()}},
-		{Path: "retries", Rules: v.List{v.Uint()}},
+		{Path: "priority", Rules: v.List{v.Int(), v.Min(0)}},
+		{Path: "retries", Rules: v.List{v.Int(), v.Min(0)}},
 
 		{Path: "inputFile", Rules: v.List{v.String()}},
 		{Path: "outputFile", Rules: v.List{v.String()}},
