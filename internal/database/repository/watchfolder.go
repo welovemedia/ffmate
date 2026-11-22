@@ -66,6 +66,23 @@ func (r *Watchfolder) Save(watchfolder *model.Watchfolder) (*model.Watchfolder, 
 	return watchfolder, err
 }
 
+// UpdateScanResult writes only the scan related columns of an existing (non-deleted) watchfolder,
+// so concurrent user updates are not overwritten and a deleted watchfolder is not re-inserted.
+// If the watchfolder no longer exists, (nil, nil) is returned.
+func (r *Watchfolder) UpdateScanResult(uuid string, lastCheck int64, scanError string) (*model.Watchfolder, error) {
+	result := r.DB.Model(&model.Watchfolder{}).Where("uuid = ?", uuid).Updates(map[string]any{
+		"last_check": lastCheck,
+		"error":      scanError,
+	})
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return r.First(uuid)
+}
+
 func (r *Watchfolder) Count() (int64, error) {
 	var count int64
 	db := r.DB.Model(&model.Watchfolder{}).Count(&count)

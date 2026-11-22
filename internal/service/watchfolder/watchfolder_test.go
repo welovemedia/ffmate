@@ -314,3 +314,38 @@ func TestProcessWatchfolderPersistsAndClearsError(t *testing.T) {
 	assert.NoError(t, os.MkdirAll(dir, 0o755))
 	assert.Eventually(t, func() bool { return errorOf() == "" }, 5*time.Second, 100*time.Millisecond, "error must be cleared after a successful scan")
 }
+
+func TestProcessWatchfolderUsesUpdatedInterval(t *testing.T) {
+	_, svc := prepare(t)
+
+	wf, err := svc.repository.Save(&model.Watchfolder{UUID: uuid.NewString(), Path: t.TempDir(), Interval: 1})
+	assert.NoError(t, err)
+	svc.startWatchfolder(wf)
+	defer func() { _ = svc.repository.Delete(wf) }()
+
+	lastCheck := func() int64 {
+		w, _ := svc.repository.First(wf.UUID)
+		if w == nil {
+			return 0
+		}
+		return w.LastCheck
+	}
+	assert.Eventually(t, func() bool { return lastCheck() > 0 }, 5*time.Second, 50*time.Millisecond, "first scan")
+
+	// user update: raise the interval
+	w, err := svc.repository.First(wf.UUID)
+	assert.NoError(t, err)
+	w.Interval = 3600
+	_, err = svc.repository.Save(w)
+	assert.NoError(t, err)
+
+	// allow at most one more scan that was already scheduled with the old interval
+	time.Sleep(1500 * time.Millisecond)
+	before := lastCheck()
+	time.Sleep(2500 * time.Millisecond)
+	assert.Equal(t, before, lastCheck(), "no further scans with the old interval")
+
+	w, err = svc.repository.First(wf.UUID)
+	assert.NoError(t, err)
+	assert.Equal(t, 3600, w.Interval, "scan results must not overwrite the user update")
+}

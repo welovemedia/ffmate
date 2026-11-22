@@ -30,6 +30,7 @@ type Repository interface {
 	Count() (int64, error)
 
 	FirstAndLock(uuid string, eligible func(*model.Watchfolder) bool) (*model.Watchfolder, bool, error)
+	UpdateScanResult(uuid string, lastCheck int64, scanError string) (*model.Watchfolder, error)
 }
 
 type Service struct {
@@ -246,8 +247,10 @@ func canProcess(wf *model.Watchfolder) bool {
 func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 	fileStates := sync.Map{}
 	isCluster := cfg.GetBool("ffmate.isCluster")
+	// interval holds the most recently loaded value, so updates take effect from the next iteration on
+	interval := watchfolder.Interval
 	for {
-		duration := time.Duration(watchfolder.Interval) * time.Second
+		duration := time.Duration(max(interval, 1)) * time.Second
 		next := time.Now().Truncate(duration).Add(duration)
 		time.Sleep(time.Until(next))
 
@@ -267,6 +270,7 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 			debug.Watchfolder.Debug("watchfolder no longer exists - processing stopped (uuid: %s)", watchfolder.UUID)
 			return
 		}
+		interval = wf.Interval
 		if wf.Suspended {
 			debug.Watchfolder.Debug("watchfolder skipped as it is suspended (uuid: %s)", wf.UUID)
 			continue
@@ -328,18 +332,19 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 			return nil
 		})
 
-		// persist the error of this scan, a successful scan clears a previous error
-		wf.Error = ""
+		// persist the result of this scan, a successful scan clears a previous error
+		var scanError string
 		if err != nil {
-			wf.Error = err.Error()
+			scanError = err.Error()
 			debug.Watchfolder.Error("walking watchfolder directory failed (uuid: %s): %v", watchfolder.UUID, err)
 		}
 
 		metrics.Gauge("watchfolder.executed").Inc()
-		wf.LastCheck = time.Now().UnixMilli()
-		_, err = s.UpdateInternal(wf)
+		updated, err := s.repository.UpdateScanResult(wf.UUID, time.Now().UnixMilli(), scanError)
 		if err != nil {
 			debug.Log.Error("failed to update watchfolder internally (uuid: %s): %v", watchfolder.UUID, err)
+		} else if updated != nil {
+			s.websocketService.Broadcast(websocket.WatchfolderUpdated, updated.ToDTO())
 		}
 	}
 }
