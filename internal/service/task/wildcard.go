@@ -83,7 +83,7 @@ func (s *Service) replaceWildcards(input string, inputFile string, outputFile st
 
 	input = strings.ReplaceAll(input, "${UUID}", uuid.NewString())
 
-	input = strings.ReplaceAll(input, "${FFMPEG}", cfg.GetString("ffmate.ffmpeg"))
+	input = strings.ReplaceAll(input, "${FFMPEG}", q(cfg.GetString("ffmate.ffmpeg")))
 
 	// handle metadata wildcard
 	if metadata != nil {
