@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,6 +44,9 @@ type Service struct {
 	webhookService   *webhook.Service
 	websocketService *websocket.Service
 	ffmpegService    *ffmpeg.Service
+
+	// onFFmpegFound is called once ffmpeg has been found by the background lookup
+	onFFmpegFound atomic.Pointer[func()]
 }
 
 func NewService(repository Repository, presetService *preset.Service, webhookService *webhook.Service, websocketService *websocket.Service, ffmpegService *ffmpeg.Service, startCleanupProcessor bool) *Service {
@@ -441,6 +445,9 @@ func (s *Service) startQueue() *Service {
 			for {
 				time.Sleep(10 * time.Second)
 				if s.checkFFmpeg() {
+					if fn := s.onFFmpegFound.Load(); fn != nil {
+						(*fn)()
+					}
 					return
 				}
 			}
@@ -450,6 +457,11 @@ func (s *Service) startQueue() *Service {
 	go s.processQueue()
 
 	return s
+}
+
+// OnFFmpegFound registers a callback that is invoked when ffmpeg is found after it was missing on startup
+func (s *Service) OnFFmpegFound(fn func()) {
+	s.onFFmpegFound.Store(&fn)
 }
 
 func (s *Service) checkFFmpeg() bool {

@@ -24,6 +24,9 @@ type Service struct {
 	repository       Repository
 	websocketService *websocket.Service
 	version          string
+
+	// client is the client info of this instance, set by UpdateClientInfo
+	client *model.Client
 }
 
 func NewService(repository *repository.Client, version string, websocketService *websocket.Service) *Service {
@@ -54,7 +57,7 @@ func (s *Service) save(newClient *model.Client) (*model.Client, error) {
 		OS:                 runtime.GOOS,
 		Arch:               runtime.GOARCH,
 		Version:            s.version,
-		FFMpeg:             cfg.GetString("ffmate.ffmpeg"),
+		FFMpeg:             ffmpegPath(),
 		MaxConcurrentTasks: cfg.GetInt("ffmate.maxConcurrentTasks"),
 		LastSeen:           time.Now().UnixMilli(),
 	}
@@ -68,6 +71,14 @@ func (s *Service) save(newClient *model.Client) (*model.Client, error) {
 	}
 
 	return c, err
+}
+
+// ffmpegPath returns the resolved ffmpeg path, or an empty string if ffmpeg has not been found
+func ffmpegPath() string {
+	if !cfg.GetBool("ffmate.isFFmpeg") {
+		return ""
+	}
+	return cfg.GetString("ffmate.ffmpeg")
 }
 
 func (s *Service) first() (*model.Client, error) {
@@ -95,6 +106,7 @@ func (s *Service) UpdateClientInfo(startLoop bool) {
 	}
 
 	// save client initially
+	s.client = client
 	s.saveClient(client)
 
 	// re-save client periodically
@@ -117,6 +129,13 @@ func (s *Service) saveClient(c *model.Client) {
 		return
 	}
 	debug.Client.Debug("client info updated")
+}
+
+// Refresh re-saves the client info immediately (e.g. after ffmpeg has been found)
+func (s *Service) Refresh() {
+	if s.client != nil {
+		s.saveClient(s.client)
+	}
 }
 
 func (s *Service) Name() string {

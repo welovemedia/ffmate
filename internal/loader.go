@@ -100,6 +100,8 @@ func Init(options goyave.Options) {
 	// the client service must be created after the task service, as the latter resolves the ffmpeg path
 	// (ffmate.ffmpeg) which is persisted with the initial client info
 	clientSvc := client.NewService(clientRepository, server.Config().GetString("app.version"), websocketSvc)
+	// publish the ffmpeg path right away if ffmpeg is found later on (instead of on the next periodic client update)
+	taskSvc.OnFFmpegFound(clientSvc.Refresh)
 	watchfolderSvc := watchfolder.NewService(watchfolderRepository, webhookSvc, websocketSvc, taskSvc)
 	settingSvc := settings.NewService(settingRepository)
 	apiKeySvc := apikey.NewService(apiKeyRepository)
