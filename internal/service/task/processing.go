@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mattn/go-shellwords"
@@ -223,8 +224,18 @@ func (s *Service) handleScriptExecution(task *model.Task, processor *dto.PrePost
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	if err := cmd.Start(); err != nil || cmd.Wait() != nil {
-		processor.Error = fmt.Sprintf("%s (exit code: %d)", stderr.String(), cmd.ProcessState.ExitCode())
+	if err := cmd.Start(); err != nil {
+		// the script could not be started at all (e.g. not found, not executable)
+		processor.Error = fmt.Sprintf("failed to start script: %v", err)
+		debug.Task.Debug("script failed to start (uuid: %s): %v", task.UUID, err)
+		return nil
+	}
+	if err := cmd.Wait(); err != nil {
+		msg := stderr.String()
+		if strings.TrimSpace(msg) == "" {
+			msg = err.Error() // no stderr output, use the process error (e.g. killed by signal)
+		}
+		processor.Error = fmt.Sprintf("%s (exit code: %d)", msg, cmd.ProcessState.ExitCode())
 		debug.Task.Debug("script failed (uuid: %s): stderr: %s", task.UUID, stderr.String())
 	}
 	return nil
