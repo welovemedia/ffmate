@@ -21,11 +21,21 @@ func (m *DebugoMiddleware) Handle(next goyave.Handler) goyave.Handler {
 		debug.HTTP.Debug("%s \"%s\"", request.Method(), request.URL())
 
 		// add metrics for /api/* paths
-		path := request.URL().Path
-		if strings.HasPrefix(path, "/api/") {
-			metrics.GaugeVec("rest.api").WithLabelValues(request.Method(), path).Inc()
+		if strings.HasPrefix(request.URL().Path, "/api/") {
+			metrics.GaugeVec("rest.api").WithLabelValues(request.Method(), metricsPath(request)).Inc()
 		}
 
 		next(response, request)
 	}
+}
+
+// metricsPath returns the route template (e.g. /api/v1/tasks/{uuid}) instead of the raw request path,
+// so the number of metric series stays bounded. Requests not matching any route (normally not passed
+// through router middleware at all) share one label.
+func metricsPath(request *goyave.Request) string {
+	route := request.Route
+	if route == nil || route.GetName() == goyave.RouteNotFound || route.GetName() == goyave.RouteMethodNotAllowed {
+		return "unmatched"
+	}
+	return route.GetFullURI()
 }
