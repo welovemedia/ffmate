@@ -1,7 +1,6 @@
 package swagger
 
 import (
-	"fmt"
 	"net/http"
 
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -22,8 +21,10 @@ func (c *Controller) Init(server *goyave.Server) {
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
 	docs.SwaggerInfo.Version = c.Server().Config().GetString("app.version")
-	docs.SwaggerInfo.Host += fmt.Sprintf(":%d", c.Server().Config().GetInt("server.port"))
-	docs.SwaggerInfo.Schemes = []string{"http"}
+	// host and schemes are left empty, so Swagger UI uses the host and scheme the page has been loaded from
+	// (works for any --host, LAN addresses and reverse proxies)
+	docs.SwaggerInfo.Host = ""
+	docs.SwaggerInfo.Schemes = nil
 	// public: reachable without authentication
 	router.Get("/swagger/{*}", func(response *goyave.Response, request *goyave.Request) {
 		httpSwagger.WrapHandler.ServeHTTP(response, request.Request())
