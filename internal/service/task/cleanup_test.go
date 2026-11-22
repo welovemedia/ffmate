@@ -1,49 +1,17 @@
 package task
 
 import (
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/welovemedia/ffmate/v2/internal/database/model"
-	"github.com/welovemedia/ffmate/v2/internal/database/repository"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
-	"github.com/welovemedia/ffmate/v2/internal/service/ffmpeg"
-	presetService "github.com/welovemedia/ffmate/v2/internal/service/preset"
-	webhookService "github.com/welovemedia/ffmate/v2/internal/service/webhook"
-	websocketService "github.com/welovemedia/ffmate/v2/internal/service/websocket"
-	"github.com/welovemedia/ffmate/v2/testsuite/testserver"
 )
 
 func TestCleanupNotifiesAndRetries(t *testing.T) {
-	server := testserver.New(t)
-	db := server.DB()
-	(&repository.Client{DB: db}).Setup()
-	taskRepo := (&repository.Task{DB: db}).Setup()
-	webhookRepo := (&repository.Webhook{DB: db}).Setup()
-	websocketSvc := websocketService.NewService(db)
-	webhookSvc := webhookService.NewService(webhookRepo, (&repository.WebhookExecution{DB: db}).Setup(), server.Config(), websocketSvc)
-	presetSvc := presetService.NewService((&repository.Preset{DB: db}).Setup(), webhookSvc, websocketSvc)
-	svc := &Service{repository: taskRepo, presetService: presetSvc, webhookService: webhookSvc, websocketService: websocketSvc, ffmpegService: ffmpeg.NewService()}
-
-	// receiver for the global task.updated webhook
-	var mu sync.Mutex
-	var bodies []string
-	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, _ := io.ReadAll(r.Body)
-		mu.Lock()
-		bodies = append(bodies, string(b))
-		mu.Unlock()
-	}))
-	defer receiver.Close()
-	_, err := webhookRepo.Add(&model.Webhook{UUID: uuid.NewString(), Event: dto.TaskUpdated, URL: receiver.URL})
-	assert.NoError(t, err)
+	svc, taskRepo, db, rec := newServiceWithWebhooks(t, dto.TaskUpdated)
 
 	assert.NoError(t, db.Create(&model.Client{Identifier: "crashed"}).Error)
 	withRetries, err := taskRepo.Add(&model.Task{UUID: uuid.NewString(), Status: dto.PreProcessing, ClientIdentifier: "crashed", Retries: 1})
@@ -56,11 +24,9 @@ func TestCleanupNotifiesAndRetries(t *testing.T) {
 	svc.notifyCleanedUp(tasks)
 
 	assert.Eventually(t, func() bool {
-		mu.Lock()
-		defer mu.Unlock()
 		n := 0
-		for _, b := range bodies {
-			if strings.Contains(b, `"status":"DONE_ERROR"`) && (strings.Contains(b, withRetries.UUID) || strings.Contains(b, noRetries.UUID)) {
+		for _, e := range rec.all() {
+			if e.Event == string(dto.TaskUpdated) && e.Data.Status == dto.DoneError && (e.Data.UUID == withRetries.UUID || e.Data.UUID == noRetries.UUID) {
 				n++
 			}
 		}

@@ -28,7 +28,7 @@ type Repository interface {
 	ListByBatch(uuid string, page int, perPage int) (*[]model.Task, int64, error)
 	Add(task *model.Task) (*model.Task, error)
 	Update(task *model.Task) (*model.Task, error)
-	UpdateFields(uuid string, fields map[string]any) (*model.Task, error)
+	UpdateFields(uuid string, fields map[string]any, unlessStatus ...dto.TaskStatus) (*model.Task, error)
 	First(uuid string) (*model.Task, error)
 	Delete(task *model.Task) error
 	DeleteInactive(task *model.Task) (bool, error)
@@ -186,6 +186,11 @@ func (s *Service) Cancel(uuid string) (*model.Task, error) {
 
 	if w == nil {
 		return nil, errors.New("task for given uuid not found")
+	}
+
+	// canceling twice must not announce the cancelation again
+	if w.Status == dto.DoneCanceled {
+		return w, nil
 	}
 
 	w.Status = dto.DoneCanceled
@@ -625,16 +630,18 @@ func (s *Service) failTask(task *model.Task, err error) {
 }
 
 // finishTask writes only the given fields of a task that has reached a final state.
-// It never re-inserts a task: if the task has been deleted in the meantime, nothing is written and no events are fired.
+// Nothing is written and no events are fired if the task has been deleted (it is never re-inserted)
+// or already canceled: Cancel() has stored and announced the final state already, so a second
+// task.updated / batch.finished must not be sent and the canceled state must not be overwritten.
 func (s *Service) finishTask(task *model.Task, fields map[string]any) error {
 	task.ClientIdentifier = cfg.GetString("ffmate.identifier")
 	fields["client_identifier"] = task.ClientIdentifier
-	t, err := s.repository.UpdateFields(task.UUID, fields)
+	t, err := s.repository.UpdateFields(task.UUID, fields, dto.DoneCanceled)
 	if err != nil {
 		return err
 	}
 	if t == nil {
-		debug.Task.Debug("task no longer exists, skipping final update (uuid: %s)", task.UUID)
+		debug.Task.Debug("task deleted or already canceled, skipping final update (uuid: %s)", task.UUID)
 		return nil
 	}
 	s.notifyUpdated(t)

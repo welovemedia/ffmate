@@ -107,8 +107,13 @@ func (r *Task) Update(task *model.Task) (*model.Task, error) {
 
 // UpdateFields writes only the given columns of an existing (non-deleted) task.
 // Unlike Update it never inserts: if the task no longer exists, (nil, nil) is returned.
-func (r *Task) UpdateFields(uuid string, fields map[string]any) (*model.Task, error) {
-	result := r.DB.Model(&model.Task{}).Where("uuid = ?", uuid).Updates(fields)
+// Tasks currently having one of the unlessStatus statuses are not updated either (nil, nil is returned).
+func (r *Task) UpdateFields(uuid string, fields map[string]any, unlessStatus ...dto.TaskStatus) (*model.Task, error) {
+	tx := r.DB.Model(&model.Task{}).Where("uuid = ?", uuid)
+	if len(unlessStatus) > 0 {
+		tx = tx.Where("status NOT IN ?", unlessStatus)
+	}
+	result := tx.Updates(fields)
 	if result.Error != nil {
 		return nil, result.Error
 	}
