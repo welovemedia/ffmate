@@ -27,6 +27,7 @@ type Repository interface {
 	ListByBatch(uuid string, page int, perPage int) (*[]model.Task, int64, error)
 	Add(task *model.Task) (*model.Task, error)
 	Update(task *model.Task) (*model.Task, error)
+	UpdateFields(uuid string, fields map[string]any) (*model.Task, error)
 	First(uuid string) (*model.Task, error)
 	Delete(task *model.Task) error
 	Count() (int64, error)
@@ -113,6 +114,12 @@ func (s *Service) Update(task *model.Task) (*model.Task, error) {
 		return nil, err
 	}
 
+	s.notifyUpdated(task)
+	return task, nil
+}
+
+// notifyUpdated fires webhooks / websocket events for an updated task
+func (s *Service) notifyUpdated(task *model.Task) {
 	s.webhookService.Fire(dto.TaskUpdated, task.ToDTO())
 	s.webhookService.FireDirect(task.Webhooks, dto.TaskUpdated, task.ToDTO())
 	s.websocketService.Broadcast(websocket.TaskUpdated, task.ToDTO())
@@ -155,8 +162,6 @@ func (s *Service) Update(task *model.Task) (*model.Task, error) {
 			}
 		}()
 	}
-
-	return task, nil
 }
 
 func (s *Service) mustRetryTask(task *model.Task) bool {
@@ -401,6 +406,14 @@ func (s *Service) Delete(uuid string) error {
 		return errors.New("task for given uuid not found")
 	}
 
+	// stop a task that is currently being processed by this instance before deleting it
+	if ctxVal, ok := taskQueue.Load(uuid); ok {
+		if tc, ok2 := ctxVal.(taskContext); ok2 {
+			debug.Task.Debug("canceling running task before deletion (uuid: %s)", uuid)
+			tc.cancel(errors.New("task has been deleted"))
+		}
+	}
+
 	err = s.repository.Delete(w)
 	if err != nil {
 		debug.Log.Error("failed to delete task (uuid: %s)", uuid)
@@ -538,9 +551,9 @@ func (s *Service) updateRunningTask(task *model.Task) (*model.Task, error) {
 	if err != nil {
 		return task, fmt.Errorf("failed to receive task during running updates (uuid: %s): %v", task.UUID, err)
 	}
-	if t.Status == dto.DoneCanceled {
+	if t == nil || t.Status == dto.DoneCanceled {
 		if tc, ok2 := ctxVal.(taskContext); ok2 {
-			debug.Task.Debug("denied updating an already canceled task during processing, canceling context.. (uuid: %s)", task.UUID)
+			debug.Task.Debug("denied updating an already canceled or deleted task during processing, canceling context.. (uuid: %s)", task.UUID)
 			tc.cancel(errors.New("task has been canceled"))
 			return task, nil
 		}
@@ -554,9 +567,13 @@ func (s *Service) cancelTask(task *model.Task) {
 	task.FinishedAt = time.Now().UnixMilli()
 	task.Progress = 100
 	task.Status = dto.DoneCanceled
-	_, err := s.Update(task)
-	if err != nil {
-		debug.Task.Error("failed to update task after cancel (uuid: %s)", task.UUID)
+	if err := s.finishTask(task, map[string]any{
+		"finished_at": task.FinishedAt,
+		"progress":    task.Progress,
+		"remaining":   task.Remaining,
+		"status":      task.Status,
+	}); err != nil {
+		debug.Task.Error("failed to update task after cancel (uuid: %s): %v", task.UUID, err)
 	}
 	debug.Task.Info("task canceled (uuid: %s)", task.UUID)
 }
@@ -566,11 +583,33 @@ func (s *Service) failTask(task *model.Task, err error) {
 	task.Progress = 100
 	task.Status = dto.DoneError
 	task.Error = err.Error()
-	_, err = s.Update(task)
-	if err != nil {
-		debug.Task.Error("failed to update task after fail (uuid: %s)", task.UUID)
+	if err := s.finishTask(task, map[string]any{
+		"finished_at": task.FinishedAt,
+		"progress":    task.Progress,
+		"remaining":   task.Remaining,
+		"status":      task.Status,
+		"error":       task.Error,
+	}); err != nil {
+		debug.Task.Error("failed to update task after fail (uuid: %s): %v", task.UUID, err)
 	}
 	debug.Task.Warn("task failed (uuid: %s)", task.UUID)
+}
+
+// finishTask writes only the given fields of a task that has reached a final state.
+// It never re-inserts a task: if the task has been deleted in the meantime, nothing is written and no events are fired.
+func (s *Service) finishTask(task *model.Task, fields map[string]any) error {
+	task.ClientIdentifier = cfg.GetString("ffmate.identifier")
+	fields["client_identifier"] = task.ClientIdentifier
+	t, err := s.repository.UpdateFields(task.UUID, fields)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		debug.Task.Debug("task no longer exists, skipping final update (uuid: %s)", task.UUID)
+		return nil
+	}
+	s.notifyUpdated(t)
+	return nil
 }
 
 func (s *Service) taskQueueLength() int {

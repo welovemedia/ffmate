@@ -93,6 +93,19 @@ func (r *Task) Update(task *model.Task) (*model.Task, error) {
 	return r.First(task.UUID)
 }
 
+// UpdateFields writes only the given columns of an existing (non-deleted) task.
+// Unlike Update it never inserts: if the task no longer exists, (nil, nil) is returned.
+func (r *Task) UpdateFields(uuid string, fields map[string]any) (*model.Task, error) {
+	result := r.DB.Model(&model.Task{}).Where("uuid = ?", uuid).Updates(fields)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return r.First(uuid)
+}
+
 func (r *Task) Count() (int64, error) {
 	var count int64
 	db := r.DB.Model(&model.Task{}).Count(&count)
