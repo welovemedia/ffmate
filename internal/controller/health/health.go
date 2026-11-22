@@ -4,6 +4,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"goyave.dev/goyave/v5"
+	"goyave.dev/goyave/v5/auth"
 )
 
 type Controller struct {
@@ -16,7 +17,8 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Get("/health", c.get)
+	// public: reachable without authentication
+	router.Get("/health", c.get).SetMeta(auth.MetaAuth, false)
 }
 
 func (c *Controller) get(response *goyave.Response, _ *goyave.Request) {
