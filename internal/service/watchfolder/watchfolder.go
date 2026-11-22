@@ -328,8 +328,10 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 			return nil
 		})
 
+		// persist the error of this scan, a successful scan clears a previous error
+		wf.Error = ""
 		if err != nil {
-			watchfolder.Error = err.Error()
+			wf.Error = err.Error()
 			debug.Watchfolder.Error("walking watchfolder directory failed (uuid: %s): %v", watchfolder.UUID, err)
 		}
 

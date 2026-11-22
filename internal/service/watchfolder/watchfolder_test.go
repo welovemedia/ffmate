@@ -289,3 +289,28 @@ func TestProcessWatchfolderLocksOnlyProcessedFiles(t *testing.T) {
 	_, err := os.Stat(missingFile + ".lock")
 	assert.True(t, os.IsNotExist(err), "file whose task could not be created must not be locked")
 }
+
+func TestProcessWatchfolderPersistsAndClearsError(t *testing.T) {
+	_, svc := prepare(t)
+
+	dir := filepath.Join(t.TempDir(), "not-yet-existing")
+	wf, err := svc.repository.Save(&model.Watchfolder{UUID: uuid.NewString(), Path: dir, Interval: 1})
+	assert.NoError(t, err)
+
+	svc.startWatchfolder(wf)
+	defer func() { _ = svc.repository.Delete(wf) }()
+
+	errorOf := func() string {
+		w, err := svc.repository.First(wf.UUID)
+		if err != nil || w == nil {
+			return ""
+		}
+		return w.Error
+	}
+
+	assert.Eventually(t, func() bool { return errorOf() != "" }, 5*time.Second, 100*time.Millisecond, "scan error must be saved")
+	assert.Contains(t, errorOf(), dir)
+
+	assert.NoError(t, os.MkdirAll(dir, 0o755))
+	assert.Eventually(t, func() bool { return errorOf() == "" }, 5*time.Second, 100*time.Millisecond, "error must be cleared after a successful scan")
+}
