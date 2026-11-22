@@ -44,7 +44,7 @@ func init() {
 	serverCmd.Flags().Bool("send-telemetry", true, "enable sending anonymous telemetry data")
 	serverCmd.Flags().Bool("no-ui", false, "do not open the ui in the browser")
 	serverCmd.Flags().String("identifier", "", "a unique client identifier (default to hostname)")
-	serverCmd.Flags().StringSlice("labels", []string{}, "a unique client identifier (default to hostname)")
+	serverCmd.Flags().StringSlice("labels", []string{}, "comma-separated labels for this instance")
 	serverCmd.Flags().String("basic-auth", "", "enable basic auth in form of username:password")
 
 	_ = viper.BindPFlag("ffmpeg", serverCmd.Flags().Lookup("ffmpeg"))
