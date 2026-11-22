@@ -9,6 +9,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/database/model"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"goyave.dev/goyave/v5/database"
 )
 
@@ -188,7 +189,9 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 			Where("tasks.status = ?", dto.Queued).
 			Where(whereSQL, whereArgs...).
 			Order("tasks.priority DESC, tasks.created_at ASC").
-			Limit(amount)
+			Limit(amount).
+			// lock the selected rows so concurrent instances (cluster) skip them instead of claiming the same tasks
+			Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
 
 		if err := tx.Preload("Labels").
 			Where("tasks.id IN (?)", sub).
@@ -207,7 +210,7 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 		}
 
 		if err := tx.Model(&model.Task{}).
-			Where("id IN ?", ids).
+			Where("id IN ? AND status = ?", ids, dto.Queued). // never claim a task that is no longer queued
 			Update("status", dto.Running).Error; err != nil {
 			return err
 		}
