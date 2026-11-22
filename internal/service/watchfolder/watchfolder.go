@@ -29,7 +29,7 @@ type Repository interface {
 	Delete(watchfolder *model.Watchfolder) error
 	Count() (int64, error)
 
-	FirstAndLock(uuid string) (*model.Watchfolder, bool, error)
+	FirstAndLock(uuid string, eligible func(*model.Watchfolder) bool) (*model.Watchfolder, bool, error)
 }
 
 type Service struct {
@@ -37,7 +37,14 @@ type Service struct {
 	webhookService   *webhook.Service
 	websocketService *websocket.Service
 	taskService      *task.Service
+
+	// running holds the uuids of all watchfolders this instance has a processing loop for
+	running sync.Map
 }
+
+// clusterSyncInterval defines how often an instance in cluster mode checks the database
+// for watchfolders it has no processing loop for yet (e.g. created on another instance)
+var clusterSyncInterval = 5 * time.Second
 
 func NewService(repository Repository, webhookService *webhook.Service, websocketService *websocket.Service, taskService *task.Service) *Service {
 	return &Service{
@@ -90,7 +97,9 @@ func (s *Service) Add(newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, e
 	})
 	debug.Watchfolder.Info("created watchfolder (uuid: %s)", w.UUID)
 
-	go s.processWatchfolder(w)
+	if err == nil {
+		s.startWatchfolder(w)
+	}
 
 	metrics.Gauge("watchfolder.created").Inc()
 	s.webhookService.Fire(dto.WatchfolderCreated, w.ToDTO())
@@ -190,8 +199,48 @@ func (s *Service) Process() {
 	}
 
 	for _, watchfolder := range *watchfolders {
-		go s.processWatchfolder(&watchfolder)
+		s.startWatchfolder(&watchfolder)
 	}
+
+	// in cluster mode watchfolders may be created by other instances,
+	// pick them up so every instance processes every watchfolder
+	if cfg.GetBool("ffmate.isCluster") {
+		go func() {
+			for {
+				time.Sleep(clusterSyncInterval)
+				s.syncWatchfolders()
+			}
+		}()
+	}
+}
+
+// syncWatchfolders starts a processing loop for every watchfolder in the database that has none on this instance yet
+func (s *Service) syncWatchfolders() {
+	watchfolders, _, err := s.List(-1, -1)
+	if err != nil {
+		debug.Watchfolder.Error("failed to list watchfolders for cluster sync: %v", err)
+		return
+	}
+	for _, watchfolder := range *watchfolders {
+		s.startWatchfolder(&watchfolder)
+	}
+}
+
+// startWatchfolder starts the processing loop for the given watchfolder, unless one is already running on this instance
+func (s *Service) startWatchfolder(watchfolder *model.Watchfolder) {
+	if _, loaded := s.running.LoadOrStore(watchfolder.UUID, struct{}{}); loaded {
+		return
+	}
+	debug.Watchfolder.Debug("watchfolder processing started (uuid: %s)", watchfolder.UUID)
+	go func() {
+		defer s.running.Delete(watchfolder.UUID)
+		s.processWatchfolder(watchfolder)
+	}()
+}
+
+// canProcess reports whether this instance should process the watchfolder
+func canProcess(wf *model.Watchfolder) bool {
+	return !wf.Suspended && hasLabelOverlap(wf.Labels, cfg.GetStringSlice("ffmate.labels"))
 }
 
 func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
@@ -206,7 +255,7 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 		var locked = false
 		var err error
 		if isCluster {
-			wf, locked, err = s.repository.FirstAndLock(watchfolder.UUID)
+			wf, locked, err = s.repository.FirstAndLock(watchfolder.UUID, canProcess)
 		} else {
 			wf, err = s.repository.First(watchfolder.UUID)
 		}

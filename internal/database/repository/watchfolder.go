@@ -76,7 +76,11 @@ func (r *Watchfolder) Count() (int64, error) {
  * Processing related methods
  */
 
-func (r *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error) {
+// FirstAndLock loads the watchfolder and claims the current interval for this instance.
+// The interval is only claimed if eligible(watchfolder) returns true, so instances that
+// would skip the watchfolder anyway (suspended, labels mismatch) do not block the others.
+// locked is true if another instance has already claimed the current interval.
+func (r *Watchfolder) FirstAndLock(uuid string, eligible func(*model.Watchfolder) bool) (*model.Watchfolder, bool, error) {
 	var watchfolder model.Watchfolder
 	var locked = false
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
@@ -85,6 +89,10 @@ func (r *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error
 			Where("uuid = ?", uuid).
 			First(&watchfolder).Error; err != nil {
 			return err
+		}
+
+		if eligible != nil && !eligible(&watchfolder) {
+			return nil
 		}
 
 		// calculate the next allowed run time based on Interval + 50ms buffer

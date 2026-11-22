@@ -18,7 +18,6 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/metrics"
 	"github.com/welovemedia/ffmate/v2/internal/service/ffmpeg"
-	"goyave.dev/goyave/v5/util/typeutil"
 )
 
 func (s *Service) runPreProcessing(task *model.Task) error {
@@ -239,21 +238,59 @@ func (s *Service) reimportSidecarIfNeeded(task *model.Task, processor *dto.PrePo
 	if err != nil {
 		return err
 	}
-	taskDTO := &dto.Task{}
-	if err := json.Unmarshal(data, taskDTO); err != nil {
+	imported := &sidecarImport{}
+	if err := json.Unmarshal(data, imported); err != nil {
 		return err
 	}
-	typeutil.Copy(task, taskDTO)
-	if len(taskDTO.Labels) > 0 {
-		var labels = make([]model.Label, len(taskDTO.Labels))
-		for i, label := range taskDTO.Labels {
-			labels[i] = model.Label{Value: label}
-		}
-		task.Labels = labels
-	}
+	imported.applyTo(task)
 
 	debug.Task.Debug("re-imported sidecar file (uuid: %s)", task.UUID)
 	return nil
+}
+
+// sidecarImport holds the task fields a preProcessing script is allowed to change via an imported sidecar.
+// All other fields (uuid, status, preProcessing, ...) are protected and ignored.
+// Pointers are used to distinguish absent fields (left untouched) from present ones.
+type sidecarImport struct {
+	Command    *dto.RawResolved `json:"command"`
+	InputFile  *dto.RawResolved `json:"inputFile"`
+	OutputFile *dto.RawResolved `json:"outputFile"`
+	Metadata   *dto.MetadataMap `json:"metadata"`
+	Name       *string          `json:"name"`
+	Priority   *uint            `json:"priority"`
+	Labels     *dto.Labels      `json:"labels"`
+}
+
+func (i *sidecarImport) applyTo(task *model.Task) {
+	importRaw := func(dst **dto.RawResolved, src *dto.RawResolved) {
+		if src == nil || src.Raw == "" {
+			return
+		}
+		if *dst == nil {
+			*dst = &dto.RawResolved{}
+		}
+		(*dst).Raw = src.Raw
+	}
+	importRaw(&task.Command, i.Command)
+	importRaw(&task.InputFile, i.InputFile)
+	importRaw(&task.OutputFile, i.OutputFile)
+
+	if i.Metadata != nil {
+		task.Metadata = i.Metadata
+	}
+	if i.Name != nil {
+		task.Name = *i.Name
+	}
+	if i.Priority != nil {
+		task.Priority = *i.Priority
+	}
+	if i.Labels != nil {
+		labels := make([]model.Label, len(*i.Labels))
+		for idx, label := range *i.Labels {
+			labels[idx] = model.Label{Value: label}
+		}
+		task.Labels = labels
+	}
 }
 
 func (s *Service) finalizeProcessing(processor *dto.PrePostProcessing, processorType string, task *model.Task) error {

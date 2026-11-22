@@ -236,3 +236,23 @@ func TestCreateTask_CreatesTaskWithMetadata(t *testing.T) {
 		}
 	}
 }
+
+func TestSyncWatchfoldersStartsMissingLoops(t *testing.T) {
+	_, svc := prepare(t)
+
+	// simulate a watchfolder created by another cluster instance (no loop on this instance)
+	w, err := svc.repository.Save(&model.Watchfolder{UUID: uuid.NewString(), Name: "remote", Interval: 3600, Path: t.TempDir()})
+	assert.NoError(t, err)
+	_, running := svc.running.Load(w.UUID)
+	assert.False(t, running, "no loop before sync")
+
+	svc.syncWatchfolders()
+	_, running = svc.running.Load(w.UUID)
+	assert.True(t, running, "sync must start a loop for an unknown watchfolder")
+
+	// syncing again must not start a second loop
+	svc.syncWatchfolders()
+	count := 0
+	svc.running.Range(func(_, _ any) bool { count++; return true })
+	assert.Equal(t, 1, count)
+}
