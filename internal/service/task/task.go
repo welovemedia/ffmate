@@ -67,20 +67,18 @@ func NewService(repository Repository, presetService *preset.Service, webhookSer
 
 // cleanupProcessor fails running jobs of offline (crashed) clients
 func (s *Service) cleanupProcessor() {
-	// fail tasks that belong to current identifier on startup (crashed client)
+	// fail active tasks that belong to current identifier on startup (crashed client)
 	tasks, err := s.repository.FailRunningTasksForStartingClient(cfg.GetString("ffmate.identifier"))
 	if err != nil {
 		debug.Task.Error("failed to clean up running tasks on startup: %v", err)
 	}
 	debug.Task.Debug("cleaned up %d running tasks on startup", len(tasks))
 
-	// sleep before broadcasting to enable websocket connections to re-connect first
+	// sleep before notifying to enable websocket connections to re-connect first
 	time.Sleep(3 * time.Second)
-	for _, t := range tasks {
-		s.websocketService.Broadcast(websocket.TaskUpdated, t.ToDTO())
-	}
+	s.notifyCleanedUp(tasks)
 
-	// fail running tasks of clients every 5s that havn't been seen for >= 60s in cluster mode
+	// fail active tasks of clients every 5s that havn't been seen for >= 60s in cluster mode
 	if cfg.GetBool("ffmate.isCluster") {
 		for {
 			time.Sleep(5 * time.Second)
@@ -89,12 +87,19 @@ func (s *Service) cleanupProcessor() {
 				debug.Task.Error("failed to clean up running tasks of offline clients: %v", err)
 			}
 			if len(tasks) > 0 {
-				for _, t := range tasks {
-					s.websocketService.Broadcast(websocket.TaskUpdated, t.ToDTO())
-				}
+				s.notifyCleanedUp(tasks)
 				debug.Task.Debug("cleaned up %d running tasks of offline clients", len(tasks))
 			}
 		}
+	}
+}
+
+// notifyCleanedUp runs failed tasks of crashed/offline clients through the regular update notification
+// (webhooks, websocket, batch.finished and retries)
+func (s *Service) notifyCleanedUp(tasks []model.Task) {
+	for i := range tasks {
+		metrics.Gauge("task.updated").Inc()
+		s.notifyUpdated(&tasks[i])
 	}
 }
 

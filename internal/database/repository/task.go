@@ -113,14 +113,33 @@ func (r *Task) Count() (int64, error) {
 	return count, db.Error
 }
 
+// activeStatuses are the statuses of tasks that are currently being processed by a client
+var activeStatuses = []dto.TaskStatus{dto.PreProcessing, dto.Running, dto.PostProcessing}
+
+// FailRunningTasksForStartingClient fails all active tasks of the given client (crashed and restarted client)
 func (r *Task) FailRunningTasksForStartingClient(identifier string) ([]model.Task, error) {
-	// UPDATE ... RETURNING is avoided here, as the sqlite driver fails with
-	// "bad parameter or other API misuse: not an error (21)" on it
+	return r.failActiveTasks("client_identifier = ?", identifier)
+}
+
+// FailRunningTasksForOfflineClients fails all active tasks of clients that have not been seen for >= 60s
+func (r *Task) FailRunningTasksForOfflineClients() ([]model.Task, error) {
+	threshold := time.Now().Add(-60 * time.Second).UnixMilli()
+	return r.failActiveTasks("client_identifier IN (SELECT identifier FROM client WHERE last_seen < ?)", threshold)
+}
+
+// failActiveTasks sets all active tasks matching the given client condition to DONE_ERROR and returns them (with labels).
+// The rows are locked (FOR UPDATE SKIP LOCKED, ignored by sqlite) and the status is re-checked on update,
+// so concurrent cluster instances never fail (and notify about) the same task twice.
+// UPDATE ... RETURNING is avoided here, as the sqlite driver fails with
+// "bad parameter or other API misuse: not an error (21)" on it
+func (r *Task) failActiveTasks(clientCondition string, args ...any) ([]model.Task, error) {
 	var tasks []model.Task
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
 		var ids []uint
 		if err := tx.Model(&model.Task{}).
-			Where("status = ? AND client_identifier = ?", dto.Running, identifier).
+			Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
+			Where("status IN ?", activeStatuses).
+			Where(clientCondition, args...).
 			Pluck("id", &ids).Error; err != nil {
 			return err
 		}
@@ -128,7 +147,7 @@ func (r *Task) FailRunningTasksForStartingClient(identifier string) ([]model.Tas
 			return nil
 		}
 
-		if err := tx.Model(&model.Task{}).Where("id IN ?", ids).Updates(map[string]any{
+		if err := tx.Model(&model.Task{}).Where("id IN ? AND status IN ?", ids, activeStatuses).Updates(map[string]any{
 			"status":      dto.DoneError,
 			"error":       "client disconnected during execution",
 			"finished_at": time.Now().UnixMilli(),
@@ -140,28 +159,6 @@ func (r *Task) FailRunningTasksForStartingClient(identifier string) ([]model.Tas
 
 		return tx.Preload("Labels").Where("id IN ?", ids).Find(&tasks).Error
 	})
-
-	return tasks, err
-}
-
-func (r *Task) FailRunningTasksForOfflineClients() ([]model.Task, error) {
-	threshold := time.Now().Add(-60 * time.Second).UnixMilli() // int64
-
-	now := time.Now().UnixMilli()
-	var tasks []model.Task
-
-	err := r.DB.Raw(`
-		UPDATE tasks
-		SET status = ?, error = ?, finished_at = ?, remaining = -1, progress = 100
-		WHERE status = ?
-		  AND client_identifier IN (
-		      SELECT identifier
-		      FROM client
-		      WHERE last_seen < ?
-		  )
-		RETURNING *;
-	`, dto.DoneError, "client disconnected during execution", now, dto.Running, threshold).
-		Scan(&tasks).Error
 
 	return tasks, err
 }
