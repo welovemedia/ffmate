@@ -186,7 +186,7 @@ func TestCreateTask_CreatesTaskWithMetadata(t *testing.T) {
 	filePath := filepath.Join(sub, "video.mp4")
 
 	// createTask should create a task synchronously
-	svc.createTask(filePath, wf)
+	assert.NoError(t, svc.createTask(filePath, wf))
 
 	// Query created tasks
 	taskRepo := &repository.Task{DB: server.DB()}
@@ -255,4 +255,37 @@ func TestSyncWatchfoldersStartsMissingLoops(t *testing.T) {
 	count := 0
 	svc.running.Range(func(_, _ any) bool { count++; return true })
 	assert.Equal(t, 1, count)
+}
+
+func TestProcessWatchfolderLocksOnlyProcessedFiles(t *testing.T) {
+	_, svc := prepare(t)
+
+	newWatchfolder := func(preset string) (*model.Watchfolder, string) {
+		dir := t.TempDir()
+		file := filepath.Join(dir, "video.mp4")
+		assert.NoError(t, os.WriteFile(file, []byte("x"), 0o644))
+		wf, err := svc.repository.Save(&model.Watchfolder{UUID: uuid.NewString(), Path: dir, Interval: 1, GrowthChecks: 0, Preset: preset})
+		assert.NoError(t, err)
+		return wf, file
+	}
+
+	// preset does not exist (anymore): task creation fails, file must stay unlocked to be retried
+	missing, missingFile := newWatchfolder(uuid.NewString())
+	// empty preset: task is created, file must be locked
+	ok, okFile := newWatchfolder("")
+
+	svc.startWatchfolder(missing)
+	svc.startWatchfolder(ok)
+	defer func() {
+		_ = svc.repository.Delete(missing)
+		_ = svc.repository.Delete(ok)
+	}()
+
+	assert.Eventually(t, func() bool {
+		_, err := os.Stat(okFile + ".lock")
+		return err == nil
+	}, 5*time.Second, 100*time.Millisecond, "processed file must be locked")
+
+	_, err := os.Stat(missingFile + ".lock")
+	assert.True(t, os.IsNotExist(err), "file whose task could not be created must not be locked")
 }

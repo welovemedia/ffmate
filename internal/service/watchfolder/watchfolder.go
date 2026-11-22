@@ -316,11 +316,13 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 			// determine if the file is ready for processing
 			if s.shouldProcessFile(path, info, &fileStates, wf.GrowthChecks) {
 				fileStates.Delete(path) // Remove from tracking
-				err := os.WriteFile(path+".lock", []byte(""), 0777)
-				if err != nil {
-					debug.Log.Error("failed to write .lock file (uuid: %s)", watchfolder.UUID)
+				// only lock the file if a task has actually been created, otherwise it is retried on the next interval
+				if err := s.createTask(path, wf); err != nil {
+					return nil
 				}
-				s.createTask(path, wf)
+				if err := os.WriteFile(path+".lock", []byte(""), 0777); err != nil {
+					debug.Log.Error("failed to write .lock file (uuid: %s): %v", watchfolder.UUID, err)
+				}
 			}
 
 			return nil
@@ -423,7 +425,7 @@ func (s *Service) filterOutExtension(watchfolder *model.Watchfolder, path string
 	return false
 }
 
-func (s *Service) createTask(path string, watchfolder *model.Watchfolder) {
+func (s *Service) createTask(path string, watchfolder *model.Watchfolder) error {
 	// create ffmate metadata map
 	ffmate := map[string]map[string]string{
 		"watchfolder": {
@@ -454,9 +456,10 @@ func (s *Service) createTask(path string, watchfolder *model.Watchfolder) {
 	_, err = s.taskService.Add(task, "watchfolder", "")
 	if err != nil {
 		debug.Log.Error("failed to create task for watchfolder (uuid: %s) file: %s: %v", watchfolder.UUID, path, err)
-		return
+		return err
 	}
 	debug.Watchfolder.Debug("created new task for watchfolder (uuid: %s), file: '%s'", watchfolder.UUID, path)
+	return nil
 }
 
 func (s *Service) Name() string {
