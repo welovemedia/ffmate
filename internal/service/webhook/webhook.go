@@ -211,6 +211,13 @@ func (s *Service) handleWebhookExecution(event dto.WebhookEvent, url string, req
 	}
 }
 
+// webhookPayload is the body sent to webhook receivers (field order as documented)
+type webhookPayload struct {
+	Event     dto.WebhookEvent `json:"event"`
+	Timestamp string           `json:"timestamp"` // RFC 3339, UTC
+	Data      any              `json:"data"`
+}
+
 // webhookClient is shared by all webhook deliveries; the timeout limits each single try
 var webhookClient = &http.Client{Timeout: 10 * time.Second}
 
@@ -229,11 +236,12 @@ func (s *Service) fireWebhook(webhook *model.Webhook, data any, callback func(ev
 		}
 	}()
 
-	msg := map[string]any{
-		"event": webhook.Event,
-		"data":  data,
-	}
-	b, err := json.Marshal(&msg)
+	// the timestamp is set once per event, so all retries carry the same value
+	b, err := json.Marshal(&webhookPayload{
+		Event:     webhook.Event,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Data:      data,
+	})
 	if err != nil {
 		debug.Log.Error("failed to fire webhook due to marshaling for event '%s' (uuid: %s): %v", webhook.Event, webhook.UUID, err)
 		return
