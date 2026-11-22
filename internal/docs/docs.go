@@ -624,6 +624,12 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "412": {
+                        "description": "task is being processed, cancel it first",
+                        "schema": {
+                            "$ref": "#/definitions/exception.HTTPError"
+                        }
                     }
                 }
             }

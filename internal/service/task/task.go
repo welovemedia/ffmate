@@ -31,6 +31,7 @@ type Repository interface {
 	UpdateFields(uuid string, fields map[string]any) (*model.Task, error)
 	First(uuid string) (*model.Task, error)
 	Delete(task *model.Task) error
+	DeleteInactive(task *model.Task) (bool, error)
 	Count() (int64, error)
 	CountUnfinishedByBatch(uuid string) (int64, error)
 	NextQueued(amount int, labels dto.Labels) (*[]model.Task, error)
@@ -405,6 +406,14 @@ func (s *Service) AddBatch(newBatch *dto.NewBatch) (*dto.Batch, error) {
 	return batch, nil
 }
 
+// ErrTaskActive is returned when deleting a task that is currently being processed
+var ErrTaskActive = errors.New("task is currently being processed, cancel it before deleting")
+
+// isActive reports whether a task with the given status is currently being processed
+func isActive(status dto.TaskStatus) bool {
+	return status == dto.PreProcessing || status == dto.Running || status == dto.PostProcessing
+}
+
 func (s *Service) Delete(uuid string) error {
 	w, err := s.repository.First(uuid)
 	if err != nil {
@@ -415,18 +424,19 @@ func (s *Service) Delete(uuid string) error {
 		return errors.New("task for given uuid not found")
 	}
 
-	// stop a task that is currently being processed by this instance before deleting it
-	if ctxVal, ok := taskQueue.Load(uuid); ok {
-		if tc, ok2 := ctxVal.(taskContext); ok2 {
-			debug.Task.Debug("canceling running task before deletion (uuid: %s)", uuid)
-			tc.cancel(errors.New("task has been deleted"))
-		}
+	// a task that is being processed must be canceled first
+	if isActive(w.Status) {
+		return ErrTaskActive
 	}
 
-	err = s.repository.Delete(w)
+	deleted, err := s.repository.DeleteInactive(w)
 	if err != nil {
 		debug.Log.Error("failed to delete task (uuid: %s)", uuid)
 		return err
+	}
+	if !deleted {
+		// the task has been picked up for processing in the meantime
+		return ErrTaskActive
 	}
 
 	debug.Log.Info("deleted task (uuid: %s)", uuid)

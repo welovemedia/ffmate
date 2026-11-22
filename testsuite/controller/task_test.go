@@ -147,6 +147,42 @@ func TestTaskDelete(t *testing.T) {
 	assert.Equal(t, 400, response.StatusCode, "DELETE /api/v1/tasks")
 }
 
+func TestTaskDeleteActiveRequiresCancel(t *testing.T) {
+	server := testsuite.InitServer(t)
+
+	for _, status := range []dto.TaskStatus{dto.PreProcessing, dto.Running, dto.PostProcessing} {
+		response := createTask(t, server)
+		task, _ := testsuite.ParseJSONBody[dto.Task](response.Body)
+		_ = response.Body.Close()
+
+		// simulate a task that is being processed
+		assert.NoError(t, server.DB().Table("tasks").Where("uuid = ?", task.UUID).Update("status", status).Error)
+
+		request := testsuite.NewRequest(http.MethodDelete, "/api/v1/tasks/"+task.UUID, nil)
+		response = server.TestRequest(request)
+		body, _ := testsuite.ParseBody(response.Body)
+		_ = response.Body.Close()
+		assert.Equal(t, http.StatusPreconditionFailed, response.StatusCode, "DELETE %s task", status)
+		assert.Contains(t, string(body), "cancel it before deleting", "DELETE %s task", status)
+
+		request = testsuite.NewRequest(http.MethodGet, "/api/v1/tasks/"+task.UUID, nil)
+		response = server.TestRequest(request)
+		_ = response.Body.Close()
+		assert.Equal(t, http.StatusOK, response.StatusCode, "%s task must still exist", status)
+
+		// cancel first, then delete works
+		request = testsuite.NewRequest(http.MethodPatch, "/api/v1/tasks/"+task.UUID+"/cancel", nil)
+		response = server.TestRequest(request)
+		_ = response.Body.Close()
+		assert.Equal(t, http.StatusOK, response.StatusCode, "cancel %s task", status)
+
+		request = testsuite.NewRequest(http.MethodDelete, "/api/v1/tasks/"+task.UUID, nil)
+		response = server.TestRequest(request)
+		_ = response.Body.Close()
+		assert.Equal(t, http.StatusNoContent, response.StatusCode, "DELETE canceled task")
+	}
+}
+
 func TestTaskGet(t *testing.T) {
 	server := testsuite.InitServer(t)
 

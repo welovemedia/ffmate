@@ -38,6 +38,17 @@ func (r *Task) Delete(w *model.Task) error {
 	return r.DB.Delete(w).Error
 }
 
+// DeleteInactive (soft) deletes the task only if it is not currently being processed.
+// The status check is part of the DELETE statement, so a task claimed concurrently (e.g. by another
+// cluster instance) is never deleted while running. Returns false if the task is active.
+func (r *Task) DeleteInactive(w *model.Task) (bool, error) {
+	result := r.DB.Where("status NOT IN ?", activeStatuses).Delete(w)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
+}
+
 func (r *Task) List(page int, perPage int, status dto.TaskStatus) (*[]model.Task, int64, error) {
 	var tasks = &[]model.Task{}
 	tx := r.DB.Preload("Client.Labels").Preload("Labels").Order("created_at DESC")

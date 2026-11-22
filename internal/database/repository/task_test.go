@@ -55,3 +55,26 @@ func TestUpdateFieldsDoesNotResurrectDeletedTask(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), count)
 }
+
+func TestDeleteInactiveRefusesActiveTasks(t *testing.T) {
+	server := testserver.New(t)
+	repo := (&Task{DB: server.DB()}).Setup()
+
+	for _, status := range []dto.TaskStatus{dto.PreProcessing, dto.Running, dto.PostProcessing} {
+		task, err := repo.Add(&model.Task{UUID: uuid.NewString(), Status: status})
+		assert.NoError(t, err)
+		deleted, err := repo.DeleteInactive(task)
+		assert.NoError(t, err)
+		assert.False(t, deleted, "%s task must not be deleted", status)
+		found, _ := repo.First(task.UUID)
+		assert.NotNil(t, found, "%s task must still exist", status)
+	}
+
+	for _, status := range []dto.TaskStatus{dto.Queued, dto.DoneSuccessful, dto.DoneError, dto.DoneCanceled} {
+		task, err := repo.Add(&model.Task{UUID: uuid.NewString(), Status: status})
+		assert.NoError(t, err)
+		deleted, err := repo.DeleteInactive(task)
+		assert.NoError(t, err)
+		assert.True(t, deleted, "%s task must be deleted", status)
+	}
+}
