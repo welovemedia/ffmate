@@ -20,11 +20,11 @@ func (c *Controller) RegisterRoutes(router *goyave.Router) {
 }
 
 func (c *Controller) get(response *goyave.Response, _ *goyave.Request) {
-	status := &dto.Health{Status: dto.HealthError}
-	statusCode := 500
-	if c.Server().IsReady() {
-		status.Status = dto.HealthOk
-		statusCode = 200
+	status := &dto.Health{Status: dto.HealthOk}
+	statusCode := 200
+	if !c.Server().IsReady() || !c.Server().HasDB() {
+		status.Status = dto.HealthError
+		statusCode = 500
 	}
 	response.JSON(statusCode, status)
 }
