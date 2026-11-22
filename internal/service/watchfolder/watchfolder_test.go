@@ -137,12 +137,30 @@ func TestShouldProcessFile_StableSize(t *testing.T) {
 	var states = sync.Map{}
 	path := "/tmp/a.mp4"
 
-	// growthChecks=3 -> first pass false, second pass true (size stable)
+	// growthChecks=3 -> processed on the third consecutive check with a stable size
 	ok1 := s.shouldProcessFile(path, testFileInfo{name: "a.mp4", size: 100}, &states, 3)
 	assert.False(t, ok1, "First pass should not process yet")
 
 	ok2 := s.shouldProcessFile(path, testFileInfo{name: "a.mp4", size: 100}, &states, 3)
-	assert.True(t, ok2, "Second pass with stable size should process")
+	assert.False(t, ok2, "Second pass should not process yet")
+
+	ok3 := s.shouldProcessFile(path, testFileInfo{name: "a.mp4", size: 100}, &states, 3)
+	assert.True(t, ok3, "Third pass with stable size should process")
+}
+
+func TestShouldProcessFile_ChecksMatchGrowthChecks(t *testing.T) {
+	s := &Service{}
+	for growthChecks := 1; growthChecks <= 5; growthChecks++ {
+		var states sync.Map
+		processedAt := 0
+		for check := 1; check <= 10; check++ {
+			if s.shouldProcessFile("/tmp/a.mp4", testFileInfo{name: "a.mp4", size: 100}, &states, growthChecks) {
+				processedAt = check
+				break
+			}
+		}
+		assert.Equal(t, growthChecks, processedAt, "growthChecks=%d must process on check %d", growthChecks, growthChecks)
+	}
 }
 
 func TestShouldProcessFile_SizeChangesResetsAttempts(t *testing.T) {

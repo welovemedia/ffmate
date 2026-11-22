@@ -385,24 +385,23 @@ func (s *Service) shouldProcessFile(path string, info os.FileInfo, fileStates *s
 		return true
 	}
 
-	// Get or initialize the file state
-	state, _ := fileStates.LoadOrStore(path, &fileState{Size: info.Size(), Attempts: 1})
+	// Get or initialize the file state; the first sighting counts as the first check
+	state, loaded := fileStates.LoadOrStore(path, &fileState{Size: info.Size(), Attempts: 1})
 	fileState := state.(*fileState)
 
-	// Check if the file size is stable
-	if info.Size() == fileState.Size {
-		fileState.Attempts++
-		if fileState.Attempts >= growthChecks {
-			return true
+	if loaded {
+		if info.Size() == fileState.Size {
+			// size is stable, count this check
+			fileState.Attempts++
+		} else {
+			// size changed, restart counting with this check
+			fileState.Size = info.Size()
+			fileState.Attempts = 1
 		}
-	} else {
-		// File size changed, reset attempts
-		fileState.Size = info.Size()
-		fileState.Attempts = 1
-		fileStates.Store(path, fileState)
 	}
 
-	return false
+	// ready once the size has been the same for growthChecks consecutive checks
+	return fileState.Attempts >= growthChecks
 }
 
 func (s *Service) filterOutExtension(watchfolder *model.Watchfolder, path string) bool {
