@@ -137,12 +137,30 @@ func TestShouldProcessFile_StableSize(t *testing.T) {
 	var states = sync.Map{}
 	path := "/tmp/a.mp4"
 
-	// growthChecks=3 -> first pass false, second pass true (size stable)
+	// growthChecks=3 -> processed on the third consecutive check with a stable size
 	ok1 := s.shouldProcessFile(path, testFileInfo{name: "a.mp4", size: 100}, &states, 3)
 	assert.False(t, ok1, "First pass should not process yet")
 
 	ok2 := s.shouldProcessFile(path, testFileInfo{name: "a.mp4", size: 100}, &states, 3)
-	assert.True(t, ok2, "Second pass with stable size should process")
+	assert.False(t, ok2, "Second pass should not process yet")
+
+	ok3 := s.shouldProcessFile(path, testFileInfo{name: "a.mp4", size: 100}, &states, 3)
+	assert.True(t, ok3, "Third pass with stable size should process")
+}
+
+func TestShouldProcessFile_ChecksMatchGrowthChecks(t *testing.T) {
+	s := &Service{}
+	for growthChecks := 1; growthChecks <= 5; growthChecks++ {
+		var states sync.Map
+		processedAt := 0
+		for check := 1; check <= 10; check++ {
+			if s.shouldProcessFile("/tmp/a.mp4", testFileInfo{name: "a.mp4", size: 100}, &states, growthChecks) {
+				processedAt = check
+				break
+			}
+		}
+		assert.Equal(t, growthChecks, processedAt, "growthChecks=%d must process on check %d", growthChecks, growthChecks)
+	}
 }
 
 func TestShouldProcessFile_SizeChangesResetsAttempts(t *testing.T) {
@@ -186,7 +204,7 @@ func TestCreateTask_CreatesTaskWithMetadata(t *testing.T) {
 	filePath := filepath.Join(sub, "video.mp4")
 
 	// createTask should create a task synchronously
-	svc.createTask(filePath, wf)
+	assert.NoError(t, svc.createTask(filePath, wf))
 
 	// Query created tasks
 	taskRepo := &repository.Task{DB: server.DB()}
@@ -235,4 +253,117 @@ func TestCreateTask_CreatesTaskWithMetadata(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestSyncWatchfoldersStartsMissingLoops(t *testing.T) {
+	_, svc := prepare(t)
+
+	// simulate a watchfolder created by another cluster instance (no loop on this instance)
+	w, err := svc.repository.Save(&model.Watchfolder{UUID: uuid.NewString(), Name: "remote", Interval: 3600, Path: t.TempDir()})
+	assert.NoError(t, err)
+	_, running := svc.running.Load(w.UUID)
+	assert.False(t, running, "no loop before sync")
+
+	svc.syncWatchfolders()
+	_, running = svc.running.Load(w.UUID)
+	assert.True(t, running, "sync must start a loop for an unknown watchfolder")
+
+	// syncing again must not start a second loop
+	svc.syncWatchfolders()
+	count := 0
+	svc.running.Range(func(_, _ any) bool { count++; return true })
+	assert.Equal(t, 1, count)
+}
+
+func TestProcessWatchfolderLocksOnlyProcessedFiles(t *testing.T) {
+	_, svc := prepare(t)
+
+	newWatchfolder := func(preset string) (*model.Watchfolder, string) {
+		dir := t.TempDir()
+		file := filepath.Join(dir, "video.mp4")
+		assert.NoError(t, os.WriteFile(file, []byte("x"), 0o644))
+		wf, err := svc.repository.Save(&model.Watchfolder{UUID: uuid.NewString(), Path: dir, Interval: 1, GrowthChecks: 0, Preset: preset})
+		assert.NoError(t, err)
+		return wf, file
+	}
+
+	// preset does not exist (anymore): task creation fails, file must stay unlocked to be retried
+	missing, missingFile := newWatchfolder(uuid.NewString())
+	// empty preset: task is created, file must be locked
+	ok, okFile := newWatchfolder("")
+
+	svc.startWatchfolder(missing)
+	svc.startWatchfolder(ok)
+	defer func() {
+		_ = svc.repository.Delete(missing)
+		_ = svc.repository.Delete(ok)
+	}()
+
+	assert.Eventually(t, func() bool {
+		_, err := os.Stat(okFile + ".lock")
+		return err == nil
+	}, 5*time.Second, 100*time.Millisecond, "processed file must be locked")
+
+	_, err := os.Stat(missingFile + ".lock")
+	assert.True(t, os.IsNotExist(err), "file whose task could not be created must not be locked")
+}
+
+func TestProcessWatchfolderPersistsAndClearsError(t *testing.T) {
+	_, svc := prepare(t)
+
+	dir := filepath.Join(t.TempDir(), "not-yet-existing")
+	wf, err := svc.repository.Save(&model.Watchfolder{UUID: uuid.NewString(), Path: dir, Interval: 1})
+	assert.NoError(t, err)
+
+	svc.startWatchfolder(wf)
+	defer func() { _ = svc.repository.Delete(wf) }()
+
+	errorOf := func() string {
+		w, err := svc.repository.First(wf.UUID)
+		if err != nil || w == nil {
+			return ""
+		}
+		return w.Error
+	}
+
+	assert.Eventually(t, func() bool { return errorOf() != "" }, 5*time.Second, 100*time.Millisecond, "scan error must be saved")
+	assert.Contains(t, errorOf(), dir)
+
+	assert.NoError(t, os.MkdirAll(dir, 0o755))
+	assert.Eventually(t, func() bool { return errorOf() == "" }, 5*time.Second, 100*time.Millisecond, "error must be cleared after a successful scan")
+}
+
+func TestProcessWatchfolderUsesUpdatedInterval(t *testing.T) {
+	_, svc := prepare(t)
+
+	wf, err := svc.repository.Save(&model.Watchfolder{UUID: uuid.NewString(), Path: t.TempDir(), Interval: 1})
+	assert.NoError(t, err)
+	svc.startWatchfolder(wf)
+	defer func() { _ = svc.repository.Delete(wf) }()
+
+	lastCheck := func() int64 {
+		w, _ := svc.repository.First(wf.UUID)
+		if w == nil {
+			return 0
+		}
+		return w.LastCheck
+	}
+	assert.Eventually(t, func() bool { return lastCheck() > 0 }, 5*time.Second, 50*time.Millisecond, "first scan")
+
+	// user update: raise the interval
+	w, err := svc.repository.First(wf.UUID)
+	assert.NoError(t, err)
+	w.Interval = 3600
+	_, err = svc.repository.Save(w)
+	assert.NoError(t, err)
+
+	// allow at most one more scan that was already scheduled with the old interval
+	time.Sleep(1500 * time.Millisecond)
+	before := lastCheck()
+	time.Sleep(2500 * time.Millisecond)
+	assert.Equal(t, before, lastCheck(), "no further scans with the old interval")
+
+	w, err = svc.repository.First(wf.UUID)
+	assert.NoError(t, err)
+	assert.Equal(t, 3600, w.Interval, "scan results must not overwrite the user update")
 }

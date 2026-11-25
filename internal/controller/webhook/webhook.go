@@ -7,6 +7,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/exception"
+	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
 	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
@@ -34,12 +35,12 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Delete("/webhooks/{uuid}", c.delete)
-	router.Post("/webhooks", c.add).ValidateBody(c.NewWebhookRequest)
-	router.Put("/webhooks/{uuid}", c.update).ValidateBody(c.NewWebhookRequest)
-	router.Get("/webhooks", c.list).ValidateQuery(validate.PaginationRequest)
-	router.Get("/webhooks/executions", c.listExecutions).ValidateQuery(validate.PaginationRequest)
-	router.Get("/webhooks/{uuid}", c.get)
+	router.Delete("/webhooks/{uuid}", c.delete).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Post("/webhooks", c.add).ValidateBody(c.NewWebhookRequest).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Put("/webhooks/{uuid}", c.update).ValidateBody(c.NewWebhookRequest).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Get("/webhooks", c.list).ValidateQuery(validate.PaginationRequest).SetMeta(middleware.MetaAccess, middleware.AccessRead)
+	router.Get("/webhooks/executions", c.listExecutions).ValidateQuery(validate.PaginationRequest).SetMeta(middleware.MetaAccess, middleware.AccessRead)
+	router.Get("/webhooks/{uuid}", c.get).SetMeta(middleware.MetaAccess, middleware.AccessRead)
 }
 
 // @Summary Delete a webhook

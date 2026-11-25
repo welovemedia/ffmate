@@ -29,7 +29,8 @@ type Repository interface {
 	Delete(watchfolder *model.Watchfolder) error
 	Count() (int64, error)
 
-	FirstAndLock(uuid string) (*model.Watchfolder, bool, error)
+	FirstAndLock(uuid string, eligible func(*model.Watchfolder) bool) (*model.Watchfolder, bool, error)
+	UpdateScanResult(uuid string, lastCheck int64, scanError string) (*model.Watchfolder, error)
 }
 
 type Service struct {
@@ -37,7 +38,14 @@ type Service struct {
 	webhookService   *webhook.Service
 	websocketService *websocket.Service
 	taskService      *task.Service
+
+	// running holds the uuids of all watchfolders this instance has a processing loop for
+	running sync.Map
 }
+
+// clusterSyncInterval defines how often an instance in cluster mode checks the database
+// for watchfolders it has no processing loop for yet (e.g. created on another instance)
+var clusterSyncInterval = 5 * time.Second
 
 func NewService(repository Repository, webhookService *webhook.Service, websocketService *websocket.Service, taskService *task.Service) *Service {
 	return &Service{
@@ -90,7 +98,9 @@ func (s *Service) Add(newWatchfolder *dto.NewWatchfolder) (*model.Watchfolder, e
 	})
 	debug.Watchfolder.Info("created watchfolder (uuid: %s)", w.UUID)
 
-	go s.processWatchfolder(w)
+	if err == nil {
+		s.startWatchfolder(w)
+	}
 
 	metrics.Gauge("watchfolder.created").Inc()
 	s.webhookService.Fire(dto.WatchfolderCreated, w.ToDTO())
@@ -190,15 +200,57 @@ func (s *Service) Process() {
 	}
 
 	for _, watchfolder := range *watchfolders {
-		go s.processWatchfolder(&watchfolder)
+		s.startWatchfolder(&watchfolder)
 	}
+
+	// in cluster mode watchfolders may be created by other instances,
+	// pick them up so every instance processes every watchfolder
+	if cfg.GetBool("ffmate.isCluster") {
+		go func() {
+			for {
+				time.Sleep(clusterSyncInterval)
+				s.syncWatchfolders()
+			}
+		}()
+	}
+}
+
+// syncWatchfolders starts a processing loop for every watchfolder in the database that has none on this instance yet
+func (s *Service) syncWatchfolders() {
+	watchfolders, _, err := s.List(-1, -1)
+	if err != nil {
+		debug.Watchfolder.Error("failed to list watchfolders for cluster sync: %v", err)
+		return
+	}
+	for _, watchfolder := range *watchfolders {
+		s.startWatchfolder(&watchfolder)
+	}
+}
+
+// startWatchfolder starts the processing loop for the given watchfolder, unless one is already running on this instance
+func (s *Service) startWatchfolder(watchfolder *model.Watchfolder) {
+	if _, loaded := s.running.LoadOrStore(watchfolder.UUID, struct{}{}); loaded {
+		return
+	}
+	debug.Watchfolder.Debug("watchfolder processing started (uuid: %s)", watchfolder.UUID)
+	go func() {
+		defer s.running.Delete(watchfolder.UUID)
+		s.processWatchfolder(watchfolder)
+	}()
+}
+
+// canProcess reports whether this instance should process the watchfolder
+func canProcess(wf *model.Watchfolder) bool {
+	return !wf.Suspended && hasLabelOverlap(wf.Labels, cfg.GetStringSlice("ffmate.labels"))
 }
 
 func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 	fileStates := sync.Map{}
 	isCluster := cfg.GetBool("ffmate.isCluster")
+	// interval holds the most recently loaded value, so updates take effect from the next iteration on
+	interval := watchfolder.Interval
 	for {
-		duration := time.Duration(watchfolder.Interval) * time.Second
+		duration := time.Duration(max(interval, 1)) * time.Second
 		next := time.Now().Truncate(duration).Add(duration)
 		time.Sleep(time.Until(next))
 
@@ -206,7 +258,7 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 		var locked = false
 		var err error
 		if isCluster {
-			wf, locked, err = s.repository.FirstAndLock(watchfolder.UUID)
+			wf, locked, err = s.repository.FirstAndLock(watchfolder.UUID, canProcess)
 		} else {
 			wf, err = s.repository.First(watchfolder.UUID)
 		}
@@ -218,6 +270,7 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 			debug.Watchfolder.Debug("watchfolder no longer exists - processing stopped (uuid: %s)", watchfolder.UUID)
 			return
 		}
+		interval = wf.Interval
 		if wf.Suspended {
 			debug.Watchfolder.Debug("watchfolder skipped as it is suspended (uuid: %s)", wf.UUID)
 			continue
@@ -233,62 +286,59 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 
 		debug.Watchfolder.Debug("watchfolder processing (uuid: %s)", watchfolder.UUID)
 
-		// walk the directory resursively
-		err = filepath.Walk(wf.Path, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
+		err = s.scanWatchfolder(wf, &fileStates)
 
-			// skip directories
-			if info.IsDir() {
-				return nil
-			}
-
-			// skip invisible files
-			if strings.HasPrefix(filepath.Base(path), ".") {
-				return nil
-			}
-
-			// skip .lock files
-			if strings.HasSuffix(filepath.Base(path), ".lock") {
-				return nil
-			}
-
-			// filter extensions
-			if s.filterOutExtension(wf, path) {
-				return nil
-			}
-
-			// if a .lock file exists, the file has already been processed
-			if _, err := os.Stat(path + ".lock"); err == nil {
-				return nil
-			}
-
-			// determine if the file is ready for processing
-			if s.shouldProcessFile(path, info, &fileStates, wf.GrowthChecks) {
-				fileStates.Delete(path) // Remove from tracking
-				err := os.WriteFile(path+".lock", []byte(""), 0777)
-				if err != nil {
-					debug.Log.Error("failed to write .lock file (uuid: %s)", watchfolder.UUID)
-				}
-				s.createTask(path, wf)
-			}
-
-			return nil
-		})
-
+		// persist the result of this scan, a successful scan clears a previous error
+		var scanError string
 		if err != nil {
-			watchfolder.Error = err.Error()
+			scanError = err.Error()
 			debug.Watchfolder.Error("walking watchfolder directory failed (uuid: %s): %v", watchfolder.UUID, err)
 		}
 
 		metrics.Gauge("watchfolder.executed").Inc()
-		wf.LastCheck = time.Now().UnixMilli()
-		_, err = s.UpdateInternal(wf)
+		updated, err := s.repository.UpdateScanResult(wf.UUID, time.Now().UnixMilli(), scanError)
 		if err != nil {
 			debug.Log.Error("failed to update watchfolder internally (uuid: %s): %v", watchfolder.UUID, err)
+		} else if updated != nil {
+			s.websocketService.Broadcast(websocket.WatchfolderUpdated, updated.ToDTO())
 		}
 	}
+}
+
+// scanWatchfolder walks the watchfolder directory recursively and creates a task (and a .lock file)
+// for every file that is ready for processing
+func (s *Service) scanWatchfolder(wf *model.Watchfolder, fileStates *sync.Map) error {
+	return filepath.Walk(wf.Path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// skip directories, invisible files, .lock files and filtered extensions
+		base := filepath.Base(path)
+		if info.IsDir() || strings.HasPrefix(base, ".") || strings.HasSuffix(base, ".lock") || s.filterOutExtension(wf, path) {
+			return nil
+		}
+
+		// if a .lock file exists, the file has already been processed
+		if _, err := os.Stat(path + ".lock"); err == nil {
+			return nil
+		}
+
+		// determine if the file is ready for processing
+		if !s.shouldProcessFile(path, info, fileStates, wf.GrowthChecks) {
+			return nil
+		}
+		fileStates.Delete(path) // Remove from tracking
+
+		// only lock the file if a task has actually been created, otherwise it is retried on the next interval
+		if err := s.createTask(path, wf); err != nil {
+			return nil
+		}
+		if err := os.WriteFile(path+".lock", []byte(""), 0777); err != nil {
+			debug.Log.Error("failed to write .lock file (uuid: %s): %v", wf.UUID, err)
+		}
+		return nil
+	})
 }
 
 // hasLabelOverlap checks if any task label matches any client label.
@@ -327,24 +377,23 @@ func (s *Service) shouldProcessFile(path string, info os.FileInfo, fileStates *s
 		return true
 	}
 
-	// Get or initialize the file state
-	state, _ := fileStates.LoadOrStore(path, &fileState{Size: info.Size(), Attempts: 1})
+	// Get or initialize the file state; the first sighting counts as the first check
+	state, loaded := fileStates.LoadOrStore(path, &fileState{Size: info.Size(), Attempts: 1})
 	fileState := state.(*fileState)
 
-	// Check if the file size is stable
-	if info.Size() == fileState.Size {
-		fileState.Attempts++
-		if fileState.Attempts >= growthChecks {
-			return true
+	if loaded {
+		if info.Size() == fileState.Size {
+			// size is stable, count this check
+			fileState.Attempts++
+		} else {
+			// size changed, restart counting with this check
+			fileState.Size = info.Size()
+			fileState.Attempts = 1
 		}
-	} else {
-		// File size changed, reset attempts
-		fileState.Size = info.Size()
-		fileState.Attempts = 1
-		fileStates.Store(path, fileState)
 	}
 
-	return false
+	// ready once the size has been the same for growthChecks consecutive checks
+	return fileState.Attempts >= growthChecks
 }
 
 func (s *Service) filterOutExtension(watchfolder *model.Watchfolder, path string) bool {
@@ -374,7 +423,7 @@ func (s *Service) filterOutExtension(watchfolder *model.Watchfolder, path string
 	return false
 }
 
-func (s *Service) createTask(path string, watchfolder *model.Watchfolder) {
+func (s *Service) createTask(path string, watchfolder *model.Watchfolder) error {
 	// create ffmate metadata map
 	ffmate := map[string]map[string]string{
 		"watchfolder": {
@@ -405,9 +454,10 @@ func (s *Service) createTask(path string, watchfolder *model.Watchfolder) {
 	_, err = s.taskService.Add(task, "watchfolder", "")
 	if err != nil {
 		debug.Log.Error("failed to create task for watchfolder (uuid: %s) file: %s: %v", watchfolder.UUID, path, err)
-		return
+		return err
 	}
 	debug.Watchfolder.Debug("created new task for watchfolder (uuid: %s), file: '%s'", watchfolder.UUID, path)
+	return nil
 }
 
 func (s *Service) Name() string {

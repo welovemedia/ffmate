@@ -27,6 +27,31 @@ const (
 	WatchfolderDeleted WebhookEvent = "watchfolder.deleted"
 )
 
+// TaskWebhookEvents are the events fired for webhooks defined directly on a task
+var TaskWebhookEvents = []WebhookEvent{TaskCreated, TaskUpdated, TaskDeleted}
+
+// PresetWebhookEvents are the events fired for webhooks defined on a preset
+// (preset.* for the preset itself, task.* are passed on to tasks created from the preset)
+var PresetWebhookEvents = append([]WebhookEvent{PresetCreated, PresetUpdated, PresetDeleted}, TaskWebhookEvents...)
+
+// WebhookEvents are all events that can be subscribed to with a global webhook
+var WebhookEvents = []WebhookEvent{
+	BatchCreated, BatchFinished,
+	TaskCreated, TaskUpdated, TaskDeleted,
+	PresetCreated, PresetUpdated, PresetDeleted,
+	WebhookCreated, WebhookUpdated, WebhookDeleted,
+	WatchfolderCreated, WatchfolderUpdated, WatchfolderDeleted,
+}
+
+// WebhookEventNames returns the given events as strings (e.g. for validation rules)
+func WebhookEventNames(events []WebhookEvent) []string {
+	names := make([]string, len(events))
+	for i, e := range events {
+		names[i] = string(e)
+	}
+	return names
+}
+
 type NewWebhook struct {
 	Event WebhookEvent `json:"event"`
 	URL   string       `json:"url"`

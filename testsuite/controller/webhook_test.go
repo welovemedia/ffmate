@@ -25,7 +25,11 @@ var newWebhook = &dto.Webhook{
 }
 
 func createWebhook(t *testing.T, server *testutil.TestServer) *http.Response {
-	body, _ := json.Marshal(newWebhook)
+	return createWebhookFor(t, server, newWebhook)
+}
+
+func createWebhookFor(t *testing.T, server *testutil.TestServer, webhook *dto.Webhook) *http.Response {
+	body, _ := json.Marshal(webhook)
 	request := testsuite.NewRequest(http.MethodPost, "/api/v1/webhooks", bytes.NewReader(body))
 	request.Header.Set("Content-Type", "application/json")
 	response := server.TestRequest(request)
@@ -48,7 +52,13 @@ func TestWebhookCreate(t *testing.T) {
 func TestWebhookExecution(t *testing.T) {
 	server := testsuite.InitServer(t)
 
-	response := createWebhook(t, server)
+	// local receiver answering 2xx, so the delivery succeeds on the first try
+	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer receiver.Close()
+
+	response := createWebhookFor(t, server, &dto.Webhook{Event: dto.TaskCreated, URL: receiver.URL})
 	defer response.Body.Close() // nolint:errcheck
 	svc := server.Service(service.Webhook).(*webhookSvc.Service)
 	svc.FireInRoutine(dto.TaskCreated, "")

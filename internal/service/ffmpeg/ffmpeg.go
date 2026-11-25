@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -45,11 +46,14 @@ type ExecutionRequest struct {
 
 // Execute runs the ffmpeg command, provides progress updates, and checks the result
 func (s *Service) Execute(request *ExecutionRequest) error {
-	commands := strings.Split(request.Command, "&&")
-	for index, cmdStr := range commands {
-		cmdStr = strings.TrimSpace(cmdStr)
+	// commands can be chained with && (e.g. two-pass encoding), every part is an ffmpeg call
+	commands, err := splitCommandChain(request.Command, runtime.GOOS == "windows")
+	if err != nil {
+		return fmt.Errorf("FFMPEG - failed to parse command: %v", err)
+	}
+	ffmpegPath := cfg.GetString("ffmate.ffmpeg")
+	for _, cmdStr := range commands {
 		var args []string
-		var err error
 		if runtime.GOOS == "windows" {
 			args, err = s.shellwordsUnicodeSafe(cmdStr)
 		} else {
@@ -58,16 +62,15 @@ func (s *Service) Execute(request *ExecutionRequest) error {
 		if err != nil {
 			return fmt.Errorf("FFMPEG - failed to parse command: %v", err)
 		}
+		// chained commands start with ${FFMPEG} (as documented), the binary is always the configured ffmpeg
+		if len(args) > 0 && args[0] == ffmpegPath {
+			args = args[1:]
+		}
 		args = append(args, "-progress", "pipe:2")
-		if !strings.Contains(cmdStr, "-stats_period") {
+		if !slices.Contains(args, "-stats_period") {
 			args = append(args, "-stats_period", "1")
 		}
-		var cmd *exec.Cmd
-		if index > 0 {
-			cmd = exec.CommandContext(request.Ctx, "", args...)
-		} else {
-			cmd = exec.CommandContext(request.Ctx, cfg.GetString("ffmate.ffmpeg"), args...)
-		}
+		cmd := exec.CommandContext(request.Ctx, ffmpegPath, args...)
 
 		var stderrBuf bytes.Buffer
 		var duration float64
@@ -113,6 +116,48 @@ func (s *Service) Execute(request *ExecutionRequest) error {
 		}
 	}
 	return nil
+}
+
+// splitCommandChain splits a command at && operators that are not quoted, so a quoted value
+// containing && (e.g. a file name) stays intact. Backslash escapes are honored outside of single
+// quotes, except on windows where a backslash is a path separator (matching the respective parsers).
+func splitCommandChain(command string, windows bool) ([]string, error) {
+	var parts []string
+	var current strings.Builder
+	var quote rune
+	escaped := false
+	runes := []rune(command)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		switch {
+		case escaped:
+			escaped = false
+		case r == '\\' && !windows && quote != '\'':
+			escaped = true
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			}
+		case r == '\'' || r == '"':
+			quote = r
+		case r == '&' && i+1 < len(runes) && runes[i+1] == '&':
+			parts = append(parts, strings.TrimSpace(current.String()))
+			current.Reset()
+			i++ // skip the second &
+			continue
+		}
+		current.WriteRune(r)
+	}
+	if quote != 0 {
+		return nil, errors.New("unclosed quote")
+	}
+	parts = append(parts, strings.TrimSpace(current.String()))
+	for _, part := range parts {
+		if part == "" {
+			return nil, errors.New("empty command in && chain")
+		}
+	}
+	return parts, nil
 }
 
 // EstimateRemainingTime calculates the estimated remaining time based on the current progress and speed.

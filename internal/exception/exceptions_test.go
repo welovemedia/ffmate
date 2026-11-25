@@ -84,3 +84,14 @@ func TestHTTPNotFound(t *testing.T) {
 	assert.Equal(t, "resource not found", httpErr.Message)
 	assert.Equal(t, docs, httpErr.Docs)
 }
+
+func TestHTTPPreconditionFailed(t *testing.T) {
+	err := errors.New("precondition not met")
+	httpErr := HTTPPreconditionFailed(err, "https://docs.example.com")
+
+	assert.Equal(t, 412, httpErr.HTTPCode)
+	assert.Equal(t, "001.000.0009", httpErr.Code)
+	assert.Equal(t, "precondition.failed", httpErr.Error)
+	assert.Equal(t, "precondition not met", httpErr.Message)
+	assert.Equal(t, "https://docs.example.com", httpErr.Docs)
+}

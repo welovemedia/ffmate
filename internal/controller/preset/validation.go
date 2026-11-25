@@ -1,6 +1,7 @@
 package preset
 
 import (
+	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
 	v "goyave.dev/goyave/v5/validation"
@@ -12,14 +13,14 @@ func (c *Controller) NewPresetRequest(_ *goyave.Request) v.RuleSet {
 		{Path: "name", Rules: v.List{v.String(), v.Required()}},
 		{Path: "description", Rules: v.List{v.String()}},
 		{Path: "command", Rules: v.List{v.String(), v.Required()}},
-		{Path: "priority", Rules: v.List{v.Uint()}},
-		{Path: "retries", Rules: v.List{v.Uint()}},
+		{Path: "priority", Rules: v.List{v.Int(), v.Min(0)}},
+		{Path: "retries", Rules: v.List{v.Int(), v.Min(0)}},
 		{Path: "outputFile", Rules: v.List{v.String()}},
 		{Path: "labels", Rules: v.List{v.Array(), v.Max(5)}},
 		{Path: "labels[]", Rules: v.List{v.String(), v.Min(1), v.Max(32)}},
 		{Path: "webhooks", Rules: v.List{v.Array()}},
 		{Path: "webhooks[].url", Rules: v.List{validate.PreserveValue(v.URL()), v.Required()}},
-		{Path: "webhooks[].event", Rules: v.List{v.String(), v.Required()}},
+		{Path: "webhooks[].event", Rules: v.List{v.String(), v.Required(), v.In(dto.WebhookEventNames(dto.PresetWebhookEvents))}},
 		{Path: "preProcessing", Rules: v.List{v.Object()}},
 		{Path: "preProcessing.scriptPath", Rules: v.List{v.String()}},
 		{Path: "preProcessing.sidecarPath", Rules: v.List{v.String()}},

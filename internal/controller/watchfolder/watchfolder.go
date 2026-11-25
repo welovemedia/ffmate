@@ -7,6 +7,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/exception"
+	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
 	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
@@ -33,11 +34,11 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Delete("/watchfolders/{uuid}", c.delete)
-	router.Post("/watchfolders", c.add).ValidateBody(c.NewWatchfolderRequest)
-	router.Put("/watchfolders/{uuid}", c.update).ValidateBody(c.NewWatchfolderRequest)
-	router.Get("/watchfolders", c.list).ValidateQuery(validate.PaginationRequest)
-	router.Get("/watchfolders/{uuid}", c.get)
+	router.Delete("/watchfolders/{uuid}", c.delete).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Post("/watchfolders", c.add).ValidateBody(c.NewWatchfolderRequest).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Put("/watchfolders/{uuid}", c.update).ValidateBody(c.NewWatchfolderRequest).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Get("/watchfolders", c.list).ValidateQuery(validate.PaginationRequest).SetMeta(middleware.MetaAccess, middleware.AccessRead)
+	router.Get("/watchfolders/{uuid}", c.get).SetMeta(middleware.MetaAccess, middleware.AccessRead)
 }
 
 // @Summary Delete a watchfolder

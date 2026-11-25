@@ -20,7 +20,6 @@ var version string
 // @license.name AGPL-3.0
 // @license.url https://opensource.org/license/agpl-v3
 
-// @host localhost
 // @BasePath /api/v1
 func main() {
 	viper.Set("app.name", "ffmate")

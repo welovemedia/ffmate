@@ -1,6 +1,7 @@
 package task
 
 import (
+	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
 	v "goyave.dev/goyave/v5/validation"
@@ -39,8 +40,8 @@ func NewTaskRequest(_ *goyave.Request) v.RuleSet {
 			}), "Either command or preset must be set"),
 		}},
 
-		{Path: "priority", Rules: v.List{v.Uint()}},
-		{Path: "retries", Rules: v.List{v.Uint()}},
+		{Path: "priority", Rules: v.List{v.Int(), v.Min(0)}},
+		{Path: "retries", Rules: v.List{v.Int(), v.Min(0)}},
 
 		{Path: "inputFile", Rules: v.List{v.String()}},
 		{Path: "outputFile", Rules: v.List{v.String()}},
@@ -52,7 +53,7 @@ func NewTaskRequest(_ *goyave.Request) v.RuleSet {
 
 		{Path: "webhooks", Rules: v.List{v.Array()}},
 		{Path: "webhooks[].url", Rules: v.List{validate.PreserveValue(v.URL()), v.Required()}},
-		{Path: "webhooks[].event", Rules: v.List{v.String(), v.Required()}},
+		{Path: "webhooks[].event", Rules: v.List{v.String(), v.Required(), v.In(dto.WebhookEventNames(dto.TaskWebhookEvents))}},
 
 		{Path: "preProcessing", Rules: v.List{v.Object()}},
 		{Path: "preProcessing.scriptPath", Rules: v.List{v.String()}},

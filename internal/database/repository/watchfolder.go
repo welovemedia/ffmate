@@ -66,6 +66,23 @@ func (r *Watchfolder) Save(watchfolder *model.Watchfolder) (*model.Watchfolder, 
 	return watchfolder, err
 }
 
+// UpdateScanResult writes only the scan related columns of an existing (non-deleted) watchfolder,
+// so concurrent user updates are not overwritten and a deleted watchfolder is not re-inserted.
+// If the watchfolder no longer exists, (nil, nil) is returned.
+func (r *Watchfolder) UpdateScanResult(uuid string, lastCheck int64, scanError string) (*model.Watchfolder, error) {
+	result := r.DB.Model(&model.Watchfolder{}).Where("uuid = ?", uuid).Updates(map[string]any{
+		"last_check": lastCheck,
+		"error":      scanError,
+	})
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return r.First(uuid)
+}
+
 func (r *Watchfolder) Count() (int64, error) {
 	var count int64
 	db := r.DB.Model(&model.Watchfolder{}).Count(&count)
@@ -76,7 +93,11 @@ func (r *Watchfolder) Count() (int64, error) {
  * Processing related methods
  */
 
-func (r *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error) {
+// FirstAndLock loads the watchfolder and claims the current interval for this instance.
+// The interval is only claimed if eligible(watchfolder) returns true, so instances that
+// would skip the watchfolder anyway (suspended, labels mismatch) do not block the others.
+// locked is true if another instance has already claimed the current interval.
+func (r *Watchfolder) FirstAndLock(uuid string, eligible func(*model.Watchfolder) bool) (*model.Watchfolder, bool, error) {
 	var watchfolder model.Watchfolder
 	var locked = false
 	err := r.DB.Transaction(func(tx *gorm.DB) error {
@@ -85,6 +106,10 @@ func (r *Watchfolder) FirstAndLock(uuid string) (*model.Watchfolder, bool, error
 			Where("uuid = ?", uuid).
 			First(&watchfolder).Error; err != nil {
 			return err
+		}
+
+		if eligible != nil && !eligible(&watchfolder) {
+			return nil
 		}
 
 		// calculate the next allowed run time based on Interval + 50ms buffer

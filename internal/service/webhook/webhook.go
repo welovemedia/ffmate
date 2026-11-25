@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -164,6 +165,10 @@ func (s *Service) FireDirect(webhooks *dto.DirectWebhooks, event dto.WebhookEven
 }
 
 func (s *Service) handleWebhookExecution(event dto.WebhookEvent, url string, req *http.Request, resp *http.Response) {
+	if req == nil || resp == nil {
+		return
+	}
+
 	// Read request body
 	var reqBodyStr string
 	if req.Body != nil {
@@ -206,55 +211,76 @@ func (s *Service) handleWebhookExecution(event dto.WebhookEvent, url string, req
 	}
 }
 
+// webhookPayload is the body sent to webhook receivers (field order as documented)
+type webhookPayload struct {
+	Event     dto.WebhookEvent `json:"event"`
+	Timestamp string           `json:"timestamp"` // RFC 3339, UTC
+	Data      any              `json:"data"`
+}
+
+// webhookClient is shared by all webhook deliveries; the timeout limits each single try
+var webhookClient = &http.Client{Timeout: 10 * time.Second}
+
+// webhookRetryDelays defines the delays between delivery tries (after a request error, a timeout or a non-2xx response)
+var webhookRetryDelays = []time.Duration{
+	3 * time.Second,
+	5 * time.Second,
+	10 * time.Second,
+}
+
 func (s *Service) fireWebhook(webhook *model.Webhook, data any, callback func(event dto.WebhookEvent, url string, req *http.Request, resp *http.Response)) {
-	msg := map[string]any{
-		"event": webhook.Event,
-		"data":  data,
-	}
-	b, err := json.Marshal(&msg)
+	// fireWebhook runs in its own goroutine, a panic must not take down the server
+	defer func() {
+		if r := recover(); r != nil {
+			debug.Log.Error("recovered from panic while firing webhook for event '%s' (uuid: %s): %v", webhook.Event, webhook.UUID, r)
+		}
+	}()
+
+	// the timestamp is set once per event, so all retries carry the same value
+	b, err := json.Marshal(&webhookPayload{
+		Event:     webhook.Event,
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Data:      data,
+	})
 	if err != nil {
 		debug.Log.Error("failed to fire webhook due to marshaling for event '%s' (uuid: %s): %v", webhook.Event, webhook.UUID, err)
 		return
 	}
 
-	client := &http.Client{}
 	req, err := http.NewRequest("POST", webhook.URL, bytes.NewBuffer(b))
 	if err != nil {
-		debug.Log.Error("failed to create http request", err)
+		debug.Log.Error("failed to create http request for webhook (uuid: %s): %v", webhook.UUID, err)
 		return
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("User-Agent", s.config.GetString("app.name")+"/"+s.config.GetString("app.version"))
 
-	retryDelays := []time.Duration{
-		3 * time.Second,
-		5 * time.Second,
-		10 * time.Second,
-	}
+	tries := len(webhookRetryDelays) + 1
+	for try := 0; try < tries; try++ {
+		if try > 0 {
+			time.Sleep(webhookRetryDelays[try-1])
+		}
 
-	var resp *http.Response
-	for try := 0; try <= len(retryDelays); try++ {
-		// Reset the body as it has been consumed by a previous try
+		// reset the body as it has been consumed by a previous try
 		req.Body = io.NopCloser(bytes.NewBuffer(b))
-		resp, err = client.Do(req)
+		resp, err := webhookClient.Do(req)
 		if err == nil {
-			debug.Webhook.Debug("fired webhook for event '%s' (uuid: %s)", webhook.Event, webhook.UUID)
-			break
+			// record every received response (also non-2xx) as webhook execution
+			req.Body = io.NopCloser(bytes.NewBuffer(b))
+			callback(webhook.Event, webhook.URL, req, resp)
+			_ = resp.Body.Close()
+
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				debug.Webhook.Debug("fired webhook for event '%s' (uuid: %s)", webhook.Event, webhook.UUID)
+				return
+			}
+			err = fmt.Errorf("unexpected status code %d", resp.StatusCode)
 		}
 
-		if try < len(retryDelays) {
-			time.Sleep(retryDelays[try])
-			continue
-		}
-
-		debug.Log.Error("failed to fire webhook for event '%s' (uuid: %s) after %d tries: %v", webhook.Event, webhook.UUID, try+1, err)
-		return
+		debug.Webhook.Warn("webhook delivery for event '%s' failed (uuid: %s, try %d/%d): %v", webhook.Event, webhook.UUID, try+1, tries, err)
 	}
-	defer resp.Body.Close() // nolint:errcheck
 
-	// Save a copy of body for the callback
-	req.Body = io.NopCloser(bytes.NewBuffer(b))
-	callback(webhook.Event, webhook.URL, req, resp)
+	debug.Log.Error("failed to fire webhook for event '%s' (uuid: %s) after %d tries", webhook.Event, webhook.UUID, tries)
 }
 
 func (s *Service) Name() string {

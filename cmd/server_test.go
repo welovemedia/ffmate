@@ -62,3 +62,29 @@ func TestSetupGoyaveConfig_SQLite(t *testing.T) {
 
 	assert.Equal(t, "sqlite3", cfg.Get("database.connection"))
 }
+
+func TestSetupGoyaveConfig_SQLiteMemoryUsesSingleConnection(t *testing.T) {
+	viper.Set("database", ":memory:")
+	viper.Set("app.name", "ffmate")
+	viper.Set("app.version", "1.2.3")
+	viper.Set("port", 8080)
+
+	cfg := setupGoyaveConfig()
+
+	assert.Equal(t, "sqlite3", cfg.Get("database.connection"))
+	assert.Equal(t, 1, cfg.GetInt("database.maxOpenConnections"))
+	assert.Equal(t, 1, cfg.GetInt("database.maxIdleConnections"))
+	assert.Equal(t, 0, cfg.GetInt("database.maxLifetime"), "the connection must never be recycled")
+}
+
+func TestSetupGoyaveConfig_SQLiteFileKeepsPoolDefaults(t *testing.T) {
+	viper.Set("database", "~/test.sqlite")
+	viper.Set("app.name", "ffmate")
+	viper.Set("app.version", "1.2.3")
+	viper.Set("port", 8080)
+
+	cfg := setupGoyaveConfig()
+
+	assert.Equal(t, 20, cfg.GetInt("database.maxOpenConnections"))
+	assert.Equal(t, 300, cfg.GetInt("database.maxLifetime"))
+}

@@ -11,4 +11,5 @@ const (
 	Settings    = "settings"
 	Client      = "client"
 	Update      = "update"
+	APIKey      = "apikey"
 )

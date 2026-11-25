@@ -2,6 +2,7 @@ package debug
 
 import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
+	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/yosev/debugo"
 	"goyave.dev/goyave/v5"
 )
@@ -16,8 +17,8 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Delete("/debug", c.delete)
-	router.Patch("/debug/{namespace}", c.set)
+	router.Delete("/debug", c.delete).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
+	router.Patch("/debug/{namespace}", c.set).SetMeta(middleware.MetaAccess, middleware.AccessWrite)
 }
 
 // @Summary Set debug namespace(s)

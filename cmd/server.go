@@ -44,7 +44,7 @@ func init() {
 	serverCmd.Flags().Bool("send-telemetry", true, "enable sending anonymous telemetry data")
 	serverCmd.Flags().Bool("no-ui", false, "do not open the ui in the browser")
 	serverCmd.Flags().String("identifier", "", "a unique client identifier (default to hostname)")
-	serverCmd.Flags().StringSlice("labels", []string{}, "a unique client identifier (default to hostname)")
+	serverCmd.Flags().StringSlice("labels", []string{}, "comma-separated labels for this instance")
 	serverCmd.Flags().String("basic-auth", "", "enable basic auth in form of username:password")
 
 	_ = viper.BindPFlag("ffmpeg", serverCmd.Flags().Lookup("ffmpeg"))
@@ -187,6 +187,13 @@ func setupGoyaveConfig() *config.Config {
 	} else {
 		c["database"].(map[string]any)["connection"] = "sqlite3"
 		c["database"].(map[string]any)["name"] = viper.GetString("database")
+		if strings.Contains(viper.GetString("database"), ":memory:") {
+			// every sqlite connection to :memory: gets its own, empty database:
+			// use exactly one connection that is never recycled, so all requests share the same data
+			c["database"].(map[string]any)["maxOpenConnections"] = 1
+			c["database"].(map[string]any)["maxIdleConnections"] = 1
+			c["database"].(map[string]any)["maxLifetime"] = 0
+		}
 	}
 
 	// marshal config to json

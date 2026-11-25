@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,8 +28,11 @@ type Repository interface {
 	ListByBatch(uuid string, page int, perPage int) (*[]model.Task, int64, error)
 	Add(task *model.Task) (*model.Task, error)
 	Update(task *model.Task) (*model.Task, error)
+	UpdateFields(uuid string, fields map[string]any, unlessStatus ...dto.TaskStatus) (*model.Task, error)
+	UpdateUnlessCanceled(task *model.Task) (*model.Task, error)
 	First(uuid string) (*model.Task, error)
 	Delete(task *model.Task) error
+	DeleteInactive(task *model.Task) (bool, error)
 	Count() (int64, error)
 	CountUnfinishedByBatch(uuid string) (int64, error)
 	NextQueued(amount int, labels dto.Labels) (*[]model.Task, error)
@@ -42,6 +46,9 @@ type Service struct {
 	webhookService   *webhook.Service
 	websocketService *websocket.Service
 	ffmpegService    *ffmpeg.Service
+
+	// onFFmpegFound is called once ffmpeg has been found by the background lookup
+	onFFmpegFound atomic.Pointer[func()]
 }
 
 func NewService(repository Repository, presetService *preset.Service, webhookService *webhook.Service, websocketService *websocket.Service, ffmpegService *ffmpeg.Service, startCleanupProcessor bool) *Service {
@@ -62,20 +69,18 @@ func NewService(repository Repository, presetService *preset.Service, webhookSer
 
 // cleanupProcessor fails running jobs of offline (crashed) clients
 func (s *Service) cleanupProcessor() {
-	// fail tasks that belong to current identifier on startup (crashed client)
+	// fail active tasks that belong to current identifier on startup (crashed client)
 	tasks, err := s.repository.FailRunningTasksForStartingClient(cfg.GetString("ffmate.identifier"))
 	if err != nil {
 		debug.Task.Error("failed to clean up running tasks on startup: %v", err)
 	}
 	debug.Task.Debug("cleaned up %d running tasks on startup", len(tasks))
 
-	// sleep before broadcasting to enable websocket connections to re-connect first
+	// sleep before notifying to enable websocket connections to re-connect first
 	time.Sleep(3 * time.Second)
-	for _, t := range tasks {
-		s.websocketService.Broadcast(websocket.TaskUpdated, t.ToDTO())
-	}
+	s.notifyCleanedUp(tasks)
 
-	// fail running tasks of clients every 5s that havn't been seen for >= 60s in cluster mode
+	// fail active tasks of clients every 5s that havn't been seen for >= 60s in cluster mode
 	if cfg.GetBool("ffmate.isCluster") {
 		for {
 			time.Sleep(5 * time.Second)
@@ -84,12 +89,19 @@ func (s *Service) cleanupProcessor() {
 				debug.Task.Error("failed to clean up running tasks of offline clients: %v", err)
 			}
 			if len(tasks) > 0 {
-				for _, t := range tasks {
-					s.websocketService.Broadcast(websocket.TaskUpdated, t.ToDTO())
-				}
+				s.notifyCleanedUp(tasks)
 				debug.Task.Debug("cleaned up %d running tasks of offline clients", len(tasks))
 			}
 		}
+	}
+}
+
+// notifyCleanedUp runs failed tasks of crashed/offline clients through the regular update notification
+// (webhooks, websocket, batch.finished and retries)
+func (s *Service) notifyCleanedUp(tasks []model.Task) {
+	for i := range tasks {
+		metrics.Gauge("task.updated").Inc()
+		s.notifyUpdated(&tasks[i])
 	}
 }
 
@@ -113,6 +125,12 @@ func (s *Service) Update(task *model.Task) (*model.Task, error) {
 		return nil, err
 	}
 
+	s.notifyUpdated(task)
+	return task, nil
+}
+
+// notifyUpdated fires webhooks / websocket events for an updated task
+func (s *Service) notifyUpdated(task *model.Task) {
 	s.webhookService.Fire(dto.TaskUpdated, task.ToDTO())
 	s.webhookService.FireDirect(task.Webhooks, dto.TaskUpdated, task.ToDTO())
 	s.websocketService.Broadcast(websocket.TaskUpdated, task.ToDTO())
@@ -150,12 +168,11 @@ func (s *Service) Update(task *model.Task) (*model.Task, error) {
 					debug.Task.Error("failed to retry task (uuid: %s)", t.UUID)
 					return
 				}
+				metrics.Gauge("task.updated").Inc()
 				debug.Task.Debug("retried task %d/%d (uuid: %s): %v", t.Retried, t.Retries, uuid, err)
 			}
 		}()
 	}
-
-	return task, nil
 }
 
 func (s *Service) mustRetryTask(task *model.Task) bool {
@@ -172,6 +189,11 @@ func (s *Service) Cancel(uuid string) (*model.Task, error) {
 		return nil, errors.New("task for given uuid not found")
 	}
 
+	// canceling twice must not announce the cancelation again
+	if w.Status == dto.DoneCanceled {
+		return w, nil
+	}
+
 	w.Status = dto.DoneCanceled
 	w.Remaining = -1
 	w.Progress = 100
@@ -180,7 +202,17 @@ func (s *Service) Cancel(uuid string) (*model.Task, error) {
 	metrics.Gauge("task.canceled").Inc()
 	debug.Log.Info("canceled task (uuid: %s)", uuid)
 
-	return s.Update(w)
+	t, err := s.Update(w)
+
+	// stop the execution right away if the task is being processed by this instance
+	// (other instances stop it on their next progress update, which no longer overwrites the cancelation)
+	if ctxVal, ok := taskQueue.Load(uuid); ok {
+		if tc, ok2 := ctxVal.(taskContext); ok2 {
+			tc.cancel(errors.New("task has been canceled"))
+		}
+	}
+
+	return t, err
 }
 
 func (s *Service) Restart(uuid string) (*model.Task, error) {
@@ -390,6 +422,14 @@ func (s *Service) AddBatch(newBatch *dto.NewBatch) (*dto.Batch, error) {
 	return batch, nil
 }
 
+// ErrTaskActive is returned when deleting a task that is currently being processed
+var ErrTaskActive = errors.New("task is currently being processed, cancel it before deleting")
+
+// isActive reports whether a task with the given status is currently being processed
+func isActive(status dto.TaskStatus) bool {
+	return status == dto.PreProcessing || status == dto.Running || status == dto.PostProcessing
+}
+
 func (s *Service) Delete(uuid string) error {
 	w, err := s.repository.First(uuid)
 	if err != nil {
@@ -400,10 +440,19 @@ func (s *Service) Delete(uuid string) error {
 		return errors.New("task for given uuid not found")
 	}
 
-	err = s.repository.Delete(w)
+	// a task that is being processed must be canceled first
+	if isActive(w.Status) {
+		return ErrTaskActive
+	}
+
+	deleted, err := s.repository.DeleteInactive(w)
 	if err != nil {
 		debug.Log.Error("failed to delete task (uuid: %s)", uuid)
 		return err
+	}
+	if !deleted {
+		// the task has been picked up for processing in the meantime
+		return ErrTaskActive
 	}
 
 	debug.Log.Info("deleted task (uuid: %s)", uuid)
@@ -427,6 +476,9 @@ func (s *Service) startQueue() *Service {
 			for {
 				time.Sleep(10 * time.Second)
 				if s.checkFFmpeg() {
+					if fn := s.onFFmpegFound.Load(); fn != nil {
+						(*fn)()
+					}
 					return
 				}
 			}
@@ -436,6 +488,11 @@ func (s *Service) startQueue() *Service {
 	go s.processQueue()
 
 	return s
+}
+
+// OnFFmpegFound registers a callback that is invoked when ffmpeg is found after it was missing on startup
+func (s *Service) OnFFmpegFound(fn func()) {
+	s.onFFmpegFound.Store(&fn)
 }
 
 func (s *Service) checkFFmpeg() bool {
@@ -502,6 +559,8 @@ func (s *Service) processNewTask(task *model.Task) {
 
 	task.StartedAt = time.Now().UnixMilli()
 
+	s.resolveTaskFiles(task)
+
 	if err := s.runPreProcessing(task); err != nil {
 		s.failTask(task, err)
 		return
@@ -533,29 +592,38 @@ func (s *Service) updateRunningTask(task *model.Task) (*model.Task, error) {
 	if !ok {
 		return task, fmt.Errorf("taskContext for task has not been found (uuid: %s)", task.UUID)
 	}
-	t, err := s.repository.First(task.UUID)
+
+	// write conditionally: a cancel stored concurrently (API or another cluster instance) must win
+	task.ClientIdentifier = cfg.GetString("ffmate.identifier")
+	t, err := s.repository.UpdateUnlessCanceled(task)
 	if err != nil {
-		return task, fmt.Errorf("failed to receive task during running updates (uuid: %s): %v", task.UUID, err)
+		return task, fmt.Errorf("failed to update task during processing (uuid: %s): %v", task.UUID, err)
 	}
-	if t.Status == dto.DoneCanceled {
+	if t == nil {
+		// canceled or deleted: stop the execution (ffmpeg) of this task
 		if tc, ok2 := ctxVal.(taskContext); ok2 {
-			debug.Task.Debug("denied updating an already canceled task during processing, canceling context.. (uuid: %s)", task.UUID)
+			debug.Task.Debug("denied updating an already canceled or deleted task during processing, canceling context.. (uuid: %s)", task.UUID)
 			tc.cancel(errors.New("task has been canceled"))
 			return task, nil
 		}
 		return task, fmt.Errorf("taskQueue context for uuid %s is not of type taskContext", task.UUID)
 	}
 
-	return s.Update(task)
+	s.notifyUpdated(t)
+	return t, nil
 }
 
 func (s *Service) cancelTask(task *model.Task) {
 	task.FinishedAt = time.Now().UnixMilli()
 	task.Progress = 100
 	task.Status = dto.DoneCanceled
-	_, err := s.Update(task)
-	if err != nil {
-		debug.Task.Error("failed to update task after cancel (uuid: %s)", task.UUID)
+	if err := s.finishTask(task, map[string]any{
+		"finished_at": task.FinishedAt,
+		"progress":    task.Progress,
+		"remaining":   task.Remaining,
+		"status":      task.Status,
+	}); err != nil {
+		debug.Task.Error("failed to update task after cancel (uuid: %s): %v", task.UUID, err)
 	}
 	debug.Task.Info("task canceled (uuid: %s)", task.UUID)
 }
@@ -565,11 +633,35 @@ func (s *Service) failTask(task *model.Task, err error) {
 	task.Progress = 100
 	task.Status = dto.DoneError
 	task.Error = err.Error()
-	_, err = s.Update(task)
-	if err != nil {
-		debug.Task.Error("failed to update task after fail (uuid: %s)", task.UUID)
+	if err := s.finishTask(task, map[string]any{
+		"finished_at": task.FinishedAt,
+		"progress":    task.Progress,
+		"remaining":   task.Remaining,
+		"status":      task.Status,
+		"error":       task.Error,
+	}); err != nil {
+		debug.Task.Error("failed to update task after fail (uuid: %s): %v", task.UUID, err)
 	}
 	debug.Task.Warn("task failed (uuid: %s)", task.UUID)
+}
+
+// finishTask writes only the given fields of a task that has reached a final state.
+// Nothing is written and no events are fired if the task has been deleted (it is never re-inserted)
+// or already canceled: Cancel() has stored and announced the final state already, so a second
+// task.updated / batch.finished must not be sent and the canceled state must not be overwritten.
+func (s *Service) finishTask(task *model.Task, fields map[string]any) error {
+	task.ClientIdentifier = cfg.GetString("ffmate.identifier")
+	fields["client_identifier"] = task.ClientIdentifier
+	t, err := s.repository.UpdateFields(task.UUID, fields, dto.DoneCanceled)
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		debug.Task.Debug("task deleted or already canceled, skipping final update (uuid: %s)", task.UUID)
+		return nil
+	}
+	s.notifyUpdated(t)
+	return nil
 }
 
 func (s *Service) taskQueueLength() int {

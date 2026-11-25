@@ -7,7 +7,9 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/debug"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"github.com/welovemedia/ffmate/v2/internal/exception"
+	"github.com/welovemedia/ffmate/v2/internal/middleware"
 	"github.com/welovemedia/ffmate/v2/internal/service"
+	"github.com/welovemedia/ffmate/v2/internal/validate"
 	"goyave.dev/goyave/v5"
 	"goyave.dev/goyave/v5/util/typeutil"
 )
@@ -28,7 +30,7 @@ func (c *Controller) Init(server *goyave.Server) {
 }
 
 func (c *Controller) RegisterRoutes(router *goyave.Router) {
-	router.Get("/clients", c.list)
+	router.Get("/clients", c.list).ValidateQuery(validate.PaginationRequest).SetMeta(middleware.MetaAccess, middleware.AccessRead)
 }
 
 // @Summary List all clients
@@ -44,7 +46,7 @@ func (c *Controller) list(response *goyave.Response, request *goyave.Request) {
 
 	clients, total, err := c.clientService.List(query.Page.Default(0), query.PerPage.Default(100))
 	if err != nil {
-		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/settings#load-settings"))
+		response.JSON(400, exception.HTTPBadRequest(err, "https://docs.ffmate.io/docs/ffmate-internals#client-endpoint"))
 		return
 	}
 

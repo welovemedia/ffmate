@@ -9,6 +9,7 @@ import (
 	"github.com/welovemedia/ffmate/v2/internal/database/model"
 	"github.com/welovemedia/ffmate/v2/internal/dto"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"goyave.dev/goyave/v5/database"
 )
 
@@ -35,6 +36,17 @@ func (r *Task) First(uuid string) (*model.Task, error) {
 
 func (r *Task) Delete(w *model.Task) error {
 	return r.DB.Delete(w).Error
+}
+
+// DeleteInactive (soft) deletes the task only if it is not currently being processed.
+// The status check is part of the DELETE statement, so a task claimed concurrently (e.g. by another
+// cluster instance) is never deleted while running. Returns false if the task is active.
+func (r *Task) DeleteInactive(w *model.Task) (bool, error) {
+	result := r.DB.Where("status NOT IN ?", activeStatuses).Delete(w)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
 }
 
 func (r *Task) List(page int, perPage int, status dto.TaskStatus) (*[]model.Task, int64, error) {
@@ -93,42 +105,107 @@ func (r *Task) Update(task *model.Task) (*model.Task, error) {
 	return r.First(task.UUID)
 }
 
+// UpdateUnlessCanceled writes all fields (and labels) of a task that is being processed, unless the
+// stored task has been canceled or deleted in the meantime. The status check is part of the UPDATE
+// statement, so a concurrent cancel (also from another cluster instance) is never overwritten.
+// Returns (nil, nil) if nothing was written.
+func (r *Task) UpdateUnlessCanceled(task *model.Task) (*model.Task, error) {
+	written := false
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&model.Task{}).
+			Where("uuid = ? AND status <> ?", task.UUID, dto.DoneCanceled).
+			Select("*").
+			Omit("id", "created_at", "deleted_at", "Labels", "Client").
+			Updates(task)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return nil
+		}
+		written = true
+
+		if err := upsertLabels(tx, task.Labels); err != nil {
+			return err
+		}
+		return tx.Model(task).Association("Labels").Replace(task.Labels)
+	})
+	if err != nil || !written {
+		return nil, err
+	}
+	return r.First(task.UUID)
+}
+
+// UpdateFields writes only the given columns of an existing (non-deleted) task.
+// Unlike Update it never inserts: if the task no longer exists, (nil, nil) is returned.
+// Tasks currently having one of the unlessStatus statuses are not updated either (nil, nil is returned).
+func (r *Task) UpdateFields(uuid string, fields map[string]any, unlessStatus ...dto.TaskStatus) (*model.Task, error) {
+	tx := r.DB.Model(&model.Task{}).Where("uuid = ?", uuid)
+	if len(unlessStatus) > 0 {
+		tx = tx.Where("status NOT IN ?", unlessStatus)
+	}
+	result := tx.Updates(fields)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return r.First(uuid)
+}
+
 func (r *Task) Count() (int64, error) {
 	var count int64
 	db := r.DB.Model(&model.Task{}).Count(&count)
 	return count, db.Error
 }
 
-func (r *Task) FailRunningTasksForStartingClient(identifier string) ([]model.Task, error) {
-	var tasks []model.Task
-	err := r.DB.Raw(`
-		UPDATE tasks
-		SET status = ?, error = ?, finished_at = ?,remaining = -1, progress = 100
-		WHERE status = ? AND client_identifier = ?
-		RETURNING *;
-	`, dto.DoneError, "client disconnected during execution", time.Now().UnixMilli(), dto.Running, identifier).Scan(&tasks).Error
+// activeStatuses are the statuses of tasks that are currently being processed by a client
+var activeStatuses = []dto.TaskStatus{dto.PreProcessing, dto.Running, dto.PostProcessing}
 
-	return tasks, err
+// FailRunningTasksForStartingClient fails all active tasks of the given client (crashed and restarted client)
+func (r *Task) FailRunningTasksForStartingClient(identifier string) ([]model.Task, error) {
+	return r.failActiveTasks("client_identifier = ?", identifier)
 }
 
+// FailRunningTasksForOfflineClients fails all active tasks of clients that have not been seen for >= 60s
 func (r *Task) FailRunningTasksForOfflineClients() ([]model.Task, error) {
-	threshold := time.Now().Add(-60 * time.Second).UnixMilli() // int64
+	threshold := time.Now().Add(-60 * time.Second).UnixMilli()
+	return r.failActiveTasks("client_identifier IN (SELECT identifier FROM client WHERE last_seen < ?)", threshold)
+}
 
-	now := time.Now().UnixMilli()
+// failActiveTasks sets all active tasks matching the given client condition to DONE_ERROR and returns them (with labels).
+// The rows are locked (FOR UPDATE SKIP LOCKED, ignored by sqlite) and the status is re-checked on update,
+// so concurrent cluster instances never fail (and notify about) the same task twice.
+// UPDATE ... RETURNING is avoided here, as the sqlite driver fails with
+// "bad parameter or other API misuse: not an error (21)" on it
+func (r *Task) failActiveTasks(clientCondition string, args ...any) ([]model.Task, error) {
 	var tasks []model.Task
+	err := r.DB.Transaction(func(tx *gorm.DB) error {
+		var ids []uint
+		if err := tx.Model(&model.Task{}).
+			Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"}).
+			Where("status IN ?", activeStatuses).
+			Where(clientCondition, args...).
+			Pluck("id", &ids).Error; err != nil {
+			return err
+		}
+		if len(ids) == 0 {
+			return nil
+		}
 
-	err := r.DB.Raw(`
-		UPDATE tasks
-		SET status = ?, error = ?, finished_at = ?, remaining = -1, progress = 100
-		WHERE status = ?
-		  AND client_identifier IN (
-		      SELECT identifier
-		      FROM client
-		      WHERE last_seen < ?
-		  )
-		RETURNING *;
-	`, dto.DoneError, "client disconnected during execution", now, dto.Running, threshold).
-		Scan(&tasks).Error
+		if err := tx.Model(&model.Task{}).Where("id IN ? AND status IN ?", ids, activeStatuses).Updates(map[string]any{
+			"status":      dto.DoneError,
+			"error":       "client disconnected during execution",
+			"finished_at": time.Now().UnixMilli(),
+			"remaining":   -1,
+			"progress":    100,
+		}).Error; err != nil {
+			return err
+		}
+
+		return tx.Preload("Labels").Where("id IN ?", ids).Find(&tasks).Error
+	})
 
 	return tasks, err
 }
@@ -156,7 +233,9 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 			Where("tasks.status = ?", dto.Queued).
 			Where(whereSQL, whereArgs...).
 			Order("tasks.priority DESC, tasks.created_at ASC").
-			Limit(amount)
+			Limit(amount).
+			// lock the selected rows so concurrent instances (cluster) skip them instead of claiming the same tasks
+			Clauses(clause.Locking{Strength: "UPDATE", Options: "SKIP LOCKED"})
 
 		if err := tx.Preload("Labels").
 			Where("tasks.id IN (?)", sub).
@@ -175,7 +254,7 @@ func (r *Task) NextQueued(amount int, clientLabels dto.Labels) (*[]model.Task, e
 		}
 
 		if err := tx.Model(&model.Task{}).
-			Where("id IN ?", ids).
+			Where("id IN ? AND status = ?", ids, dto.Queued). // never claim a task that is no longer queued
 			Update("status", dto.Running).Error; err != nil {
 			return err
 		}
