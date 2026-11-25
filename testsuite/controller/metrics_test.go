@@ -45,6 +45,6 @@ func TestRestAPIMetricUsesRouteTemplate(t *testing.T) {
 	get("/api/v1/does-not-exist/" + uuid.NewString())
 	get("/api/v1/does-not-exist/" + uuid.NewString())
 
-	assert.Equal(t, routeBefore+4, gaugeValue(t, route), "all task lookups (also invalid uuids) share the route template label")
+	assert.InDelta(t, routeBefore+4, gaugeValue(t, route), 0.001, "all task lookups (also invalid uuids) share the route template label")
 	assert.Equal(t, seriesBefore, seriesCount(vec), "no new series per uuid or unknown path")
 }

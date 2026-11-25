@@ -286,51 +286,7 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 
 		debug.Watchfolder.Debug("watchfolder processing (uuid: %s)", watchfolder.UUID)
 
-		// walk the directory resursively
-		err = filepath.Walk(wf.Path, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			// skip directories
-			if info.IsDir() {
-				return nil
-			}
-
-			// skip invisible files
-			if strings.HasPrefix(filepath.Base(path), ".") {
-				return nil
-			}
-
-			// skip .lock files
-			if strings.HasSuffix(filepath.Base(path), ".lock") {
-				return nil
-			}
-
-			// filter extensions
-			if s.filterOutExtension(wf, path) {
-				return nil
-			}
-
-			// if a .lock file exists, the file has already been processed
-			if _, err := os.Stat(path + ".lock"); err == nil {
-				return nil
-			}
-
-			// determine if the file is ready for processing
-			if s.shouldProcessFile(path, info, &fileStates, wf.GrowthChecks) {
-				fileStates.Delete(path) // Remove from tracking
-				// only lock the file if a task has actually been created, otherwise it is retried on the next interval
-				if err := s.createTask(path, wf); err != nil {
-					return nil
-				}
-				if err := os.WriteFile(path+".lock", []byte(""), 0777); err != nil {
-					debug.Log.Error("failed to write .lock file (uuid: %s): %v", watchfolder.UUID, err)
-				}
-			}
-
-			return nil
-		})
+		err = s.scanWatchfolder(wf, &fileStates)
 
 		// persist the result of this scan, a successful scan clears a previous error
 		var scanError string
@@ -347,6 +303,42 @@ func (s *Service) processWatchfolder(watchfolder *model.Watchfolder) {
 			s.websocketService.Broadcast(websocket.WatchfolderUpdated, updated.ToDTO())
 		}
 	}
+}
+
+// scanWatchfolder walks the watchfolder directory recursively and creates a task (and a .lock file)
+// for every file that is ready for processing
+func (s *Service) scanWatchfolder(wf *model.Watchfolder, fileStates *sync.Map) error {
+	return filepath.Walk(wf.Path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// skip directories, invisible files, .lock files and filtered extensions
+		base := filepath.Base(path)
+		if info.IsDir() || strings.HasPrefix(base, ".") || strings.HasSuffix(base, ".lock") || s.filterOutExtension(wf, path) {
+			return nil
+		}
+
+		// if a .lock file exists, the file has already been processed
+		if _, err := os.Stat(path + ".lock"); err == nil {
+			return nil
+		}
+
+		// determine if the file is ready for processing
+		if !s.shouldProcessFile(path, info, fileStates, wf.GrowthChecks) {
+			return nil
+		}
+		fileStates.Delete(path) // Remove from tracking
+
+		// only lock the file if a task has actually been created, otherwise it is retried on the next interval
+		if err := s.createTask(path, wf); err != nil {
+			return nil
+		}
+		if err := os.WriteFile(path+".lock", []byte(""), 0777); err != nil {
+			debug.Log.Error("failed to write .lock file (uuid: %s): %v", wf.UUID, err)
+		}
+		return nil
+	})
 }
 
 // hasLabelOverlap checks if any task label matches any client label.

@@ -187,6 +187,13 @@ func setupGoyaveConfig() *config.Config {
 	} else {
 		c["database"].(map[string]any)["connection"] = "sqlite3"
 		c["database"].(map[string]any)["name"] = viper.GetString("database")
+		if strings.Contains(viper.GetString("database"), ":memory:") {
+			// every sqlite connection to :memory: gets its own, empty database:
+			// use exactly one connection that is never recycled, so all requests share the same data
+			c["database"].(map[string]any)["maxOpenConnections"] = 1
+			c["database"].(map[string]any)["maxIdleConnections"] = 1
+			c["database"].(map[string]any)["maxLifetime"] = 0
+		}
 	}
 
 	// marshal config to json

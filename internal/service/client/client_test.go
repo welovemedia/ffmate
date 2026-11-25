@@ -14,7 +14,7 @@ func TestFFmpegPathEmptyWhenNotFound(t *testing.T) {
 	// lookup failed: the configured (unresolved) value must not be reported
 	cfg.Set("ffmate.ffmpeg", "/nonexistent/ffmpeg")
 	cfg.Set("ffmate.isFFmpeg", false)
-	assert.Equal(t, "", ffmpegPath())
+	assert.Empty(t, ffmpegPath())
 
 	// lookup succeeded: the resolved path is reported
 	cfg.Set("ffmate.ffmpeg", "/usr/bin/ffmpeg")

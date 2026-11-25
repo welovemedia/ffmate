@@ -132,7 +132,7 @@ func (s *Service) prePostProcessTask(task *model.Task, processor *dto.PrePostPro
 	s.trackProcessingMetrics(processor, processorType)
 	s.initializeProcessing(task, processor, processorType)
 
-	if err := s.handleSidecar(task, processor, processorType); err != nil {
+	if err := s.handleSidecar(task, processor); err != nil {
 		return err
 	}
 
@@ -175,7 +175,7 @@ func (s *Service) initializeProcessing(task *model.Task, processor *dto.PrePostP
 	}
 }
 
-func (s *Service) handleSidecar(task *model.Task, processor *dto.PrePostProcessing, processorType string) error {
+func (s *Service) handleSidecar(task *model.Task, processor *dto.PrePostProcessing) error {
 	if processor.SidecarPath == nil || processor.SidecarPath.Raw == "" {
 		return nil
 	}

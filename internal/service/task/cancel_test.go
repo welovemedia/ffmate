@@ -90,8 +90,8 @@ func TestCancelStopsParallelRunningTasks(t *testing.T) {
 	})
 	for i := range tasks {
 		task, err := taskRepo.Add(&model.Task{
-			UUID:       uuid.NewString(),
-			Status:     dto.Running,
+			UUID:   uuid.NewString(),
+			Status: dto.Running,
 			// -stats_period 30: without progress updates, only a direct context cancel stops ffmpeg in time
 			Command:    &dto.RawResolved{Raw: "-re -f lavfi -i testsrc=d=60:s=64x64 -stats_period 30 -y ${OUTPUT_FILE}"},
 			InputFile:  &dto.RawResolved{},

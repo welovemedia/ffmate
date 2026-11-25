@@ -21,6 +21,11 @@ var c = map[string]any{
 	"database": map[string]any{
 		"connection": "sqlite3",
 		"name":       ":memory:",
+		// every sqlite connection to :memory: gets its own, empty database:
+		// use exactly one connection that is never recycled
+		"maxOpenConnections": 1,
+		"maxIdleConnections": 1,
+		"maxLifetime":        0,
 	},
 	"auth": map[string]any{
 		"basic": map[string]any{
@@ -53,14 +58,6 @@ func New(t *testing.T) *testutil.TestServer {
 	cfg.Set("ffmate.isCluster", false)
 
 	server := testutil.NewTestServerWithOptions(t, goyave.Options{Config: conf})
-
-	sqlDB, err := server.DB().DB()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	sqlDB.SetMaxOpenConns(1)
-	sqlDB.SetMaxIdleConns(1)
 
 	// add global parsing
 	server.Router().GlobalMiddleware(&parse.Middleware{
